@@ -1,0 +1,16 @@
+node_modules/
+build/
+dist/
+coverage/
+.DS_Store
+*.log
+.env*
+!.env.example
+__pycache__/
+.pytest_cache/
+.ruff_cache/
+.venv/
+*.db
+uploads/
+backend/uploads/
+frontend/.vite/

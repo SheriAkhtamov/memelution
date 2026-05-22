@@ -1,0 +1,41 @@
+[project]
+name = "memolution-backend"
+version = "1.0.0"
+description = "FastAPI backend for Memolution"
+requires-python = ">=3.11"
+dependencies = [
+  "alembic>=1.15.0",
+  "aiosqlite>=0.20.0",
+  "asyncpg>=0.30.0",
+  "boto3>=1.35.0",
+  "cryptography>=43.0.0",
+  "fastapi>=0.115.0",
+  "greenlet>=3.2.0",
+  "httpx>=0.28.0",
+  "pydantic-settings>=2.7.0",
+  "psycopg2-binary>=2.9.10",
+  "pyjwt>=2.10.0",
+  "python-multipart>=0.0.20",
+  "redis>=5.2.0",
+  "sqlalchemy>=2.0.36",
+  "uvicorn[standard]>=0.34.0",
+]
+
+[project.optional-dependencies]
+dev = [
+  "pytest>=8.3.0",
+  "pytest-asyncio>=0.25.0",
+  "ruff>=0.8.0",
+]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["app/tests"]
+pythonpath = ["."]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+ignore = ["F405"]

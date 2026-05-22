@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="title">
+  <title id="title">Мемолюция</title>
+  <rect width="512" height="512" rx="112" fill="#111827"/>
+  <circle cx="171" cy="190" r="38" fill="#f8fafc"/>
+  <circle cx="341" cy="190" r="38" fill="#f8fafc"/>
+  <path d="M155 312c42 52 160 52 202 0" fill="none" stroke="#f8fafc" stroke-width="34" stroke-linecap="round"/>
+  <path d="M117 116h278v280H117z" fill="none" stroke="#38bdf8" stroke-width="22" stroke-linejoin="round"/>
+</svg>

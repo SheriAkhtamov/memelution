@@ -1,0 +1,12 @@
+.git
+.env
+.DS_Store
+backups
+backend/.pytest_cache
+backend/.venv
+backend/memolution.db
+backend/uploads
+frontend/dist
+frontend/node_modules
+**/__pycache__
+**/*.pyc

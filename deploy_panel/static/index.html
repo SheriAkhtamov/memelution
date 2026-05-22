@@ -1,0 +1,710 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Memelution Deploy Panel</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --bg:#0a0a0f;--surface:#12121a;--surface2:#1a1a28;--surface3:#22223a;
+  --border:#2a2a44;--text:#e4e4f0;--text2:#8888aa;--text3:#5a5a7a;
+  --accent:#7c5cff;--accent2:#a78bfa;--accent-glow:rgba(124,92,255,.15);
+  --green:#22c55e;--green-bg:rgba(34,197,94,.1);
+  --red:#ef4444;--red-bg:rgba(239,68,68,.1);
+  --yellow:#eab308;--yellow-bg:rgba(234,179,8,.1);
+  --blue:#3b82f6;--blue-bg:rgba(59,130,246,.1);
+  --radius:12px;--radius-sm:8px;
+}
+body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;overflow-x:hidden}
+.app{max-width:1100px;margin:0 auto;padding:24px 20px 60px}
+
+/* Header */
+.header{text-align:center;padding:32px 0 24px;position:relative}
+.header::before{content:'';position:absolute;top:-100px;left:50%;transform:translateX(-50%);width:600px;height:400px;background:radial-gradient(ellipse,rgba(124,92,255,.08),transparent 70%);pointer-events:none}
+.header h1{font-size:26px;font-weight:800;background:linear-gradient(135deg,#fff,var(--accent2));-webkit-background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:4px}
+.header p{color:var(--text2);font-size:13px}
+
+/* Server selector */
+.server-bar{display:flex;align-items:center;gap:10px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:10px 16px;margin-bottom:20px}
+.server-bar .label{font-size:12px;color:var(--text3);font-weight:600;text-transform:uppercase;letter-spacing:.5px;white-space:nowrap}
+.server-select{flex:1;background:var(--bg);border:1px solid var(--border);border-radius:var(--radius-sm);padding:8px 12px;color:var(--text);font-size:13px;font-family:inherit;outline:none;cursor:pointer;min-width:0}
+.server-select:focus{border-color:var(--accent)}
+.server-select option{background:var(--surface2);color:var(--text)}
+.server-status{font-size:12px;display:flex;align-items:center;gap:6px;white-space:nowrap}
+.server-add-btn{background:var(--surface2);border:1px dashed var(--border);border-radius:var(--radius-sm);padding:6px 12px;cursor:pointer;color:var(--text2);font-size:12px;transition:all .2s;white-space:nowrap}
+.server-add-btn:hover{border-color:var(--accent);color:var(--accent);background:var(--accent-glow)}
+
+/* Tabs */
+.tabs{display:flex;gap:4px;background:var(--surface);border-radius:var(--radius);padding:4px;margin-bottom:24px;border:1px solid var(--border);overflow-x:auto}
+.tab{flex:1;padding:10px 8px;text-align:center;border-radius:var(--radius-sm);cursor:pointer;font-size:12px;font-weight:600;color:var(--text2);transition:all .2s;user-select:none;min-width:80px}
+.tab:hover{color:var(--text);background:var(--surface2)}
+.tab.active{background:var(--accent);color:#fff;box-shadow:0 4px 20px rgba(124,92,255,.3)}
+.tab .icon{font-size:16px;display:block;margin-bottom:2px}
+
+/* Cards */
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:20px;margin-bottom:16px;transition:border-color .2s}
+.card:hover{border-color:var(--surface3)}
+.card-title{font-size:14px;font-weight:700;margin-bottom:14px;display:flex;align-items:center;gap:8px}
+.card-title .badge{font-size:10px;padding:2px 8px;border-radius:20px;font-weight:600}
+
+/* Forms */
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.form-group{display:flex;flex-direction:column;gap:4px}
+.form-group.full{grid-column:1/-1}
+.form-label{font-size:11px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.5px}
+.form-input{background:var(--bg);border:1px solid var(--border);border-radius:var(--radius-sm);padding:9px 12px;color:var(--text);font-size:13px;font-family:inherit;outline:none;transition:border-color .2s}
+.form-input:focus{border-color:var(--accent)}
+.form-input:read-only{color:var(--text3)}
+textarea.form-input{min-height:280px;font-family:'JetBrains Mono','Fira Code',monospace;font-size:12px;line-height:1.6;resize:vertical}
+
+/* Buttons */
+.btn{padding:9px 16px;border-radius:var(--radius-sm);font-size:12px;font-weight:600;cursor:pointer;border:none;transition:all .2s;font-family:inherit;display:inline-flex;align-items:center;gap:6px}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+.btn-primary{background:var(--accent);color:#fff;box-shadow:0 4px 16px rgba(124,92,255,.25)}
+.btn-primary:hover:not(:disabled){background:#6a4ae8;transform:translateY(-1px)}
+.btn-success{background:var(--green);color:#fff}
+.btn-success:hover:not(:disabled){background:#16a34a}
+.btn-danger{background:var(--red);color:#fff}
+.btn-danger:hover:not(:disabled){background:#dc2626}
+.btn-outline{background:transparent;color:var(--text2);border:1px solid var(--border)}
+.btn-outline:hover{color:var(--text);border-color:var(--text3)}
+.btn-sm{padding:6px 10px;font-size:11px}
+.btn-group{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap}
+
+/* Status dot */
+.status-dot{width:8px;height:8px;border-radius:50%;display:inline-block;flex-shrink:0}
+.status-dot.green{background:var(--green);box-shadow:0 0 8px var(--green)}
+.status-dot.red{background:var(--red);box-shadow:0 0 8px var(--red)}
+.status-dot.yellow{background:var(--yellow);box-shadow:0 0 8px var(--yellow)}
+.status-dot.gray{background:var(--text3)}
+
+/* Log */
+.log-container{background:var(--bg);border:1px solid var(--border);border-radius:var(--radius-sm);padding:14px;max-height:360px;overflow-y:auto;font-family:'JetBrains Mono','Fira Code',monospace;font-size:11px;line-height:1.7}
+.log-entry{display:flex;gap:8px;align-items:flex-start}
+.log-time{color:var(--text3);min-width:52px;flex-shrink:0;font-size:10px}
+.log-icon{min-width:18px;text-align:center}
+.log-msg{word-break:break-all}
+.log-entry.success .log-msg{color:var(--green)}
+.log-entry.error .log-msg{color:var(--red)}
+.log-entry.warning .log-msg{color:var(--yellow)}
+.log-entry.info .log-msg{color:var(--text2)}
+
+/* Deploy cards */
+.deploy-actions{display:flex;gap:12px;margin-bottom:16px}
+.deploy-card{flex:1;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);padding:16px;cursor:pointer;transition:all .25s;text-align:center}
+.deploy-card:hover{border-color:var(--accent);transform:translateY(-2px);box-shadow:0 8px 30px rgba(0,0,0,.3)}
+.deploy-card .icon{font-size:28px;margin-bottom:6px}
+.deploy-card h3{font-size:13px;font-weight:700;margin-bottom:3px}
+.deploy-card p{font-size:11px;color:var(--text2)}
+.deploy-card.running{pointer-events:none;opacity:.5}
+
+/* Status bar */
+.status-bar{display:flex;align-items:center;gap:10px;padding:10px 14px;border-radius:var(--radius-sm);margin-bottom:14px;font-size:12px;font-weight:600}
+.status-bar.idle{background:var(--surface2);color:var(--text2)}
+.status-bar.running{background:var(--blue-bg);color:var(--blue);border:1px solid rgba(59,130,246,.2)}
+.status-bar.success{background:var(--green-bg);color:var(--green);border:1px solid rgba(34,197,94,.2)}
+.status-bar.error{background:var(--red-bg);color:var(--red);border:1px solid rgba(239,68,68,.2)}
+
+/* Server info */
+.sys-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px;margin-bottom:14px}
+.sys-card{background:var(--bg);border:1px solid var(--border);border-radius:var(--radius-sm);padding:12px}
+.sys-card .label{font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:3px}
+.sys-card .value{font-size:13px;font-weight:700}
+
+/* Results */
+.result-list{list-style:none;padding:0}
+.result-list li{padding:7px 10px;border-radius:var(--radius-sm);margin-bottom:4px;font-size:12px;background:var(--surface2)}
+.domain-results{margin-top:12px}
+.domain-results .result-item{display:flex;align-items:center;gap:6px;padding:8px 12px;background:var(--surface2);border-radius:var(--radius-sm);margin-bottom:4px;font-size:12px}
+
+/* Spinner */
+@keyframes spin{to{transform:rotate(360deg)}}
+.spinner{width:14px;height:14px;border:2px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .6s linear infinite;display:inline-block;vertical-align:middle}
+
+/* Toast */
+.toast{position:fixed;bottom:24px;right:24px;padding:12px 18px;border-radius:var(--radius-sm);font-size:12px;font-weight:600;z-index:1000;transform:translateY(100px);opacity:0;transition:all .3s;max-width:400px}
+.toast.show{transform:translateY(0);opacity:1}
+.toast.success{background:var(--green);color:#fff}
+.toast.error{background:var(--red);color:#fff}
+
+/* Server list modal */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:999;display:none;align-items:center;justify-content:center;padding:20px}
+.modal-overlay.show{display:flex}
+.modal{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);width:100%;max-width:600px;max-height:90vh;overflow-y:auto;padding:24px;animation:fadeIn .2s ease}
+.modal h2{font-size:16px;margin-bottom:16px}
+.server-list-item{display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--surface2);border-radius:var(--radius-sm);margin-bottom:6px;cursor:pointer;transition:all .15s;border:1px solid transparent}
+.server-list-item:hover{border-color:var(--border)}
+.server-list-item.active{border-color:var(--accent);background:var(--accent-glow)}
+.server-list-item .name{font-size:13px;font-weight:600;flex:1}
+.server-list-item .info{font-size:11px;color:var(--text2)}
+.server-list-item .del{color:var(--red);cursor:pointer;font-size:16px;padding:4px;opacity:0;transition:opacity .2s}
+.server-list-item:hover .del{opacity:1}
+.server-list-item .del:hover{color:#ff6b6b}
+
+/* Pages */
+.page{display:none}
+.page.active{display:block;animation:fadeIn .2s ease}
+@keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+
+@media(max-width:640px){
+  .form-grid{grid-template-columns:1fr}
+  .deploy-actions{flex-direction:column}
+  .tabs{flex-wrap:wrap}
+  .server-bar{flex-wrap:wrap}
+  .server-select{min-width:100%}
+}
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="header">
+    <h1>🚀 Memelution Deploy Panel</h1>
+    <p>Управление серверами, деплоем, доменами и конфигурацией</p>
+  </div>
+
+  <!-- Server selector -->
+  <div class="server-bar">
+    <span class="label">Сервер</span>
+    <select class="server-select" id="server-select" onchange="switchServer(this.value)"></select>
+    <span class="server-status" id="server-status"><span class="status-dot gray"></span> <span id="server-status-text">—</span></span>
+    <button class="server-add-btn" onclick="showServerModal()">⚙️ Серверы</button>
+  </div>
+
+  <!-- Tabs -->
+  <div class="tabs">
+    <div class="tab active" onclick="switchTab('deploy')"><span class="icon">⚡</span>Деплой</div>
+    <div class="tab" onclick="switchTab('server')"><span class="icon">🖥️</span>Сервер</div>
+    <div class="tab" onclick="switchTab('domain')"><span class="icon">🌐</span>Домен</div>
+    <div class="tab" onclick="switchTab('env')"><span class="icon">⚙️</span>ENV</div>
+  </div>
+
+  <!-- DEPLOY -->
+  <div id="page-deploy" class="page active">
+    <div id="deploy-status-bar" class="status-bar idle"><span>Готов к деплою</span></div>
+
+    <div class="deploy-actions" id="deploy-actions">
+      <div class="deploy-card" onclick="startDeploy(false)" id="btn-update">
+        <div class="icon">🔄</div>
+        <h3>Обновить проект</h3>
+        <p>Загрузить изменения и пересобрать</p>
+      </div>
+      <div class="deploy-card" onclick="startDeploy(true)" id="btn-fresh">
+        <div class="icon">🏗️</div>
+        <h3>Деплой с нуля</h3>
+        <p>Полная установка на сервер</p>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">📋 Лог деплоя</div>
+      <div class="log-container" id="deploy-log">
+        <div class="log-entry info"><span class="log-msg">Ожидание запуска...</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SERVER -->
+  <div id="page-server" class="page">
+    <div class="card">
+      <div class="card-title" id="server-edit-title">🖥️ Настройки сервера</div>
+      <div class="form-grid">
+        <div class="form-group">
+          <label class="form-label">ID сервера</label>
+          <input class="form-input" id="srv-id" placeholder="my-server" style="font-family:monospace">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Название</label>
+          <input class="form-input" id="srv-name" placeholder="Мой сервер">
+        </div>
+        <div class="form-group">
+          <label class="form-label">IP Адрес</label>
+          <input class="form-input" id="srv-host" placeholder="123.45.67.89">
+        </div>
+        <div class="form-group">
+          <label class="form-label">SSH Порт</label>
+          <input class="form-input" id="srv-port" type="number" value="22">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Пользователь</label>
+          <input class="form-input" id="srv-user" placeholder="root">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Пароль</label>
+          <input class="form-input" id="srv-password" type="password" placeholder="••••••">
+        </div>
+        <div class="form-group full">
+          <label class="form-label">Путь к проекту на сервере</label>
+          <input class="form-input" id="srv-remote-dir" placeholder="/opt/memolution/app">
+        </div>
+        <div class="form-group full">
+          <label class="form-label">Домен</label>
+          <input class="form-input" id="srv-domain" placeholder="example.com">
+        </div>
+      </div>
+      <div class="btn-group">
+        <button class="btn btn-primary" onclick="saveServerEdit()">💾 Сохранить сервер</button>
+        <button class="btn btn-outline" onclick="testConnection()">🔌 Тест соединения</button>
+        <button class="btn btn-outline" onclick="loadServerStatus()">📊 Статус</button>
+      </div>
+    </div>
+
+    <div class="card" id="server-status-card" style="display:none">
+      <div class="card-title">📊 Статус сервера</div>
+      <div class="sys-grid" id="sys-info"></div>
+      <div class="card-title" style="margin-top:6px">🐳 Контейнеры</div>
+      <div id="containers-info" style="font-family:monospace;font-size:11px;white-space:pre-wrap;background:var(--bg);padding:12px;border-radius:var(--radius-sm);color:var(--text2);overflow-x:auto"></div>
+      <div class="card-title" style="margin-top:12px">🌐 Nginx / SSL</div>
+      <div id="nginx-info" style="font-family:monospace;font-size:11px;white-space:pre-wrap;background:var(--bg);padding:12px;border-radius:var(--radius-sm);color:var(--text2);overflow-x:auto"></div>
+    </div>
+  </div>
+
+  <!-- DOMAIN -->
+  <div id="page-domain" class="page">
+    <div class="card">
+      <div class="card-title">🌐 Смена домена</div>
+      <p style="color:var(--text2);font-size:12px;margin-bottom:14px">
+        Укажите новый домен — скрипт настроит Nginx на хосте, обновит .env, получит SSL сертификат и перезапустит контейнеры.
+      </p>
+      <div class="form-group">
+        <label class="form-label">Текущий домен</label>
+        <input class="form-input" id="current-domain" readonly style="color:var(--text3)">
+      </div>
+      <div class="form-group" style="margin-top:10px">
+        <label class="form-label">Новый домен</label>
+        <input class="form-input" id="new-domain" placeholder="example.com">
+      </div>
+      <div class="btn-group">
+        <button class="btn btn-primary" onclick="changeDomain()" id="btn-domain">🔄 Сменить домен</button>
+      </div>
+      <div class="domain-results" id="domain-results" style="display:none"></div>
+    </div>
+  </div>
+
+  <!-- ENV -->
+  <div id="page-env" class="page">
+    <div class="card">
+      <div class="card-title">⚙️ Переменные окружения (.env)
+        <span class="badge" id="env-badge" style="display:none;background:var(--green-bg);color:var(--green)">Загружен</span>
+      </div>
+      <p style="color:var(--text2);font-size:12px;margin-bottom:14px">
+        Редактируйте .env файл на сервере. После сохранения перезапустите контейнеры.
+      </p>
+      <div class="form-group">
+        <textarea class="form-input" id="env-content" placeholder="Загрузка..."></textarea>
+      </div>
+      <div class="btn-group">
+        <button class="btn btn-outline" onclick="loadEnv()">📥 Загрузить</button>
+        <button class="btn btn-primary" onclick="saveEnv()">💾 Сохранить</button>
+        <button class="btn btn-success" onclick="restartAfterEnv()">🔄 Перезапустить</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Server list modal -->
+<div class="modal-overlay" id="server-modal" onclick="if(event.target===this)hideServerModal()">
+  <div class="modal">
+    <h2>⚙️ Управление серверами</h2>
+    <div id="server-list-modal"></div>
+    <div class="btn-group" style="margin-top:12px">
+      <button class="btn btn-primary" onclick="addNewServer()">➕ Новый сервер</button>
+      <button class="btn btn-outline" onclick="hideServerModal()">Закрыть</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const API = '';
+let pollTimer = null;
+let currentServer = '';
+
+// --- Init ---
+async function init() {
+  await loadServerList();
+  // Check deploy status on load
+  try {
+    const r = await fetch(API + '/api/deploy/status?server_id=' + currentServer);
+    const d = await r.json();
+    if (d.status.running) pollDeployStatus();
+    else { renderDeployLog(d.logs); updateStatusBar(d.status); }
+  } catch(e) {}
+}
+init();
+
+// --- Toast ---
+function toast(msg, type = 'success') {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'toast ' + type + ' show';
+  setTimeout(() => t.classList.remove('show'), 3500);
+}
+
+// --- Tabs ---
+function switchTab(name) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  const tabMap = {deploy:'Деплой', server:'Сервер', domain:'Домен', env:'ENV'};
+  document.querySelectorAll('.tab').forEach(t => {
+    if (t.textContent.includes(tabMap[name])) t.classList.add('active');
+  });
+  document.getElementById('page-' + name).classList.add('active');
+  if (name === 'server') loadServerEdit();
+  if (name === 'env') loadEnv();
+  if (name === 'domain') updateDomainField();
+}
+
+// --- Server management ---
+async function loadServerList() {
+  try {
+    const r = await fetch(API + '/api/servers');
+    const d = await r.json();
+    const sel = document.getElementById('server-select');
+    const ids = Object.keys(d.servers || {});
+    currentServer = d.active_server || ids[0] || '';
+
+    sel.innerHTML = ids.map(id => {
+      const s = d.servers[id];
+      return `<option value="${escAttr(id)}" ${id === currentServer ? 'selected' : ''}>
+        ${escHtml(s.name || id)} ${s.host ? '(' + s.host + ')' : ''}
+      </option>`;
+    }).join('');
+
+    updateServerStatus(d);
+    return d;
+  } catch(e) { return {servers:{}, active_server:''}; }
+}
+
+function updateServerStatus(d) {
+  const el = document.getElementById('server-status-text');
+  const dot = document.querySelector('#server-status .status-dot');
+  if (!d || !d.servers) { el.textContent = 'Нет серверов'; dot.className = 'status-dot gray'; return; }
+  const sid = d.active_server || Object.keys(d.servers)[0];
+  const s = d.servers[sid];
+  if (!s) { el.textContent = 'Нет сервера'; dot.className = 'status-dot gray'; return; }
+  if (s.host) { el.textContent = s.host; dot.className = 'status-dot green'; }
+  else { el.textContent = 'Не настроен'; dot.className = 'status-dot red'; }
+}
+
+async function switchServer(id) {
+  if (!id) return;
+  try {
+    await fetch(API + '/api/servers/activate', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({id})
+    });
+  } catch(e) {}
+  currentServer = id;
+  // Update page content
+  const page = document.querySelector('.page.active');
+  const pageId = page ? page.id.replace('page-', '') : 'deploy';
+  if (pageId === 'server') loadServerEdit();
+  if (pageId === 'env') loadEnv();
+  if (pageId === 'domain') updateDomainField();
+  // Check deploy status for this server
+  try {
+    const r = await fetch(API + '/api/deploy/status?server_id=' + id);
+    const d = await r.json();
+    renderDeployLog(d.logs);
+    updateStatusBar(d.status);
+  } catch(e) {}
+}
+
+// --- Server modal ---
+async function showServerModal() {
+  const modal = document.getElementById('server-modal');
+  modal.classList.add('show');
+  await refreshServerListModal();
+}
+
+function hideServerModal() { document.getElementById('server-modal').classList.remove('show'); }
+
+async function refreshServerListModal() {
+  const r = await fetch(API + '/api/servers');
+  const d = await r.json();
+  const el = document.getElementById('server-list-modal');
+  const ids = Object.keys(d.servers || {});
+  if (!ids.length) {
+    el.innerHTML = '<p style="color:var(--text2);font-size:13px">Нет настроенных серверов</p>';
+    return;
+  }
+  el.innerHTML = ids.map(id => {
+    const s = d.servers[id];
+    const active = id === d.active_server ? 'active' : '';
+    return `<div class="server-list-item ${active}" onclick="selectServerFromModal('${escAttr(id)}')">
+      <span class="status-dot ${s.host ? 'green' : 'red'}"></span>
+      <span class="name">${escHtml(s.name || id)}</span>
+      <span class="info">${escHtml(s.host || 'не настроен')}</span>
+      <span class="del" onclick="event.stopPropagation();deleteServer('${escAttr(id)}')">✕</span>
+    </div>`;
+  }).join('');
+}
+
+async function selectServerFromModal(id) {
+  if (!id) return;
+  await fetch(API + '/api/servers/activate', {
+    method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({id})
+  });
+  hideServerModal();
+  await loadServerList();
+  loadServerEdit();
+}
+
+async function deleteServer(id) {
+  if (!confirm(`Удалить сервер "${id}"?`)) return;
+  await fetch(API + '/api/servers/' + id, {method:'DELETE'});
+  await loadServerList();
+  refreshServerListModal();
+}
+
+function addNewServer() {
+  hideServerModal();
+  document.getElementById('srv-id').value = 'server-' + Date.now();
+  document.getElementById('srv-name').value = 'Новый сервер';
+  document.getElementById('srv-host').value = '';
+  document.getElementById('srv-user').value = 'root';
+  document.getElementById('srv-port').value = '22';
+  document.getElementById('srv-password').value = '';
+  document.getElementById('srv-remote-dir').value = '/opt/memolution/app';
+  document.getElementById('srv-domain').value = '';
+  switchTab('server');
+}
+
+// --- Server edit page ---
+async function loadServerEdit() {
+  const r = await fetch(API + '/api/servers');
+  const d = await r.json();
+  const sid = currentServer || d.active_server || Object.keys(d.servers)[0];
+  const s = d.servers[sid];
+  if (!s) return;
+  document.getElementById('server-edit-title').innerHTML = `🖥️ Сервер: ${escHtml(s.name || sid)}`;
+  document.getElementById('srv-id').value = sid;
+  document.getElementById('srv-name').value = s.name || '';
+  document.getElementById('srv-host').value = s.host || '';
+  document.getElementById('srv-port').value = s.port || 22;
+  document.getElementById('srv-user').value = s.user || 'root';
+  document.getElementById('srv-password').value = s.has_password ? '●●●●●●' : '';
+  document.getElementById('srv-remote-dir').value = s.project_dir_remote || '/opt/memolution/app';
+  document.getElementById('srv-domain').value = s.domain || '';
+}
+
+async function saveServerEdit() {
+  const data = {
+    id: document.getElementById('srv-id').value.trim(),
+    name: document.getElementById('srv-name').value.trim(),
+    host: document.getElementById('srv-host').value.trim(),
+    port: parseInt(document.getElementById('srv-port').value) || 22,
+    user: document.getElementById('srv-user').value.trim(),
+    password: document.getElementById('srv-password').value,
+    project_dir_remote: document.getElementById('srv-remote-dir').value.trim(),
+    domain: document.getElementById('srv-domain').value.trim(),
+  };
+  if (!data.id) { toast('Укажите ID сервера', 'error'); return; }
+  try {
+    const r = await fetch(API + '/api/servers', {
+      method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(data)
+    });
+    const d = await r.json();
+    if (d.ok) { toast('Сервер сохранён'); await loadServerList(); }
+    else toast(d.error, 'error');
+  } catch(e) { toast('Ошибка сохранения', 'error'); }
+}
+
+async function testConnection() {
+  const data = {
+    id: document.getElementById('srv-id').value.trim(),
+    password: document.getElementById('srv-password').value,
+  };
+  toast('Проверяю...', 'success');
+  try {
+    const r = await fetch(API + '/api/servers/test', {
+      method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(data)
+    });
+    const d = await r.json();
+    if (d.ok) toast('✓ ' + (d.info||'').slice(0,100));
+    else toast('✗ ' + d.error, 'error');
+  } catch(e) { toast('Ошибка', 'error'); }
+}
+
+// --- Deploy ---
+async function startDeploy(fresh) {
+  const label = fresh ? 'Развернуть проект с нуля?' : 'Обновить проект на сервере?';
+  if (!confirm(label)) return;
+  try {
+    const r = await fetch(API + '/api/deploy/start', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({fresh, server_id: currentServer})
+    });
+    const d = await r.json();
+    if (!d.ok) { toast(d.error, 'error'); return; }
+    pollDeployStatus();
+  } catch(e) { toast('Ошибка запуска', 'error'); }
+}
+
+function pollDeployStatus() {
+  if (pollTimer) clearInterval(pollTimer);
+  pollTimer = setInterval(async () => {
+    try {
+      const r = await fetch(API + '/api/deploy/status?server_id=' + currentServer);
+      const d = await r.json();
+      renderDeployLog(d.logs);
+      updateStatusBar(d.status);
+      if (!d.status.running) { clearInterval(pollTimer); pollTimer = null; }
+    } catch(e) {}
+  }, 1000);
+}
+
+function renderDeployLog(logs) {
+  const el = document.getElementById('deploy-log');
+  if (!logs || !logs.length) {
+    el.innerHTML = '<div class="log-entry info"><span class="log-msg">Ожидание...</span></div>';
+    return;
+  }
+  el.innerHTML = logs.map(l =>
+    `<div class="log-entry ${l.level}"><span class="log-time">${escHtml(l.time)}</span><span class="log-icon">${l.icon}</span><span class="log-msg">${escHtml(l.message)}</span></div>`
+  ).join('');
+  el.scrollTop = el.scrollHeight;
+}
+
+function updateStatusBar(s) {
+  const bar = document.getElementById('deploy-status-bar');
+  const cards = document.querySelectorAll('.deploy-card');
+  if (s.running) {
+    bar.className = 'status-bar running';
+    bar.innerHTML = '<span class="spinner"></span> Деплой выполняется...';
+    cards.forEach(c => c.classList.add('running'));
+  } else if (s.success === true) {
+    bar.className = 'status-bar success';
+    bar.innerHTML = '✅ Деплой завершён успешно';
+    cards.forEach(c => c.classList.remove('running'));
+  } else if (s.success === false) {
+    bar.className = 'status-bar error';
+    bar.innerHTML = '❌ Деплой завершился с ошибкой';
+    cards.forEach(c => c.classList.remove('running'));
+  } else {
+    bar.className = 'status-bar idle';
+    bar.innerHTML = 'Готов к деплою';
+    cards.forEach(c => c.classList.remove('running'));
+  }
+}
+
+// --- Domain ---
+function updateDomainField() {
+  fetch(API + '/api/servers').then(r=>r.json()).then(d => {
+    const sid = currentServer || d.active_server || '';
+    const s = d.servers[sid];
+    document.getElementById('current-domain').value = (s && s.domain) || '(не задан)';
+  }).catch(()=>{});
+}
+
+async function changeDomain() {
+  const domain = document.getElementById('new-domain').value.trim();
+  if (!domain) { toast('Укажите домен', 'error'); return; }
+  if (!confirm(`Сменить домен на ${domain}?`)) return;
+  const btn = document.getElementById('btn-domain');
+  btn.disabled = true; btn.innerHTML = '<span class="spinner"></span> Настраиваю...';
+  try {
+    const r = await fetch(API + '/api/domain/change', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({domain, server_id: currentServer})
+    });
+    const d = await r.json();
+    const el = document.getElementById('domain-results');
+    el.style.display = 'block';
+    if (d.ok) {
+      el.innerHTML = (d.results||[]).map(r => `<div class="result-item">${escHtml(r)}</div>`).join('');
+      document.getElementById('current-domain').value = domain;
+      document.getElementById('new-domain').value = '';
+      toast('Домен настроен!');
+    } else {
+      el.innerHTML = `<div class="result-item" style="color:var(--red)">❌ ${escHtml(d.error)}</div>` +
+        (d.results||[]).map(r => `<div class="result-item">${escHtml(r)}</div>`).join('');
+      toast(d.error, 'error');
+    }
+  } catch(e) { toast('Ошибка', 'error'); }
+  btn.disabled = false; btn.innerHTML = '🔄 Сменить домен';
+}
+
+// --- ENV ---
+async function loadEnv() {
+  try {
+    const r = await fetch(API + '/api/env?server_id=' + currentServer);
+    const d = await r.json();
+    if (d.ok) {
+      document.getElementById('env-content').value = d.env;
+      const badge = document.getElementById('env-badge');
+      badge.style.display = 'inline';
+      badge.textContent = d.exists ? 'Загружен' : 'Не найден';
+      badge.style.background = d.exists ? 'var(--green-bg)' : 'var(--yellow-bg)';
+      badge.style.color = d.exists ? 'var(--green)' : 'var(--yellow)';
+    } else { toast(d.error, 'error'); }
+  } catch(e) { toast('Ошибка загрузки', 'error'); }
+}
+
+async function saveEnv() {
+  const env = document.getElementById('env-content').value;
+  if (!confirm('Сохранить .env на сервер?')) return;
+  try {
+    const r = await fetch(API + '/api/env', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({env, server_id: currentServer})
+    });
+    const d = await r.json();
+    if (d.ok) toast('ENV сохранён'); else toast(d.error, 'error');
+  } catch(e) { toast('Ошибка', 'error'); }
+}
+
+async function restartAfterEnv() {
+  if (!confirm('Перезапустить все контейнеры?')) return;
+  try {
+    const r = await fetch(API + '/api/env/restart', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({server_id: currentServer})
+    });
+    const d = await r.json();
+    if (d.ok) toast('Контейнеры перезапущены'); else toast(d.error, 'error');
+  } catch(e) { toast('Ошибка', 'error'); }
+}
+
+// --- Server status ---
+async function loadServerStatus() {
+  const card = document.getElementById('server-status-card');
+  card.style.display = 'block';
+  document.getElementById('sys-info').innerHTML = '<div class="sys-card"><div class="value"><span class="spinner"></span> Загрузка...</div></div>';
+  try {
+    const r = await fetch(API + '/api/server/status?server_id=' + currentServer);
+    const d = await r.json();
+    if (!d.ok) { toast(d.error, 'error'); return; }
+
+    const sys = d.system || '';
+    const uptime = (sys.match(/---UPTIME---\s*(.+?)\s*---DISK---/s) || [,'—'])[1].trim();
+    const disk = (sys.match(/---DISK---\s*(.+?)\s*---RAM---/s) || [,'—'])[1].trim();
+    const ram = (sys.match(/---RAM---\s*(.+?)\s*---DOCKER---/s) || [,'—'])[1].trim();
+    const dockerV = (sys.match(/---DOCKER---\s*(.+?)\s*$/s) || [,''])[1].trim();
+
+    document.getElementById('sys-info').innerHTML = `
+      <div class="sys-card"><div class="label">Uptime</div><div class="value">${escHtml(uptime)}</div></div>
+      <div class="sys-card"><div class="label">Диск /</div><div class="value">${escHtml(disk)}</div></div>
+      <div class="sys-card"><div class="label">RAM</div><div class="value">${escHtml(ram)}</div></div>
+      <div class="sys-card"><div class="label">Docker</div><div class="value">${escHtml(dockerV)}</div></div>
+    `;
+    document.getElementById('containers-info').textContent = d.containers || 'Нет данных';
+    document.getElementById('nginx-info').textContent = d.nginx || 'Нет данных';
+  } catch(e) { toast('Ошибка', 'error'); }
+}
+
+function escHtml(s) {
+  if (s === null || s === undefined) return '';
+  const d = document.createElement('div');
+  d.textContent = String(s);
+  return d.innerHTML;
+}
+function escAttr(s) {
+  return String(s).replace(/"/g, '&quot;').replace(/'/g, '&apos;');
+}
+</script>
+</body>
+</html>
