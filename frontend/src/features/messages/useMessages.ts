@@ -4,7 +4,12 @@ import { api, apiWsBase } from '../../shared/api/client';
 import { useAuthStore } from '../../store/authStore';
 import type { Message } from '../../shared/types';
 
-type OptimisticMessage = Message & { tempId: string; status: 'pending' | 'failed' };
+type OptimisticMessage = Message & {
+  tempId: string;
+  status: 'pending' | 'failed';
+  reactions?: Array<{ emoji: string; count: number; reacted?: boolean }>;
+  readAt?: string | null;
+};
 
 export function useMessages(initialChat = '') {
   const { user } = useAuthStore();
@@ -31,7 +36,9 @@ export function useMessages(initialChat = '') {
 
   useEffect(() => {
     if (!active) return;
-    api.readChat(active).then(() => queryClient.invalidateQueries({ queryKey: ['chats'] }));
+    api.readChat(active)
+      .then(() => queryClient.invalidateQueries({ queryKey: ['chats'] }))
+      .catch(() => undefined);
   }, [active, queryClient]);
 
   useEffect(() => {
@@ -42,7 +49,7 @@ export function useMessages(initialChat = '') {
     socket.onmessage = (event) => {
       try {
         const data = JSON.parse(event.data);
-        if (data.event === 'chat_message' || data.event === 'message_deleted' || data.event === 'message_edited' || data.event === 'read_receipt') {
+        if (data.event === 'chat_message' || data.event === 'message_deleted' || data.event === 'message_edited' || data.event === 'message_reaction' || data.event === 'read_receipt') {
           queryClient.invalidateQueries({ queryKey: ['messages', data.chat_id] });
           queryClient.invalidateQueries({ queryKey: ['chats'] });
         }
@@ -155,7 +162,16 @@ export function useMessages(initialChat = '') {
     }
   };
 
+  const sendReaction = useMutation({
+    mutationFn: ({ messageId, emoji, reacted }: { messageId: string; emoji: string; reacted?: boolean }) =>
+      reacted ? api.unreactMessage(messageId, emoji) : api.reactMessage(messageId, emoji),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['messages', active] });
+      queryClient.invalidateQueries({ queryKey: ['chats'] });
+    },
+  });
+
   const removeOptimistic = (tempId: string) => setOptimistic((prev) => prev.filter((m) => m.tempId !== tempId));
 
-  return { active, setActive, activeChat, chatsQuery, messagesQuery, chatDetailQuery, typing, typingMap, replyTo, setReplyTo, create, send, editMessage, deleteMessage, leaveChat, forwardMessage, uploadAndSend, notifyTyping, optimistic, removeOptimistic };
+  return { active, setActive, activeChat, chatsQuery, messagesQuery, chatDetailQuery, typing, typingMap, replyTo, setReplyTo, create, send, editMessage, deleteMessage, leaveChat, forwardMessage, uploadAndSend, notifyTyping, optimistic, removeOptimistic, sendReaction };
 }

@@ -62,6 +62,7 @@ export function AdminLogsPage() {
             <select
               value={filter}
               onChange={(e) => setFilter(e.target.value)}
+              aria-label={t('admin.logs_all')}
               className="h-9 rounded-lg border border-gray-200 bg-white px-3 text-xs font-bold text-gray-700 outline-none focus:border-purple-400 focus:ring-2 focus:ring-purple-100 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300"
             >
               <option value="">{t('admin.logs_all')}</option>

@@ -30,7 +30,7 @@ CONFIG_PATH = BASE / "config.json"
 ARCHIVE_NAME = "memelution_deploy.tar.gz"
 EXCLUDES = [
     "node_modules", ".DS_Store", "__pycache__", ".pytest_cache", "dist",
-    "memolution.db", ".env", "uploads/*", ".git", "deploy.py", ".venv",
+    "memolution.db", "test_memolution.db", ".env", "uploads/*", ".git", "deploy.py", ".venv",
     ".idea", ".vscode", "deploy_panel/config.json",
     "._*", ".ruff_cache",
 ]

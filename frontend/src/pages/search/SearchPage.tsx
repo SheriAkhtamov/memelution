@@ -111,6 +111,7 @@ export function SearchPage() {
             if (event.key === 'Escape') setQ('');
           }}
           placeholder={t('search.placeholder')}
+          aria-label={t('search.placeholder')}
           className="h-12 w-full rounded-lg border border-gray-200 bg-white px-3 text-base font-bold text-gray-900 outline-none transition-colors placeholder:text-gray-400 focus:border-orange-400 focus:ring-2 focus:ring-orange-100 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-100 dark:focus:ring-orange-950"
         />
         {q ? (
@@ -211,7 +212,28 @@ export function SearchPage() {
             ) : null}
           </>
         ) : (
-          <EmptyState title={t('search.not_found')} description={t('search.not_found_desc')} icon={<SearchX size={32} />} />
+          <div className="space-y-4">
+            <EmptyState title={t('search.not_found')} description={t('search.not_found_desc')} icon={<SearchX size={32} />} />
+            {popularTags.length ? (
+              <section className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
+                <div className="mb-3 flex items-center gap-2">
+                  <TrendingUp size={18} className="text-[#FF6B00]" />
+                  <h2 className="font-black">{t('search.try_trending')}</h2>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {popularTags.map((tag) => (
+                    <button
+                      key={tag}
+                      onClick={() => setQ(`#${tag}`)}
+                      className="inline-flex items-center gap-1 rounded-lg bg-orange-50 px-3 py-2 text-sm font-black text-[#FF6B00] transition-colors hover:bg-orange-100 dark:bg-orange-950/30 dark:hover:bg-orange-950/50"
+                    >
+                      <Hash size={14} /> {tag}
+                    </button>
+                  ))}
+                </div>
+              </section>
+            ) : null}
+          </div>
         )}
       </div>
     </div>

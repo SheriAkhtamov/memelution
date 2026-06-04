@@ -394,6 +394,32 @@ class Reaction(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now)
 
 
+class CommentReaction(Base):
+    __tablename__ = "comment_reactions"
+    __table_args__ = (
+        UniqueConstraint("user_id", "comment_id", "emoji", name="uq_comment_reaction_user_comment_emoji"),
+    )
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=uuid)
+    user_id: Mapped[str] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    comment_id: Mapped[str] = mapped_column(ForeignKey("comments.id", ondelete="CASCADE"), index=True)
+    emoji: Mapped[str] = mapped_column(String(8), index=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now)
+
+
+class MessageReaction(Base):
+    __tablename__ = "message_reactions"
+    __table_args__ = (
+        UniqueConstraint("user_id", "message_id", "emoji", name="uq_message_reaction_user_message_emoji"),
+    )
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=uuid)
+    user_id: Mapped[str] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    message_id: Mapped[str] = mapped_column(ForeignKey("messages.id", ondelete="CASCADE"), index=True)
+    emoji: Mapped[str] = mapped_column(String(8), index=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now)
+
+
 Index("ix_posts_activity", Post.likes_count, Post.comments_count, Post.reposts_count, Post.saves_count)
 Index("ix_posts_feed_cursor", Post.is_deleted, Post.status, Post.created_at, Post.id)
 Index("ix_comments_cursor", Comment.post_id, Comment.created_at, Comment.id)

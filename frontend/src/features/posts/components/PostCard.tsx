@@ -5,7 +5,7 @@ import { formatDistanceToNow } from 'date-fns';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { api } from '../../../shared/api/client';
 import type { Post, ReactionItem } from '../../../shared/types';
-import { Avatar, Badge, Button, ConfirmDialog, IconButton, Input, MediaViewer, Modal, ReportDialog, Select, Textarea, useToast } from '../../../shared/ui';
+import { Avatar, Badge, Button, ConfirmDialog, ErrorBoundary, IconButton, Input, MediaViewer, Modal, ReportDialog, Select, Textarea, useToast } from '../../../shared/ui';
 import { Dropdown, DropdownItem } from '../../../shared/ui';
 import { useAuthStore } from '../../../store/authStore';
 import { ReactionPicker } from './ReactionPicker';
@@ -37,6 +37,7 @@ export function PostCard({
   const [localPost, setLocalPost] = useState(post);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [confirmUnrepost, setConfirmUnrepost] = useState(false);
+  const [confirmHide, setConfirmHide] = useState(false);
   const [reportOpen, setReportOpen] = useState(false);
   const [repostOpen, setRepostOpen] = useState(false);
   const [repostText, setRepostText] = useState('');
@@ -56,10 +57,13 @@ export function PostCard({
   const [likePulse, setLikePulse] = useState(false);
   const [savePulse, setSavePulse] = useState(false);
   const [repostPulse, setRepostPulse] = useState(false);
+  const [postContextMenuOpen, setPostContextMenuOpen] = useState(false);
   const lastTapRef = useRef(0);
   const contentRef = useRef<HTMLDivElement>(null);
   const viewTrackedRef = useRef(false);
   const deleteUndoRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const postLongPressTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const postTouchStartPosRef = useRef<{ x: number; y: number } | null>(null);
 
   const pulseFeedback = (setter: React.Dispatch<React.SetStateAction<boolean>>) => {
     setter(true);
@@ -67,7 +71,7 @@ export function PostCard({
   };
 
   const canManage = user?.id === localPost.author_id || user?.role === 'global_admin' || user?.role === 'admin';
-  const timeAgo = useMemo(() => formatDistanceToNow(new Date(localPost.created_at), { addSuffix: true, locale: dateLocale }), [localPost.created_at]);
+  const timeAgo = useMemo(() => formatDistanceToNow(new Date(localPost.created_at), { addSuffix: true, locale: dateLocale }), [dateLocale, localPost.created_at]);
   const isEdited = Boolean(localPost.updated_at && new Date(localPost.updated_at).getTime() > new Date(localPost.created_at).getTime() + 1000);
 
   const patch = (changes: Partial<Post>) => {
@@ -253,6 +257,7 @@ export function PostCard({
   }, [userSearchQuery.data, chatsQueryForSend.data]);
 
   const performHide = () => {
+    if (!requireAuth()) return;
     hide.mutate(undefined, {
       onSuccess: () => {
         toast.show({
@@ -262,7 +267,7 @@ export function PostCard({
           action: {
             label: 'Отменить',
             onClick: () => {
-              api.hidePost(localPost.id).then(() => {
+              api.unhidePost(localPost.id).then(() => {
                 invalidate();
                 toast.show({ title: 'Пост восстановлен', tone: 'success' });
               }).catch(() => {
@@ -279,6 +284,7 @@ export function PostCard({
   const performDelete = () => {
     remove.mutate(undefined, {
       onSuccess: () => {
+        setConfirmDelete(false);
         toast.show({
           title: t('post.deleted_undo'),
           tone: 'success',
@@ -290,6 +296,13 @@ export function PostCard({
                 clearTimeout(deleteUndoRef.current);
                 deleteUndoRef.current = null;
               }
+              api.restorePost(localPost.id).then((result) => {
+                patch(result.post);
+                invalidate();
+                toast.show({ title: 'Пост восстановлен', tone: 'success' });
+              }).catch(() => {
+                toast.show({ title: 'Не удалось восстановить', tone: 'error' });
+              });
             },
           },
         });
@@ -310,6 +323,74 @@ export function PostCard({
     });
     toast.show({ title: t('common.copied'), tone: 'success' });
   };
+
+  const handleShare = useCallback(async () => {
+    const postUrl = `${window.location.origin}/post/${localPost.id}`;
+    const shareText = localPost.text ? `${localPost.text.slice(0, 80)}${localPost.text.length > 80 ? '…' : ''} — ${t('common.site_name')}` : t('post.share_text');
+    if (navigator.share) {
+      try {
+        await navigator.share({ title: t('common.site_name'), text: shareText, url: postUrl });
+        trackEvent('meme_shared', {
+          post_id: localPost.id,
+          author_id: localPost.author_id,
+          community_id: localPost.community_id,
+          channel: 'native_share',
+        });
+        return;
+      } catch {
+        // User cancelled or share failed, fall through to copy link
+      }
+    }
+    await navigator.clipboard.writeText(postUrl);
+    trackEvent('meme_shared', {
+      post_id: localPost.id,
+      author_id: localPost.author_id,
+      community_id: localPost.community_id,
+      channel: 'copy_link',
+    });
+    toast.show({ title: t('common.copied'), tone: 'success' });
+  }, [localPost.id, localPost.text, localPost.author_id, localPost.community_id, t]);
+
+  const startPostLongPress = useCallback(() => {
+    postLongPressTimerRef.current = setTimeout(() => {
+      setPostContextMenuOpen(true);
+    }, 500);
+  }, []);
+
+  const cancelPostLongPress = useCallback(() => {
+    if (postLongPressTimerRef.current) {
+      clearTimeout(postLongPressTimerRef.current);
+      postLongPressTimerRef.current = null;
+    }
+    postTouchStartPosRef.current = null;
+  }, []);
+
+  const handlePostTouchStart = useCallback((e: React.TouchEvent) => {
+    const target = e.target as HTMLElement;
+    if (target.closest('button, a, [role="button"], input, textarea')) return;
+    const touch = e.touches[0];
+    postTouchStartPosRef.current = { x: touch.clientX, y: touch.clientY };
+    startPostLongPress();
+  }, [startPostLongPress]);
+
+  const handlePostTouchMove = useCallback((e: React.TouchEvent) => {
+    if (!postTouchStartPosRef.current || !postLongPressTimerRef.current) return;
+    const touch = e.touches[0];
+    const dx = touch.clientX - postTouchStartPosRef.current.x;
+    const dy = touch.clientY - postTouchStartPosRef.current.y;
+    if (Math.sqrt(dx * dx + dy * dy) > 10) {
+      cancelPostLongPress();
+    }
+  }, [cancelPostLongPress]);
+
+  const handlePostTouchEnd = useCallback(() => {
+    cancelPostLongPress();
+  }, [cancelPostLongPress]);
+
+  const handlePostContextMenu = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    setPostContextMenuOpen(true);
+  }, []);
 
   const handleDoubleTap = useCallback((clientX?: number, clientY?: number) => {
     if (!requireAuth()) return;
@@ -370,7 +451,14 @@ export function PostCard({
   ) : null;
 
   return (
-    <article className="rounded-lg border border-gray-200/80 bg-white/95 shadow-[0_1px_2px_rgba(15,23,42,0.04),0_12px_32px_rgba(15,23,42,0.04)] backdrop-blur transition-all duration-200 hover:-translate-y-0.5 hover:border-gray-300 hover:shadow-[0_1px_2px_rgba(15,23,42,0.06),0_18px_40px_rgba(15,23,42,0.08)] dark:border-zinc-800 dark:bg-zinc-950/90 dark:hover:border-zinc-700">
+    <ErrorBoundary level="feed-item">
+      <article
+        className="rounded-lg border border-gray-200/80 bg-white/95 shadow-[0_1px_2px_rgba(15,23,42,0.04),0_12px_32px_rgba(15,23,42,0.04)] backdrop-blur transition-all duration-200 hover:-translate-y-0.5 hover:border-gray-300 hover:shadow-[0_1px_2px_rgba(15,23,42,0.06),0_18px_40px_rgba(15,23,42,0.08)] dark:border-zinc-800 dark:bg-zinc-950/90 dark:hover:border-zinc-700"
+      onTouchStart={handlePostTouchStart}
+      onTouchMove={handlePostTouchMove}
+      onTouchEnd={handlePostTouchEnd}
+      onContextMenu={handlePostContextMenu}
+    >
       <div className={compact ? 'p-4' : 'p-5'}>
         <div className="flex gap-3">
           <Link to={`/user/${localPost.author?.username}`} className="shrink-0">
@@ -401,6 +489,9 @@ export function PostCard({
                   </IconButton>
                 }
               >
+                <DropdownItem onClick={handleShare}>
+                  <Share2 size={15} /> {t('common.share')}
+                </DropdownItem>
                 <DropdownItem onClick={copyLink}>
                   <Copy size={15} /> {t('post.menu_copy')}
                 </DropdownItem>
@@ -410,14 +501,16 @@ export function PostCard({
                 <DropdownItem onClick={() => (localPost.saved ? save.mutate(undefined) : setSaveOpen(true))}>
                   <Bookmark size={15} /> {localPost.saved ? t('post.menu_unsave') : t('post.menu_save')}
                 </DropdownItem>
+                <div className="my-1 border-t border-gray-100 dark:border-zinc-800" />
                 <DropdownItem onClick={() => setNotInterestedOpen(true)}>
                   <ThumbsDown size={15} /> {t('post.menu_not_interested')}
                 </DropdownItem>
-                <DropdownItem onClick={performHide}>
+                <DropdownItem onClick={() => setConfirmHide(true)}>
                   <EyeOff size={15} /> {t('post.menu_hide')}
                 </DropdownItem>
                 {canManage ? (
                   <>
+                    <div className="my-1 border-t border-gray-100 dark:border-zinc-800" />
                     <DropdownItem onClick={() => setEditOpen(true)}>
                       <Pencil size={15} /> {t('post.menu_edit')}
                     </DropdownItem>
@@ -432,6 +525,7 @@ export function PostCard({
                     </DropdownItem>
                   </>
                 ) : null}
+                <div className="my-1 border-t border-gray-100 dark:border-zinc-800" />
                 <DropdownItem danger onClick={() => setReportOpen(true)}>
                   <Flag size={15} /> {t('post.menu_report')}
                 </DropdownItem>
@@ -526,28 +620,7 @@ export function PostCard({
               <Button variant="ghost" className={`h-9 px-2.5 transition-transform ${localPost.saved ? 'text-blue-600' : ''} ${savePulse ? 'scale-125' : ''}`} onClick={() => { requireAuth() && (localPost.saved ? save.mutate(undefined) : setSaveOpen(true)); if (!localPost.saved) pulseFeedback(setSavePulse); }} aria-label={localPost.saved ? t('post.menu_unsave') : t('post.save')}>
                 <Bookmark size={17} fill={localPost.saved ? 'currentColor' : 'none'} /> <span className="tabular-nums">{localPost.saves_count || 0}</span><span className="hidden sm:inline">{t('post.saved_short')}</span>
               </Button>
-              <Button variant="ghost" className="ml-auto h-9 px-2.5" onClick={() => {
-                const postUrl = `${window.location.origin}/post/${localPost.id}`;
-                const shareText = localPost.text ? `${localPost.text.slice(0, 80)}${localPost.text.length > 80 ? '…' : ''} — ${t('common.site_name')}` : t('post.share_text');
-                if (navigator.share) {
-                  trackEvent('meme_shared', {
-                    post_id: localPost.id,
-                    author_id: localPost.author_id,
-                    community_id: localPost.community_id,
-                    channel: 'native_share',
-                  });
-                  navigator.share({ title: t('common.site_name'), text: shareText, url: postUrl }).catch(() => {});
-                } else {
-                  trackEvent('meme_shared', {
-                    post_id: localPost.id,
-                    author_id: localPost.author_id,
-                    community_id: localPost.community_id,
-                    channel: 'telegram_share',
-                  });
-                  // Fallback: open Telegram share
-                  window.open(`https://t.me/share/url?url=${encodeURIComponent(postUrl)}&text=${encodeURIComponent(shareText)}`, '_blank', 'noopener');
-                }
-              }} aria-label={t('post.share')}>
+              <Button variant="ghost" className="ml-auto h-9 px-2.5" onClick={handleShare} aria-label={t('post.share')}>
                 <Share2 size={17} /> <span className="hidden sm:inline">{t('common.share')}</span>
               </Button>
             </div>
@@ -571,6 +644,16 @@ export function PostCard({
         description={t('post.delete_desc')}
         confirmText={t('post.delete_confirm')}
         onConfirm={performDelete}
+        loading={remove.isPending}
+      />
+      <ConfirmDialog
+        open={confirmHide}
+        onClose={() => setConfirmHide(false)}
+        title={t('post.hide_title')}
+        description={t('post.hide_desc')}
+        confirmText={t('post.hide_confirm')}
+        onConfirm={() => { setConfirmHide(false); performHide(); }}
+        loading={hide.isPending}
       />
       <ConfirmDialog
         open={confirmUnrepost}
@@ -701,6 +784,52 @@ export function PostCard({
           </div>
         </div>
       </Modal>
+
+      {postContextMenuOpen && (
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/45 p-0 animate-in fade-in duration-200 sm:items-center sm:p-4" onClick={() => setPostContextMenuOpen(false)}>
+          <div className="w-full max-w-sm rounded-t-2xl bg-white p-4 shadow-2xl dark:bg-zinc-950 sm:rounded-lg" onClick={(e) => e.stopPropagation()}>
+            <div className="space-y-1">
+              <button
+                className="flex w-full items-center gap-3 rounded-lg px-3 py-3 text-left text-sm font-bold hover:bg-gray-50 dark:hover:bg-zinc-900"
+                onClick={() => { localPost.saved ? save.mutate(undefined) : setSaveOpen(true); setPostContextMenuOpen(false); }}
+              >
+                <Bookmark size={16} /> {localPost.saved ? t('post.menu_unsave') : t('post.menu_save')}
+              </button>
+              <button
+                className="flex w-full items-center gap-3 rounded-lg px-3 py-3 text-left text-sm font-bold hover:bg-gray-50 dark:hover:bg-zinc-900"
+                onClick={() => { setConfirmHide(true); setPostContextMenuOpen(false); }}
+              >
+                <EyeOff size={16} /> {t('post.menu_hide')}
+              </button>
+              <button
+                className="flex w-full items-center gap-3 rounded-lg px-3 py-3 text-left text-sm font-bold hover:bg-gray-50 dark:hover:bg-zinc-900"
+                onClick={() => { handleShare(); setPostContextMenuOpen(false); }}
+              >
+                <Share2 size={16} /> {t('common.share')}
+              </button>
+              <button
+                className="flex w-full items-center gap-3 rounded-lg px-3 py-3 text-left text-sm font-bold hover:bg-gray-50 dark:hover:bg-zinc-900"
+                onClick={() => { copyLink(); setPostContextMenuOpen(false); }}
+              >
+                <Copy size={16} /> {t('post.menu_copy')}
+              </button>
+              <button
+                className="flex w-full items-center gap-3 rounded-lg px-3 py-3 text-left text-sm font-bold text-red-600 hover:bg-red-50 dark:hover:bg-red-950/20"
+                onClick={() => { setReportOpen(true); setPostContextMenuOpen(false); }}
+              >
+                <Flag size={16} /> {t('post.menu_report')}
+              </button>
+            </div>
+            <button
+              className="mt-3 w-full rounded-lg bg-gray-100 py-3 text-sm font-bold dark:bg-zinc-800"
+              onClick={() => setPostContextMenuOpen(false)}
+            >
+              {t('common.cancel')}
+            </button>
+          </div>
+        </div>
+      )}
     </article>
+    </ErrorBoundary>
   );
 }

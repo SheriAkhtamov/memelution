@@ -4,10 +4,13 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { api } from '../../shared/api/client';
 import { useTranslation } from '../../shared/i18n';
 import type { User } from '../../shared/types';
-import { Avatar, Button, EmptyState, Input, Modal, Select, Skeleton, Textarea, useToast } from '../../shared/ui';
+import { Avatar, Button, ConfirmDialog, EmptyState, ErrorState, Input, Modal, Select, Skeleton, Textarea, useToast } from '../../shared/ui';
+import { useDebouncedValue } from '../../shared/lib/useDebouncedValue';
 import { useAuthStore } from '../../store/authStore';
 
 const LOCALE_MAP: Record<string, string> = { ru: 'ru-RU', en: 'en-US', uz: 'uz-UZ' };
+
+type ConfirmKind = 'ban' | 'admin' | 'demote' | null;
 
 export function AdminPage() {
   const { user } = useAuthStore();
@@ -15,28 +18,90 @@ export function AdminPage() {
   const queryClient = useQueryClient();
   const toast = useToast();
   const [q, setQ] = useState('');
+  const debouncedQ = useDebouncedValue(q, 300);
   const [role, setRoleFilter] = useState('');
   const [banModal, setBanModal] = useState<User | null>(null);
   const [duration, setDuration] = useState('24');
   const [reason, setReason] = useState(t('admin.ban_reason_default'));
+  const [confirm, setConfirm] = useState<{ kind: ConfirmKind; target: User } | null>(null);
   const isAdmin = user?.role === 'global_admin' || user?.role === 'admin';
   const isGlobalAdmin = user?.role === 'global_admin';
   const statsQuery = useQuery({ queryKey: ['admin-stats'], queryFn: api.adminStats, enabled: Boolean(isAdmin) });
-  const usersQuery = useQuery({ queryKey: ['admin-users', q, role], queryFn: () => api.adminUsers({ q, role: role || undefined }), enabled: Boolean(isAdmin) });
+  const usersQuery = useQuery({
+    queryKey: ['admin-users', debouncedQ, role],
+    queryFn: () => api.adminUsers({ q: debouncedQ, role: role || undefined }),
+    enabled: Boolean(isAdmin),
+  });
   const reportsQuery = useQuery({ queryKey: ['admin-reports'], queryFn: () => api.adminReports(), enabled: Boolean(isAdmin) });
   const logsQuery = useQuery({ queryKey: ['admin-logs'], queryFn: api.adminLogs, enabled: Boolean(isAdmin) });
+  const applyUserPatch = (id: string, patch: Partial<User>) => {
+    queryClient.setQueryData<User[]>(['admin-users', debouncedQ, role], (current) => {
+      if (!current) return current;
+      return current.map((u) => (u.id === id ? { ...u, ...patch } : u));
+    });
+  };
   const moderate = useMutation({
     mutationFn: ({ id, payload }: { id: string; payload: Parameters<typeof api.moderateUser>[1] }) => api.moderateUser(id, payload),
-    onSuccess: () => {
+    onMutate: async ({ id, payload }) => {
+      await queryClient.cancelQueries({ queryKey: ['admin-users', debouncedQ, role] });
+      const previous = queryClient.getQueryData<User[]>(['admin-users', debouncedQ, role]);
+      const patch: Partial<User> = {};
+      if (typeof payload.is_banned === 'boolean') patch.is_banned = payload.is_banned;
+      if (payload.restrictions) patch.restrictions = { ...(payload.restrictions as Record<string, boolean>) };
+      applyUserPatch(id, patch);
+      return { previous };
+    },
+    onError: (_err, _vars, context) => {
+      if (context?.previous) queryClient.setQueryData(['admin-users', debouncedQ, role], context.previous);
+    },
+    onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ['admin-users'] });
       queryClient.invalidateQueries({ queryKey: ['admin-stats'] });
-      toast.show({ title: t('admin.action_applied'), tone: 'success' });
+    },
+    onSuccess: (_data, vars) => {
       setBanModal(null);
+      const revert = () => {
+        const target = vars.payload;
+        if (target.is_banned) moderate.mutate({ id: vars.id, payload: { is_banned: false, restrictions: {} } });
+        else if (target.restrictions) {
+          const inverse: Record<string, boolean> = {};
+          for (const [k, v] of Object.entries(target.restrictions)) inverse[k] = !Boolean(v);
+          moderate.mutate({ id: vars.id, payload: { restrictions: inverse } });
+        }
+      };
+      const isDestructive = vars.payload.is_banned === true;
+      toast.show({
+        title: t('admin.action_applied'),
+        tone: 'success',
+        duration: isDestructive ? 8000 : undefined,
+        action: isDestructive ? { label: t('admin.undo'), onClick: revert } : undefined,
+      });
     },
   });
   const setRole = useMutation({
-    mutationFn: ({ id, nextRole }: { id: string; nextRole: string }) => api.setUserRole(id, nextRole),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['admin-users'] }),
+    mutationFn: ({ id, nextRole }: { id: string; nextRole: string; previousRole?: string }) => api.setUserRole(id, nextRole),
+    onMutate: async ({ id, nextRole }) => {
+      await queryClient.cancelQueries({ queryKey: ['admin-users', debouncedQ, role] });
+      const previous = queryClient.getQueryData<User[]>(['admin-users', debouncedQ, role]);
+      applyUserPatch(id, { role: nextRole });
+      return { previous };
+    },
+    onError: (_err, _vars, context) => {
+      if (context?.previous) queryClient.setQueryData(['admin-users', debouncedQ, role], context.previous);
+    },
+    onSettled: () => queryClient.invalidateQueries({ queryKey: ['admin-users'] }),
+    onSuccess: (_data, vars) => {
+      const isDestructive = vars.nextRole === 'global_admin' || (vars.nextRole === 'user' && vars.previousRole === 'admin');
+      const revert = () => {
+        if (vars.previousRole) setRole.mutate({ id: vars.id, nextRole: vars.previousRole, previousRole: vars.nextRole });
+      };
+      toast.show({
+        title: t('admin.role_updated'),
+        tone: 'success',
+        duration: isDestructive ? 8000 : undefined,
+        action: isDestructive ? { label: t('admin.undo'), onClick: revert } : undefined,
+      });
+    },
   });
   const resolveReport = useMutation({
     mutationFn: ({ id, action, status = 'resolved' }: { id: string; action?: string; status?: string }) => api.resolveReport(id, status, action),
@@ -45,6 +110,10 @@ export function AdminPage() {
       queryClient.invalidateQueries({ queryKey: ['admin-logs'] });
     },
   });
+
+  const requestPromote = (target: User) => setConfirm({ kind: 'admin', target });
+  const requestDemote = (target: User) => setConfirm({ kind: 'demote', target });
+  const requestBan = (target: User) => setConfirm({ kind: 'ban', target });
 
   if (!user) return <div className="p-6"><EmptyState title={t('admin.login_required')} /></div>;
   if (!isAdmin) return <div className="p-6"><EmptyState title={t('admin.no_access')} /></div>;
@@ -62,7 +131,14 @@ export function AdminPage() {
 
       <div className="space-y-8 p-6">
         {/* Stats */}
-        {statsQuery.isLoading ? <Skeleton className="h-24 rounded-2xl" /> : (
+        {statsQuery.isLoading ? (
+          <Skeleton className="h-24 rounded-2xl" />
+        ) : statsQuery.isError ? (
+          <ErrorState
+            description={statsQuery.error instanceof Error ? statsQuery.error.message : t('admin.error_load_logs')}
+            onRetry={() => statsQuery.refetch()}
+          />
+        ) : (
           <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
             {Object.entries(statsQuery.data || {}).map(([key, value]) => <Metric key={key} label={key} value={value} lang={lang} />)}
           </div>
@@ -80,42 +156,78 @@ export function AdminPage() {
               <option value="global_admin">global_admin</option>
             </Select>
           </div>
-          <div className="space-y-3">
-            {(usersQuery.data || []).map((item) => {
-              const restrictions = item.restrictions || {};
-              return (
-                <div key={item.id} className="rounded-xl border border-gray-200/60 p-4 transition-all hover:shadow-sm dark:border-zinc-800/60">
-                  <div className="flex flex-wrap justify-between gap-3">
-                    <div className="flex items-center gap-3">
-                      <Avatar src={item.avatar_url} name={item.display_name} />
-                      <div>
-                        <p className="font-black">@{item.username}</p>
-                        <p className="text-sm text-gray-400">{item.display_name} · {item.role}{item.is_banned ? ` · ${t('admin.banned')}` : ''}</p>
-                        {Object.keys(restrictions).length ? <p className="text-xs font-bold text-amber-600">Ограничения: {Object.keys(restrictions).join(', ')}</p> : null}
+          {usersQuery.isError ? (
+            <ErrorState
+              description={usersQuery.error instanceof Error ? usersQuery.error.message : t('admin.error_load_users')}
+              onRetry={() => usersQuery.refetch()}
+            />
+          ) : (
+            <div className="space-y-3">
+              {(usersQuery.data || []).map((item) => {
+                const restrictions = item.restrictions || {};
+                const pending = setRole.isPending && setRole.variables?.id === item.id;
+                const moderating = moderate.isPending && moderate.variables?.id === item.id;
+                return (
+                  <div key={item.id} className="rounded-xl border border-gray-200/60 p-4 transition-all hover:shadow-sm dark:border-zinc-800/60">
+                    <div className="flex flex-wrap justify-between gap-3">
+                      <div className="flex items-center gap-3">
+                        <Avatar src={item.avatar_url} name={item.display_name} />
+                        <div>
+                          <p className="font-black">@{item.username}</p>
+                          <p className="text-sm text-gray-400">{item.display_name} · {item.role}{item.is_banned ? ` · ${t('admin.banned')}` : ''}</p>
+                          {Object.keys(restrictions).length ? <p className="text-xs font-bold text-amber-600">Ограничения: {Object.keys(restrictions).join(', ')}</p> : null}
+                        </div>
                       </div>
+                      {isGlobalAdmin ? (
+                        <div className="flex flex-wrap justify-end gap-2">
+                          {item.role !== 'global_admin' ? (
+                            <Button variant="outline" loading={pending && setRole.variables?.nextRole === 'global_admin'} onClick={() => requestPromote(item)}>global admin</Button>
+                          ) : null}
+                          {item.role !== 'user' && item.id !== user.id ? (
+                            <Button variant="outline" loading={pending && setRole.variables?.nextRole === 'user'} onClick={() => requestDemote(item)}>{t('admin.remove_role')}</Button>
+                          ) : null}
+                          <Button variant="outline" onClick={() => setBanModal(item)}>{t('admin.ban_timed')}</Button>
+                          <Button variant="outline" onClick={() => requestBan(item)}>{t('admin.ban_permanent')}</Button>
+                          <Button
+                            variant="outline"
+                            loading={moderating && (moderate.variables?.payload as { is_banned?: boolean })?.is_banned === false}
+                            onClick={() => moderate.mutate({ id: item.id, payload: { is_banned: false, restrictions: {} } })}
+                          >
+                            {t('admin.unban')}
+                          </Button>
+                          <Button
+                            variant="outline"
+                            loading={moderating}
+                            onClick={() => moderate.mutate({ id: item.id, payload: { restrictions: { ...restrictions, posts: !restrictions.posts } } })}
+                          >
+                            {restrictions.posts ? t('admin.allow_posts') : t('admin.block_posts')}
+                          </Button>
+                          <Button
+                            variant="outline"
+                            loading={moderating}
+                            onClick={() => moderate.mutate({ id: item.id, payload: { restrictions: { ...restrictions, comments: !restrictions.comments } } })}
+                          >
+                            {restrictions.comments ? t('admin.allow_comments') : t('admin.block_comments')}
+                          </Button>
+                        </div>
+                      ) : null}
                     </div>
-                    {isGlobalAdmin ? (
-                      <div className="flex flex-wrap justify-end gap-2">
-                        {item.role !== 'global_admin' ? <Button variant="outline" onClick={() => setRole.mutate({ id: item.id, nextRole: 'global_admin' })}>global admin</Button> : null}
-                        {item.role !== 'user' && item.id !== user.id ? <Button variant="outline" onClick={() => setRole.mutate({ id: item.id, nextRole: 'user' })}>{t('admin.remove_role')}</Button> : null}
-                        <Button variant="outline" onClick={() => setBanModal(item)}>{t('admin.ban_timed')}</Button>
-                        <Button variant="outline" onClick={() => moderate.mutate({ id: item.id, payload: { is_banned: true, reason: 'Нарушение правил сайта' } })}>{t('admin.ban_permanent')}</Button>
-                        <Button variant="outline" onClick={() => moderate.mutate({ id: item.id, payload: { is_banned: false, restrictions: {} } })}>{t('admin.unban')}</Button>
-                        <Button variant="outline" onClick={() => moderate.mutate({ id: item.id, payload: { restrictions: { ...restrictions, posts: !restrictions.posts } } })}>{restrictions.posts ? t('admin.allow_posts') : t('admin.block_posts')}</Button>
-                        <Button variant="outline" onClick={() => moderate.mutate({ id: item.id, payload: { restrictions: { ...restrictions, comments: !restrictions.comments } } })}>{restrictions.comments ? t('admin.allow_comments') : t('admin.block_comments')}</Button>
-                      </div>
-                    ) : null}
                   </div>
-                </div>
-              );
-            })}
-          </div>
+                );
+              })}
+            </div>
+          )}
         </section>
 
         {/* Reports section */}
         <section className="space-y-3 rounded-2xl border border-gray-200/60 bg-white p-6 shadow-sm dark:border-zinc-800/60 dark:bg-zinc-900/50">
           <h2 className="flex items-center gap-2 text-xl font-black"><Flag size={18} className="text-amber-500" /> {t('admin.reports_title')}</h2>
-          {(reportsQuery.data || []).map((report) => {
+          {reportsQuery.isError ? (
+            <ErrorState
+              description={reportsQuery.error instanceof Error ? reportsQuery.error.message : t('admin.error_load_reports')}
+              onRetry={() => reportsQuery.refetch()}
+            />
+          ) : (reportsQuery.data || []).map((report) => {
             const action = reportActionForTarget(String(report.target_type));
             return (
               <div key={String(report.id)} className="rounded-xl border border-gray-200/60 p-4 transition-all hover:shadow-sm dark:border-zinc-800/60">
@@ -138,7 +250,14 @@ export function AdminPage() {
         {/* Logs section */}
         <section className="space-y-2 rounded-2xl border border-gray-200/60 bg-white p-6 shadow-sm dark:border-zinc-800/60 dark:bg-zinc-900/50">
           <h2 className="text-xl font-black">{t('admin.logs_title')}</h2>
-          {(logsQuery.data || []).slice(0, 12).map((log) => <p key={String(log.id)} className="border-b border-gray-100 py-2.5 text-sm text-gray-500 dark:border-zinc-800">{String(log.action)} · {String(log.target_type)} · {String(log.reason || '')}</p>)}
+          {logsQuery.isError ? (
+            <ErrorState
+              description={logsQuery.error instanceof Error ? logsQuery.error.message : t('admin.error_load_logs')}
+              onRetry={() => logsQuery.refetch()}
+            />
+          ) : (
+            (logsQuery.data || []).slice(0, 12).map((log) => <p key={String(log.id)} className="border-b border-gray-100 py-2.5 text-sm text-gray-500 dark:border-zinc-800">{String(log.action)} · {String(log.target_type)} · {String(log.reason || '')}</p>)
+          )}
         </section>
       </div>
 
@@ -163,16 +282,44 @@ export function AdminPage() {
           </div>
           <div className="flex justify-end gap-2 pt-2">
             <Button variant="outline" onClick={() => setBanModal(null)}>{t('admin.ban_cancel')}</Button>
-            <Button variant="danger" onClick={() => banModal && moderate.mutate({ id: banModal.id, payload: { is_banned: true, duration_hours: Number(duration), reason } })}>
+            <Button
+              variant="danger"
+              loading={moderate.isPending && moderate.variables?.id === banModal?.id}
+              onClick={() => banModal && moderate.mutate({ id: banModal.id, payload: { is_banned: true, duration_hours: Number(duration), reason } })}
+            >
               <Ban size={16} />
               {t('admin.ban_confirm')}
             </Button>
           </div>
         </div>
       </Modal>
+
+      <ConfirmDialog
+        open={Boolean(confirm)}
+        onClose={() => setConfirm(null)}
+        title={
+          confirm?.kind === 'ban' ? t('admin.confirm_ban_title') :
+          confirm?.kind === 'admin' ? t('admin.confirm_admin_title') :
+          t('admin.confirm_demote_title')
+        }
+        description={
+          confirm?.kind === 'ban' ? t('admin.confirm_ban_desc') :
+          confirm?.kind === 'admin' ? t('admin.confirm_admin_desc') :
+          t('admin.confirm_demote_desc')
+        }
+        loading={moderate.isPending || setRole.isPending}
+        onConfirm={() => {
+          if (!confirm) return;
+          if (confirm.kind === 'ban') moderate.mutate({ id: confirm.target.id, payload: { is_banned: true, reason: 'Нарушение правил сайта' } });
+          if (confirm.kind === 'admin') setRole.mutate({ id: confirm.target.id, nextRole: 'global_admin', previousRole: confirm.target.role });
+          if (confirm.kind === 'demote') setRole.mutate({ id: confirm.target.id, nextRole: 'user', previousRole: confirm.target.role });
+          setConfirm(null);
+        }}
+      />
     </div>
   );
 }
+
 
 export function ReportsPage() {
   const { user } = useAuthStore();

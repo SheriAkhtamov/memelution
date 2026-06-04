@@ -27,7 +27,7 @@ export function MessagesPage() {
   const [forwardSearch, setForwardSearch] = useState('');
   const toast = useToast();
   const bottomRef = useRef<HTMLDivElement>(null);
-  const inputRef = useRef<HTMLInputElement>(null);
+  const inputRef = useRef<HTMLTextAreaElement>(null);
 
   const DRAFT_KEY = 'memelution-msg-draft';
   const loadDraft = (chatId: string) => {
@@ -48,7 +48,7 @@ export function MessagesPage() {
     } catch {}
   };
 
-  const { active, setActive, activeChat, chatsQuery, messagesQuery, chatDetailQuery, typing, typingMap, replyTo, setReplyTo, create, send, editMessage, deleteMessage, leaveChat, forwardMessage, uploadAndSend, notifyTyping, optimistic, removeOptimistic } = useMessages(params.get('chat') || '');
+  const { active, setActive, activeChat, chatsQuery, messagesQuery, chatDetailQuery, typing, typingMap, replyTo, setReplyTo, create, send, editMessage, deleteMessage, leaveChat, forwardMessage, uploadAndSend, notifyTyping, optimistic, removeOptimistic, sendReaction } = useMessages(params.get('chat') || '');
 
   const filteredChats = useMemo(() => {
     if (!chatsQuery.data) return [];
@@ -191,7 +191,7 @@ export function MessagesPage() {
                 const peer = chat.members[0];
                 return (
                   <button key={chat.id} onClick={() => selectChat(chat.id)} className={`flex w-full gap-3 border-b border-gray-50 p-4 text-left hover:bg-gray-50 dark:border-zinc-900 dark:hover:bg-zinc-900 ${active === chat.id ? 'bg-orange-50 dark:bg-orange-950/20' : ''}`}>
-                    <Avatar src={chat.avatar_url || peer?.avatar_url} name={chat.title || peer?.display_name} />
+                    <Avatar src={chat.avatar_url || peer?.avatar_url} name={chat.title || peer?.display_name} className="rounded-full" />
                     <span className="min-w-0 flex-1">
                       <span className="flex items-center justify-between gap-2">
                         <span className="truncate font-black">{chat.title || peer?.display_name || t('messages.chat_title')}</span>
@@ -211,7 +211,7 @@ export function MessagesPage() {
                   <button onClick={() => selectChat('')} className="rounded-lg p-1.5 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-700 dark:hover:bg-zinc-800 dark:hover:text-zinc-200 lg:hidden" aria-label={t('messages.back')}>
                     <ArrowLeft size={20} />
                   </button>
-                  <Avatar src={activeChat.avatar_url || activeChat.members[0]?.avatar_url} name={activeChat.title || activeChat.members[0]?.display_name} />
+                  <Avatar src={activeChat.avatar_url || activeChat.members[0]?.avatar_url} name={activeChat.title || activeChat.members[0]?.display_name} className="rounded-full" />
                   <div className="min-w-0 flex-1">
                     <p className="truncate font-black">{activeChat.title || activeChat.members[0]?.display_name || t('messages.chat_title')}</p>
                      <p className="truncate text-xs font-bold text-gray-400">{typing ? `${typing} ${t('messages.typing')}` : activeChat.members.map((member) => `@${member.username}`).join(', ') || t('messages.direct_chat')}</p>
@@ -257,6 +257,7 @@ export function MessagesPage() {
                                   setText(message.text || '');
                                   removeOptimistic(message.id);
                                 } : undefined}
+                                onReact={isOptimistic ? undefined : (emoji, reacted) => sendReaction.mutate({ messageId: message.id, emoji, reacted })}
                                 actions={isOptimistic ? undefined : {
                                   onReply: () => setReplyTo({ id: message.id, text: message.text, sender: message.sender.display_name }),
                                   onEdit: () => handleEditStart(message as { id: string; text: string }),
@@ -279,22 +280,29 @@ export function MessagesPage() {
                 <div className="border-t border-gray-100 bg-white dark:border-zinc-800 dark:bg-zinc-950">
                   <MessageRepliedPreview replyTo={replyTo} onCancel={() => setReplyTo(null)} />
                   <div className="flex gap-2 p-4">
-                    <label className="inline-flex h-10 cursor-pointer items-center justify-center rounded-lg border border-gray-200 bg-white px-3 text-gray-500 hover:bg-gray-50 dark:border-zinc-800 dark:bg-zinc-950 dark:hover:bg-zinc-900" title={t('messages.add_media')}>
-                      <ImagePlus size={16} />
-                      <input type="file" accept="image/*,video/mp4" className="hidden" onChange={(event) => event.target.files?.[0] && uploadAndSend.mutate(event.target.files[0])} />
+                    <label className="inline-flex h-10 cursor-pointer items-center justify-center rounded-lg border border-gray-200 bg-white px-3 text-gray-500 hover:bg-gray-50 dark:border-zinc-800 dark:bg-zinc-950 dark:hover:bg-zinc-900" title={t('messages.add_media')} aria-label={t('messages.add_media')}>
+                      <ImagePlus size={16} aria-hidden="true" />
+                      <input type="file" accept="image/*,video/mp4" className="sr-only" onChange={(event) => event.target.files?.[0] && uploadAndSend.mutate(event.target.files[0])} />
                     </label>
-                    <input
+                    <textarea
                       ref={inputRef}
                       value={text}
+                      rows={1}
+                      aria-label={t('messages.input_placeholder')}
                       onChange={(event) => { setText(event.target.value); notifyTyping(); }}
+                      onInput={(event) => {
+                        const el = event.currentTarget;
+                        el.style.height = 'auto';
+                        el.style.height = `${Math.min(el.scrollHeight, 120)}px`;
+                      }}
                       onKeyDown={(event) => {
-                        if (event.key === 'Enter') {
+                        if (event.key === 'Enter' && !event.shiftKey) {
                           event.preventDefault();
                           sendCurrentMessage();
                         }
                       }}
                       placeholder={t('messages.input_placeholder')}
-                      className="h-11 w-full rounded-lg border border-gray-200 bg-white px-3 text-sm font-bold text-gray-900 outline-none transition-colors placeholder:text-gray-400 focus:border-[#2AABEE] focus:ring-2 focus:ring-blue-100 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-100 dark:focus:ring-blue-950"
+                      className="min-h-[44px] max-h-[120px] w-full resize-none rounded-lg border border-gray-200 bg-white px-3 py-2.5 text-sm font-bold text-gray-900 outline-none transition-colors placeholder:text-gray-400 focus:border-[#2AABEE] focus:ring-2 focus:ring-blue-100 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-100 dark:focus:ring-blue-950"
                     />
                     <Button onClick={sendCurrentMessage} loading={send.isPending} disabled={!text.trim()}><Send size={16} /></Button>
                   </div>
@@ -324,7 +332,7 @@ export function MessagesPage() {
                 onClick={() => handleForwardSend(chat.id)}
                 className="flex w-full items-center gap-3 rounded-lg p-3 text-left hover:bg-gray-50 dark:hover:bg-zinc-900"
               >
-                <Avatar src={chat.avatar_url || chat.members[0]?.avatar_url} name={chat.title || chat.members[0]?.display_name} />
+                <Avatar src={chat.avatar_url || chat.members[0]?.avatar_url} name={chat.title || chat.members[0]?.display_name} className="rounded-full" />
                 <span className="min-w-0">
                   <span className="block truncate text-sm font-black">{chat.title || chat.members[0]?.display_name || t('messages.chat_title')}</span>
                   <span className="block truncate text-xs text-gray-400">{chat.latest_message?.text || t('messages.chat_title')}</span>
@@ -343,7 +351,7 @@ export function MessagesPage() {
               <div className="space-y-2">
                 {(chatDetailQuery.data?.members || activeChat?.members || []).map((member) => (
                   <div key={member.id} className="flex items-center gap-3 rounded-lg p-2 hover:bg-gray-50 dark:hover:bg-zinc-900">
-                    <Avatar src={member.avatar_url} name={member.display_name} />
+                    <Avatar src={member.avatar_url} name={member.display_name} className="rounded-full" />
                     <span className="min-w-0">
                       <span className="block truncate text-sm font-black">{member.display_name}</span>
                       <span className="block truncate text-xs text-gray-400">@{member.username}</span>

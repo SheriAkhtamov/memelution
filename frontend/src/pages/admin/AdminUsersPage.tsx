@@ -4,7 +4,8 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { api } from '../../shared/api/client';
 import { useTranslation } from '../../shared/i18n';
 import type { User } from '../../shared/types';
-import { Avatar, Button, Dropdown, DropdownItem, EmptyState, Input, Modal, Select, Skeleton, Textarea, useToast } from '../../shared/ui';
+import { Avatar, Button, ConfirmDialog, Dropdown, DropdownItem, EmptyState, ErrorState, Input, Modal, Select, Skeleton, Textarea, useToast } from '../../shared/ui';
+import { useDebouncedValue } from '../../shared/lib/useDebouncedValue';
 import { useAuthStore } from '../../store/authStore';
 
 const ROLE_BADGE: Record<string, { label: string; className: string }> = {
@@ -13,35 +14,123 @@ const ROLE_BADGE: Record<string, { label: string; className: string }> = {
   user: { label: 'admin.role_user', className: 'bg-gray-100 text-gray-600 dark:bg-zinc-800 dark:text-zinc-400' },
 };
 
+type ConfirmKind = 'ban' | 'admin' | 'demote' | null;
+
 export function AdminUsersPage() {
   const { user } = useAuthStore();
   const { t } = useTranslation();
   const queryClient = useQueryClient();
   const toast = useToast();
   const [q, setQ] = useState('');
+  const debouncedQ = useDebouncedValue(q, 300);
   const [role, setRoleFilter] = useState('');
   const [banModal, setBanModal] = useState<User | null>(null);
   const [duration, setDuration] = useState('24');
   const [reason, setReason] = useState(t('admin.ban_reason_default'));
+  const [confirm, setConfirm] = useState<{ kind: ConfirmKind; target: User; revert: () => void } | null>(null);
   const isAdmin = user?.role === 'global_admin' || user?.role === 'admin';
   const isGlobalAdmin = user?.role === 'global_admin';
-  const usersQuery = useQuery({ queryKey: ['admin-users', q, role], queryFn: () => api.adminUsers({ q, role: role || undefined }), enabled: Boolean(isAdmin) });
+  const usersQuery = useQuery({
+    queryKey: ['admin-users', debouncedQ, role],
+    queryFn: () => api.adminUsers({ q: debouncedQ, role: role || undefined }),
+    enabled: Boolean(isAdmin),
+  });
+
+  const applyUserPatch = (id: string, patch: Partial<User>) => {
+    queryClient.setQueryData<User[]>(['admin-users', debouncedQ, role], (current) => {
+      if (!current) return current;
+      return current.map((u) => (u.id === id ? { ...u, ...patch } : u));
+    });
+  };
   const moderate = useMutation({
     mutationFn: ({ id, payload }: { id: string; payload: Parameters<typeof api.moderateUser>[1] }) => api.moderateUser(id, payload),
-    onSuccess: () => {
+    onMutate: async ({ id, payload }) => {
+      await queryClient.cancelQueries({ queryKey: ['admin-users', debouncedQ, role] });
+      const previous = queryClient.getQueryData<User[]>(['admin-users', debouncedQ, role]);
+      const patch: Partial<User> = {};
+      if (typeof payload.is_banned === 'boolean') patch.is_banned = payload.is_banned;
+      if (payload.restrictions) patch.restrictions = { ...(payload.restrictions as Record<string, boolean>) };
+      applyUserPatch(id, patch);
+      return { previous };
+    },
+    onError: (_err, _vars, context) => {
+      if (context?.previous) queryClient.setQueryData(['admin-users', debouncedQ, role], context.previous);
+      toast.show({ title: t('admin.error_load_users'), tone: 'error' });
+    },
+    onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ['admin-users'] });
       queryClient.invalidateQueries({ queryKey: ['admin-stats'] });
-      toast.show({ title: t('admin.action_applied'), tone: 'success' });
+    },
+    onSuccess: (_data, vars) => {
       setBanModal(null);
+      const revert = () => {
+        const target = vars.payload;
+        if (target.is_banned) {
+          moderate.mutate({ id: vars.id, payload: { is_banned: false, restrictions: {} } });
+        } else if (target.restrictions) {
+          const inverse: Record<string, boolean> = {};
+          for (const [k, v] of Object.entries(target.restrictions)) inverse[k] = !Boolean(v);
+          moderate.mutate({ id: vars.id, payload: { restrictions: inverse } });
+        }
+      };
+      const isDestructive = vars.payload.is_banned === true;
+      toast.show({
+        title: t('admin.action_applied'),
+        tone: 'success',
+        duration: isDestructive ? 8000 : undefined,
+        action: isDestructive ? { label: t('admin.undo'), onClick: revert } : undefined,
+      });
     },
   });
   const setRole = useMutation({
-    mutationFn: ({ id, nextRole }: { id: string; nextRole: string }) => api.setUserRole(id, nextRole),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['admin-users'] });
-      toast.show({ title: t('admin.role_updated'), tone: 'success' });
+    mutationFn: ({ id, nextRole }: { id: string; nextRole: string; previousRole?: string }) => api.setUserRole(id, nextRole),
+    onMutate: async ({ id, nextRole }) => {
+      await queryClient.cancelQueries({ queryKey: ['admin-users', debouncedQ, role] });
+      const previous = queryClient.getQueryData<User[]>(['admin-users', debouncedQ, role]);
+      applyUserPatch(id, { role: nextRole });
+      return { previous };
+    },
+    onError: (_err, _vars, context) => {
+      if (context?.previous) queryClient.setQueryData(['admin-users', debouncedQ, role], context.previous);
+    },
+    onSettled: () => queryClient.invalidateQueries({ queryKey: ['admin-users'] }),
+    onSuccess: (_data, vars) => {
+      const isDestructive = vars.nextRole === 'global_admin' || (vars.nextRole === 'user' && vars.previousRole === 'admin');
+      const revert = () => {
+        if (vars.previousRole) setRole.mutate({ id: vars.id, nextRole: vars.previousRole, previousRole: vars.nextRole });
+      };
+      toast.show({
+        title: t('admin.role_updated'),
+        tone: 'success',
+        duration: isDestructive ? 8000 : undefined,
+        action: isDestructive ? { label: t('admin.undo'), onClick: revert } : undefined,
+      });
     },
   });
+
+  const requestPromote = (target: User) => {
+    const previousRole = target.role;
+    setConfirm({
+      kind: 'admin',
+      target,
+      revert: () => setRole.mutate({ id: target.id, nextRole: previousRole, previousRole: 'global_admin' }),
+    });
+  };
+  const requestDemote = (target: User) => {
+    const previousRole = target.role;
+    setConfirm({
+      kind: 'demote',
+      target,
+      revert: () => setRole.mutate({ id: target.id, nextRole: previousRole, previousRole: 'user' }),
+    });
+  };
+  const requestBan = (target: User) => {
+    setConfirm({
+      kind: 'ban',
+      target,
+      revert: () => moderate.mutate({ id: target.id, payload: { is_banned: false, restrictions: {} } }),
+    });
+  };
 
   if (!user) return <div className="p-6"><EmptyState title={t('admin.login_required')} /></div>;
   if (!isAdmin) return <div className="p-6"><EmptyState title={t('admin.no_access')} /></div>;
@@ -90,6 +179,11 @@ export function AdminUsersPage() {
       <div className="space-y-3">
         {usersQuery.isLoading ? (
           Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} className="h-20 rounded-2xl" />)
+        ) : usersQuery.isError ? (
+          <ErrorState
+            description={usersQuery.error instanceof Error ? usersQuery.error.message : t('admin.error_load_users')}
+            onRetry={() => usersQuery.refetch()}
+          />
         ) : users.length === 0 ? (
           <EmptyState title={t('admin.no_users')} description={t('admin.no_users_desc')} />
         ) : (
@@ -155,37 +249,49 @@ export function AdminUsersPage() {
                   {isGlobalAdmin && (
                     <Dropdown
                       trigger={
-                        <button className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-gray-200 bg-white text-gray-500 transition-colors hover:bg-gray-50 hover:text-gray-700 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-400 dark:hover:bg-zinc-700">
-                          <MoreHorizontal size={18} />
+                        <button
+                          aria-label={t('admin.users_title')}
+                          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-gray-200 bg-white text-gray-500 transition-colors hover:bg-gray-50 hover:text-gray-700 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-400 dark:hover:bg-zinc-700"
+                        >
+                          <MoreHorizontal size={18} aria-hidden="true" />
                         </button>
                       }
                     >
                       {item.role !== 'global_admin' && (
-                        <DropdownItem onClick={() => setRole.mutate({ id: item.id, nextRole: 'global_admin' })}>
+                        <DropdownItem onClick={() => requestPromote(item)}>
                           <Crown size={15} className="text-purple-500" /> {t('admin.make_admin')}
                         </DropdownItem>
                       )}
                       {item.role !== 'user' && item.id !== user.id && (
-                        <DropdownItem onClick={() => setRole.mutate({ id: item.id, nextRole: 'user' })}>
+                        <DropdownItem onClick={() => requestDemote(item)}>
                           <ShieldOff size={15} className="text-gray-400" /> {t('admin.remove_role')}
                         </DropdownItem>
                       )}
                       <DropdownItem onClick={() => setBanModal(item)}>
                         <Timer size={15} className="text-amber-500" /> {t('admin.ban_timed')}
                       </DropdownItem>
-                      <DropdownItem danger onClick={() => moderate.mutate({ id: item.id, payload: { is_banned: true, reason: 'Нарушение правил сайта' } })}>
+                      <DropdownItem danger onClick={() => requestBan(item)}>
                         <ShieldAlert size={15} /> {t('admin.ban_permanent')}
                       </DropdownItem>
                       {(item.is_banned || hasRestrictions) && (
-                        <DropdownItem onClick={() => moderate.mutate({ id: item.id, payload: { is_banned: false, restrictions: {} } })}>
+                        <DropdownItem
+                          onClick={() => moderate.mutate({ id: item.id, payload: { is_banned: false, restrictions: {} } })}
+                          disabled={moderate.isPending && moderate.variables?.id === item.id}
+                        >
                           <ShieldCheck size={15} className="text-emerald-500" /> {t('admin.unban')}
                         </DropdownItem>
                       )}
-                      <DropdownItem onClick={() => moderate.mutate({ id: item.id, payload: { restrictions: { ...restrictions, posts: !restrictions.posts } } })}>
+                      <DropdownItem
+                        onClick={() => moderate.mutate({ id: item.id, payload: { restrictions: { ...restrictions, posts: !restrictions.posts } } })}
+                        disabled={moderate.isPending && moderate.variables?.id === item.id}
+                      >
                         <PenOff size={15} className={restrictions.posts ? 'text-emerald-500' : 'text-amber-500'} />
                         {restrictions.posts ? t('admin.allow_posts') : t('admin.block_posts')}
                       </DropdownItem>
-                      <DropdownItem onClick={() => moderate.mutate({ id: item.id, payload: { restrictions: { ...restrictions, comments: !restrictions.comments } } })}>
+                      <DropdownItem
+                        onClick={() => moderate.mutate({ id: item.id, payload: { restrictions: { ...restrictions, comments: !restrictions.comments } } })}
+                        disabled={moderate.isPending && moderate.variables?.id === item.id}
+                      >
                         <MessageSquareOff size={15} className={restrictions.comments ? 'text-emerald-500' : 'text-amber-500'} />
                         {restrictions.comments ? t('admin.allow_comments') : t('admin.block_comments')}
                       </DropdownItem>
@@ -225,6 +331,7 @@ export function AdminUsersPage() {
               <Button variant="outline" onClick={() => setBanModal(null)}>{t('admin.ban_cancel')}</Button>
               <Button
                 variant="danger"
+                loading={moderate.isPending && moderate.variables?.id === banModal.id}
                 onClick={() => moderate.mutate({ id: banModal.id, payload: { is_banned: true, duration_hours: Number(duration), reason } })}
               >
                 <Ban size={16} />
@@ -234,6 +341,30 @@ export function AdminUsersPage() {
           </div>
         )}
       </Modal>
+
+      {/* Destructive action confirmations */}
+      <ConfirmDialog
+        open={Boolean(confirm)}
+        onClose={() => setConfirm(null)}
+        title={
+          confirm?.kind === 'ban' ? t('admin.confirm_ban_title') :
+          confirm?.kind === 'admin' ? t('admin.confirm_admin_title') :
+          t('admin.confirm_demote_title')
+        }
+        description={
+          confirm?.kind === 'ban' ? t('admin.confirm_ban_desc') :
+          confirm?.kind === 'admin' ? t('admin.confirm_admin_desc') :
+          t('admin.confirm_demote_desc')
+        }
+        loading={moderate.isPending || setRole.isPending}
+        onConfirm={() => {
+          if (!confirm) return;
+          if (confirm.kind === 'ban') moderate.mutate({ id: confirm.target.id, payload: { is_banned: true, reason: 'Нарушение правил сайта' } });
+          if (confirm.kind === 'admin') setRole.mutate({ id: confirm.target.id, nextRole: 'global_admin', previousRole: confirm.target.role });
+          if (confirm.kind === 'demote') setRole.mutate({ id: confirm.target.id, nextRole: 'user', previousRole: confirm.target.role });
+          setConfirm(null);
+        }}
+      />
     </div>
   );
 }

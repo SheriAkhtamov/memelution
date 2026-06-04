@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeft, MessageCircle, Send, X } from 'lucide-react';
+import { ArrowLeft, ArrowUp, CornerDownRight, MessageCircle, Send, X } from 'lucide-react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { api } from '../../shared/api/client';
 import type { Comment } from '../../shared/types';
@@ -13,6 +13,7 @@ import { useTranslation } from '../../shared/i18n';
 import { trackEvent } from '../../shared/lib/analytics';
 
 type Sort = 'popular' | 'new' | 'old';
+const MAX_COMMENT_LEN = 500;
 
 export function PostPage() {
   const { id = '' } = useParams();
@@ -24,6 +25,8 @@ export function PostPage() {
   const [sort, setSort] = useState<Sort>('popular');
   const [text, setText] = useState('');
   const [replyTo, setReplyTo] = useState<Comment | null>(null);
+  const [highlightedCommentId, setHighlightedCommentId] = useState<string | null>(null);
+  const highlightTimerRef = useRef<number | null>(null);
   const commentRef = useRef<HTMLTextAreaElement>(null);
 
   const postQuery = useQuery({ queryKey: ['post', id], queryFn: () => api.post(id), enabled: Boolean(id) });
@@ -90,6 +93,19 @@ export function PostPage() {
     if (replyTo) commentRef.current?.focus();
   }, [replyTo]);
 
+  useEffect(() => () => {
+    if (highlightTimerRef.current) window.clearTimeout(highlightTimerRef.current);
+  }, []);
+
+  const scrollToComment = (commentId: string) => {
+    const el = document.getElementById(`comment-${commentId}`);
+    if (!el) return;
+    el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    setHighlightedCommentId(commentId);
+    if (highlightTimerRef.current) window.clearTimeout(highlightTimerRef.current);
+    highlightTimerRef.current = window.setTimeout(() => setHighlightedCommentId(null), 1800);
+  };
+
   const goBack = () => {
     if (window.history.length > 1) navigate(-1);
     else navigate('/');
@@ -136,20 +152,40 @@ export function PostPage() {
               </button>
             ) : null}
           </div>
-          {replyTo ? <p className="mb-2 text-xs font-black text-[#7C3AED]">{t('post_page.reply_to', { author: replyTo.author.username })}</p> : null}
+          {replyTo ? (
+            <p className="mb-2 flex items-center gap-1 text-xs font-black text-[#7C3AED] dark:text-[#A78BFA]">
+              <CornerDownRight size={12} />
+              <span>{t('post_page.reply_to', { author: replyTo.author.username })}</span>
+              <button
+                type="button"
+                onClick={() => scrollToComment(replyTo.id)}
+                className="ml-1 inline-flex items-center gap-0.5 rounded px-1.5 py-0.5 text-[10px] font-bold text-[#7C3AED] underline-offset-2 hover:underline dark:text-[#A78BFA]"
+                title={t('post_page.jump_to_comment')}
+              >
+                <ArrowUp size={10} /> {t('post_page.jump')}
+              </button>
+            </p>
+          ) : null}
           <div className="relative">
             <Textarea
               ref={commentRef}
               value={text}
-              onChange={(event) => setText(event.target.value)}
+              maxLength={MAX_COMMENT_LEN}
+              onChange={(event) => setText(event.target.value.slice(0, MAX_COMMENT_LEN))}
               onKeyDown={(event) => {
                 if (event.key === 'Escape') setReplyTo(null);
                 if (event.key === 'Enter' && (event.metaKey || event.ctrlKey) && text.trim()) submit();
               }}
               placeholder={postQuery.data.post.comments_enabled === false ? t('comment.disabled') : t('comment.placeholder')}
               disabled={postQuery.data.post.comments_enabled === false}
+              aria-describedby="comment-counter"
             />
-            <span className="absolute bottom-2 right-2 text-[10px] font-bold text-gray-300 dark:text-zinc-600">Ctrl+Enter</span>
+            <div id="comment-counter" className="mt-1 flex items-center justify-between text-[10px] font-bold">
+              <span className="text-gray-300 dark:text-zinc-600">Ctrl+Enter</span>
+              <span className={`tabular-nums ${text.length >= MAX_COMMENT_LEN ? 'text-amber-500' : 'text-gray-300 dark:text-zinc-600'}`} aria-live="polite">
+                {text.length}/{MAX_COMMENT_LEN}
+              </span>
+            </div>
           </div>
           <div className="mt-3 flex justify-end">
             <Button onClick={submit} loading={commentMutation.isPending} disabled={postQuery.data.post.comments_enabled === false}>
@@ -180,7 +216,13 @@ export function PostPage() {
           ) : commentsQuery.data?.items.length ? (
             <div className="space-y-3">
               {commentsQuery.data.items.map((comment) => (
-                <CommentItem key={comment.id} comment={comment} postId={id} onReply={setReplyTo} />
+                <CommentItem
+                  key={comment.id}
+                  comment={comment}
+                  postId={id}
+                  onReply={setReplyTo}
+                  highlight={highlightedCommentId === comment.id || comment.replies.some((reply) => highlightedCommentId === reply.id)}
+                />
               ))}
             </div>
           ) : (

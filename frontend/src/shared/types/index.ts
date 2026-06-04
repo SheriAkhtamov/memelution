@@ -141,6 +141,7 @@ export interface Comment {
   updated_at: string;
   author: User;
   liked: boolean;
+  reactions?: ReactionItem[];
   replies: Comment[];
 }
 
@@ -192,6 +193,7 @@ export interface Message {
   is_pinned?: boolean;
   is_deleted: boolean;
   read_count?: number;
+  reactions?: ReactionItem[];
   created_at: string;
   edited_at?: string | null;
 }

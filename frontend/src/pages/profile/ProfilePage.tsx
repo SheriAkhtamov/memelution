@@ -504,20 +504,44 @@ export function ProfilePage() {
           </div>
         ) : null}
 
-        {/* Sticky Tabs */}
+        {/* Sticky Tabs — 4 primary + progressive disclosure for More */}
         <div className="sticky top-14 z-10 -mx-3 bg-white/90 px-3 py-2 backdrop-blur dark:bg-zinc-950/90 sm:-mx-4 sm:px-4">
           <Tabs
-            value={tab}
-            onChange={(value) => setTab(value as ProfileTab)}
+            value={(['reposts', 'communities', 'collections'] as string[]).includes(tab) ? 'more' : tab}
+            onChange={(value) => {
+              if (value === 'more') setTab('reposts');
+              else setTab(value as ProfileTab);
+            }}
             items={[
-              { id: 'posts', label: `Посты (${tabCounts.posts})` },
-              { id: 'reposts', label: `Репосты (${tabCounts.reposts})` },
-              { id: 'media', label: `Медиа (${tabCounts.media})` },
-              { id: 'likes', label: `Лайки (${tabCounts.likes})` },
-              { id: 'communities', label: `Сообщества (${tabCounts.communities})` },
-              { id: 'collections', label: `Коллекции (${tabCounts.collections})` },
+              { id: 'posts', label: `Посты` },
+              { id: 'media', label: `Медиа` },
+              { id: 'likes', label: `Лайки` },
+              { id: 'more', label: `Ещё` },
             ]}
           />
+          {(['reposts', 'communities', 'collections'] as string[]).includes(tab) ? (
+            <div className="mt-2 flex gap-1">
+              {(
+                [
+                  { id: 'reposts', label: `Репосты ${tabCounts.reposts ? `(${tabCounts.reposts})` : ''}` },
+                  { id: 'communities', label: `Сообщества ${tabCounts.communities ? `(${tabCounts.communities})` : ''}` },
+                  { id: 'collections', label: `Коллекции ${tabCounts.collections ? `(${tabCounts.collections})` : ''}` },
+                ] as Array<{ id: ProfileTab; label: string }>
+              ).map((sub) => (
+                <button
+                  key={sub.id}
+                  onClick={() => setTab(sub.id)}
+                  className={`rounded-md px-2.5 py-1 text-xs font-bold transition-colors ${
+                    tab === sub.id
+                      ? 'bg-orange-50 text-[#FF6B00] dark:bg-orange-950/30'
+                      : 'text-gray-500 hover:bg-gray-50 dark:hover:bg-zinc-900'
+                  }`}
+                >
+                  {sub.label}
+                </button>
+              ))}
+            </div>
+          ) : null}
         </div>
 
         {own && (tab === 'posts' || tab === 'media') ? (

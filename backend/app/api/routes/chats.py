@@ -12,7 +12,7 @@ from app.core.auth import (
 )
 from app.db.session import SessionLocal, get_session
 from app.models import (
-    Chat, ChatMember, Message, MessageRead, Post, User, now,
+    Chat, ChatMember, Message, MessageReaction, MessageRead, Post, User, now,
 )
 from app.schemas import (
     ChatMemberSettingsPayload,
@@ -23,6 +23,59 @@ from app.services.api_support import *  # noqa: F403
 from app.services.realtime import manager
 
 router = APIRouter()
+ALLOWED_MESSAGE_REACTIONS = {"😂", "❤️", "🔥", "😢", "😡", "👏", "💀", "🤡", "👍"}
+
+
+async def _message_reactions_map(
+    db: AsyncSession,
+    message_ids: list[str],
+    viewer: User | None,
+) -> dict[str, list[dict]]:
+    if not message_ids:
+        return {}
+    rows = (
+        await db.execute(
+            select(MessageReaction.message_id, MessageReaction.emoji, func.count(MessageReaction.id).label("cnt"))
+            .where(MessageReaction.message_id.in_(message_ids))
+            .group_by(MessageReaction.message_id, MessageReaction.emoji)
+        )
+    ).all()
+    reactions_map: dict[str, list[dict]] = {}
+    for row in rows:
+        reactions_map.setdefault(row.message_id, []).append(
+            {"emoji": row.emoji, "count": row.cnt, "reacted": False}
+        )
+    if viewer:
+        viewer_reactions = (
+            await db.scalars(
+                select(MessageReaction).where(
+                    MessageReaction.user_id == viewer.id,
+                    MessageReaction.message_id.in_(message_ids),
+                )
+            )
+        ).all()
+        viewer_reaction_set = {(reaction.message_id, reaction.emoji) for reaction in viewer_reactions}
+        for message_id, items in reactions_map.items():
+            for item in items:
+                if (message_id, item["emoji"]) in viewer_reaction_set:
+                    item["reacted"] = True
+    return reactions_map
+
+
+async def _message_reactions_summary(db: AsyncSession, message_id: str, viewer: User | None) -> list[dict]:
+    return (await _message_reactions_map(db, [message_id], viewer)).get(message_id, [])
+
+
+async def _broadcast_message_reaction(db: AsyncSession, chat_id: str, message_id: str, reactions: list[dict]) -> None:
+    recipients = (await db.scalars(select(ChatMember).where(ChatMember.chat_id == chat_id))).all()
+    payload = {
+        "event": "message_reaction",
+        "chat_id": chat_id,
+        "message_id": message_id,
+        "reactions": reactions,
+    }
+    for recipient in recipients:
+        await manager.send(recipient.user_id, payload)
 
 @router.get("/api/chats")
 async def list_chats(db: AsyncSession = Depends(get_session), user: User = Depends(get_current_user)):
@@ -140,6 +193,7 @@ async def chat_messages(
         )
     ).all() if page_rows else []
     read_counts = {message_id: count for message_id, count in read_rows}
+    reactions_map = await _message_reactions_map(db, [item.id for item in page_rows], user)
     shared_posts = {}
     shared_post_ids = {item.shared_post_id for item in page_rows if item.shared_post_id}
     if shared_post_ids:
@@ -163,6 +217,7 @@ async def chat_messages(
             "is_pinned": item.is_pinned,
             "is_deleted": item.is_deleted,
             "read_count": read_counts.get(item.id, 0),
+            "reactions": reactions_map.get(item.id, []),
             "created_at": item.created_at.isoformat(),
             "edited_at": item.edited_at.isoformat() if item.edited_at else None,
         }
@@ -218,6 +273,7 @@ async def send_message(
         "reply_to_message_id": message.reply_to_message_id,
         "is_pinned": message.is_pinned,
         "is_deleted": message.is_deleted,
+        "reactions": [],
         "created_at": message.created_at.isoformat(),
         "edited_at": None,
     }
@@ -321,6 +377,64 @@ async def delete_message(
     for recipient in recipients:
         await manager.send(recipient.user_id, {"event": "message_deleted", "chat_id": message.chat_id, "message_id": message.id})
     return {"success": True}
+
+
+@router.post("/api/messages/{message_id}/reactions")
+async def add_message_reaction(
+    message_id: str,
+    emoji: str = Query(..., max_length=8),
+    db: AsyncSession = Depends(get_session),
+    user: User = Depends(get_current_user),
+):
+    if emoji not in ALLOWED_MESSAGE_REACTIONS:
+        raise HTTPException(status_code=422, detail="Unsupported reaction emoji")
+    message = await db.get(Message, message_id)
+    if not message or message.is_deleted:
+        raise HTTPException(status_code=404, detail="Message not found")
+    member = await db.scalar(select(ChatMember).where(ChatMember.chat_id == message.chat_id, ChatMember.user_id == user.id))
+    if not member:
+        raise HTTPException(status_code=403, detail="Not a chat member")
+    existing = await db.scalar(
+        select(MessageReaction).where(
+            MessageReaction.user_id == user.id,
+            MessageReaction.message_id == message_id,
+            MessageReaction.emoji == emoji,
+        )
+    )
+    if not existing:
+        db.add(MessageReaction(user_id=user.id, message_id=message_id, emoji=emoji))
+    await db.commit()
+    reactions = await _message_reactions_summary(db, message_id, user)
+    await _broadcast_message_reaction(db, message.chat_id, message_id, reactions)
+    return {"success": True, "reactions": reactions}
+
+
+@router.delete("/api/messages/{message_id}/reactions")
+async def remove_message_reaction(
+    message_id: str,
+    emoji: str = Query(..., max_length=8),
+    db: AsyncSession = Depends(get_session),
+    user: User = Depends(get_current_user),
+):
+    message = await db.get(Message, message_id)
+    if not message:
+        raise HTTPException(status_code=404, detail="Message not found")
+    member = await db.scalar(select(ChatMember).where(ChatMember.chat_id == message.chat_id, ChatMember.user_id == user.id))
+    if not member:
+        raise HTTPException(status_code=403, detail="Not a chat member")
+    existing = await db.scalar(
+        select(MessageReaction).where(
+            MessageReaction.user_id == user.id,
+            MessageReaction.message_id == message_id,
+            MessageReaction.emoji == emoji,
+        )
+    )
+    if existing:
+        await db.delete(existing)
+        await db.commit()
+    reactions = await _message_reactions_summary(db, message_id, user)
+    await _broadcast_message_reaction(db, message.chat_id, message_id, reactions)
+    return {"success": True, "reactions": reactions}
 
 
 
@@ -448,6 +562,8 @@ async def forward_message(
         "text": message.text,
         "media_url": absolutize(message.media_url),
         "shared_post_id": message.shared_post_id,
+        "reply_to_message_id": message.reply_to_message_id,
+        "reactions": [],
         "is_deleted": message.is_deleted,
         "created_at": message.created_at.isoformat(),
         "edited_at": None,

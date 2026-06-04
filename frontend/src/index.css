@@ -129,6 +129,12 @@
   * {
     @apply border-border outline-ring/50;
     }
+  .theme-transition,
+  .theme-transition *,
+  .theme-transition *::before,
+  .theme-transition *::after {
+    transition: background-color 0.3s ease, border-color 0.3s ease, color 0.3s ease;
+  }
   body {
     @apply bg-background text-foreground;
     overflow-x: hidden;
@@ -171,5 +177,31 @@
   }
   .animate-like-heart {
     animation: like-heart 0.8s ease-out forwards;
+  }
+
+  @keyframes page-fade-in {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+  .animate-page-enter {
+    animation: page-fade-in 150ms ease-out forwards;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation: none !important;
+    scroll-behavior: auto !important;
+    transition: none !important;
+    transform: none !important;
+  }
+  .animate-like-heart,
+  .animate-spin,
+  .animate-pulse,
+  .animate-in,
+  .animate-bounce {
+    animation: none !important;
   }
 }

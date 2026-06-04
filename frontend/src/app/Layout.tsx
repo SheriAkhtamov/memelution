@@ -1,10 +1,10 @@
 import { ReactNode, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { Bell, Bookmark, Compass, Home, MessageSquare, Plus, Search, Settings, Shield, Users, User as UserIcon, ExternalLink } from 'lucide-react';
+import { Bell, Bookmark, Compass, Home, MessageSquare, Plus, Search, Settings, Shield, Users, User as UserIcon, ExternalLink, UserCircle } from 'lucide-react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { api } from '../shared/api/client';
 import type { NotificationItem } from '../shared/types';
-import { Avatar, Badge, Button, EmptyState, IconButton, Skeleton } from '../shared/ui';
+import { Avatar, Badge, Button, EmptyState, Skeleton } from '../shared/ui';
 import { useAuthStore } from '../store/authStore';
 import { authRedirectUrl } from '../utils/authRedirect';
 import { PostComposer } from '../features/posts/components/PostComposer';
@@ -40,6 +40,8 @@ export function Layout({ children }: { children: ReactNode }) {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['notifications'] }),
   });
   const notifications = notificationsQuery.data || [];
+  const refetchNotificationsRef = useRef(notificationsQuery.refetch);
+  const refetchTrendsRef = useRef(trendsQuery.refetch);
   const unread = notifications.filter((item) => !item.is_read).length;
   const isAdmin = user?.role === 'global_admin' || user?.role === 'admin';
   const chatsQuery = useQuery({ queryKey: ['chats-badge'], queryFn: api.chats, enabled: Boolean(user), refetchInterval: 30_000 });
@@ -59,13 +61,18 @@ export function Layout({ children }: { children: ReactNode }) {
 
 
   useEffect(() => {
+    refetchNotificationsRef.current = notificationsQuery.refetch;
+    refetchTrendsRef.current = trendsQuery.refetch;
+  }, [notificationsQuery.refetch, trendsQuery.refetch]);
+
+  useEffect(() => {
     const token = localStorage.getItem('auth_token');
     if (!token || !user) return;
     const url = `${apiBaseWs()}/api/ws/notifications?token=${encodeURIComponent(token)}`;
     const socket = new WebSocket(url);
     socket.onmessage = (event) => {
-      notificationsQuery.refetch();
-      trendsQuery.refetch();
+      refetchNotificationsRef.current();
+      refetchTrendsRef.current();
       // Detect achievement events for confetti
       try {
         const data = JSON.parse(event.data);
@@ -78,7 +85,14 @@ export function Layout({ children }: { children: ReactNode }) {
       } catch { /* non-JSON or unknown event */ }
     };
     return () => socket.close();
-  }, [notificationsQuery, trendsQuery, user, t]);
+  }, [user?.id, t]);
+
+  // Auto-mark notifications as read when dropdown opens (modern UX: seen = read)
+  useEffect(() => {
+    if (!notifOpen || unread === 0 || readAll.isPending) return;
+    const timer = window.setTimeout(() => readAll.mutate(), 400);
+    return () => window.clearTimeout(timer);
+  }, [notifOpen, unread, readAll]);
 
   // Close dropdown on route change
   useEffect(() => {
@@ -137,7 +151,40 @@ export function Layout({ children }: { children: ReactNode }) {
           </div>
         </aside>
 
-        <main id="main-content" className="min-h-screen min-w-0 flex-1 overflow-x-hidden pb-24 sm:pb-0" tabIndex={-1}>{children}</main>
+        <div className="min-w-0 flex-1">
+          <header className="sticky top-0 z-50 flex h-16 items-center justify-between border-b border-gray-200/80 bg-white/95 px-3 backdrop-blur dark:border-zinc-800 dark:bg-zinc-950/95 sm:hidden">
+            <Link to="/" className="flex items-center gap-2" aria-label={t('common.site_name')}>
+              <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#FF6B00] text-xl font-black text-white">М</span>
+              <span className="text-xl font-black uppercase tracking-tight text-[#FF6B00]">{t('common.site_name')}</span>
+            </Link>
+            {user ? (
+              <NotificationBell
+                notifications={notifications}
+                unread={unread}
+                open={notifOpen}
+                onToggle={() => setNotifOpen((v) => !v)}
+                onClose={() => setNotifOpen(false)}
+                onReadAll={() => readAll.mutate()}
+                readAllPending={readAll.isPending}
+                onReadOne={(id) => readOne.mutate(id)}
+              />
+            ) : (
+              <Link
+                to={loginPath}
+                className="relative flex h-10 w-10 items-center justify-center rounded-lg text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-900 dark:hover:bg-zinc-900 dark:hover:text-zinc-100"
+                aria-label={t('layout.login_for_notif')}
+              >
+                <Bell size={20} />
+              </Link>
+            )}
+          </header>
+
+          <main id="main-content" className="min-h-screen min-w-0 overflow-x-hidden pb-24 sm:pb-0" tabIndex={-1}>
+            <div key={location.pathname} className="animate-page-enter">
+              {children}
+            </div>
+          </main>
+        </div>
 
         <aside className="sticky top-0 hidden h-screen w-80 shrink-0 flex-col border-l border-gray-200/80 bg-white/95 backdrop-blur dark:border-zinc-800 dark:bg-zinc-950/90 lg:flex">
           {/* Notification Bell — outside scroll area so dropdown isn't clipped */}
@@ -211,7 +258,7 @@ export function Layout({ children }: { children: ReactNode }) {
         {/* Mobile bottom nav */}
         <nav className="fixed bottom-0 left-0 right-0 z-50 grid grid-cols-5 items-end border-t border-gray-200 bg-white/95 px-2 pb-[calc(0.5rem+env(safe-area-inset-bottom))] pt-2 shadow-[0_-8px_24px_rgba(15,23,42,0.08)] backdrop-blur dark:border-zinc-800 dark:bg-zinc-950/95 sm:hidden" aria-label={t('layout.mobile_nav')}>
           <MobileLink to="/" label={t('nav.home')} icon={<Home size={22} />} />
-          <MobileLink to="/search" label={t('nav.search')} icon={<Search size={22} />} />
+          <MobileLink to="/explore" label={t('nav.explore')} icon={<Compass size={22} />} />
           <button
             onClick={() => (user ? setComposerOpen(true) : navigate(loginPath))}
             className="mx-auto flex h-14 w-14 -translate-y-4 items-center justify-center rounded-full bg-[#FF6B00] text-white shadow-lg shadow-orange-500/30 transition-transform active:scale-95"
@@ -220,8 +267,8 @@ export function Layout({ children }: { children: ReactNode }) {
           >
             <Plus size={24} />
           </button>
-          <MobileLink to="/messages" label={t('layout.chats')} icon={<MessageSquare size={22} />} badge={unreadChats} />
-          <MobileLink to="/notifications" label={t('layout.notif_short')} icon={<Bell size={22} />} badge={unread} />
+          <MobileLink to="/messages" label={t('nav.messages')} icon={<MessageSquare size={22} />} badge={unreadChats} />
+          <MobileLink to={user ? `/user/${user.username}` : loginPath} label={t('nav.profile')} icon={<UserCircle size={22} />} />
         </nav>
       </div>
       <button onClick={() => (user ? setComposerOpen(true) : navigate(loginPath))} className="fixed bottom-6 right-6 z-40 hidden h-14 w-14 items-center justify-center rounded-full bg-[#FF6B00] text-white shadow-xl sm:flex lg:hidden" aria-label={t('nav.create_post')}>

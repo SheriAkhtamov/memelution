@@ -15,6 +15,7 @@ from app.core.auth import ensure_username_available, require_admin, validate_use
 from app.core.config import settings
 from app.models import (
     Comment,
+    CommentReaction,
     Community,
     CommunityMember,
     Hashtag,
@@ -420,6 +421,32 @@ async def comments_public(db: AsyncSession, comments: list[Comment], viewer: Use
                 )
             ).all()
         )
+    reaction_rows = (
+        await db.execute(
+            select(CommentReaction.comment_id, CommentReaction.emoji, func.count(CommentReaction.id).label("cnt"))
+            .where(CommentReaction.comment_id.in_(comment_ids))
+            .group_by(CommentReaction.comment_id, CommentReaction.emoji)
+        )
+    ).all()
+    reactions_map: dict[str, list[dict[str, Any]]] = {}
+    for row in reaction_rows:
+        reactions_map.setdefault(row.comment_id, []).append(
+            {"emoji": row.emoji, "count": row.cnt, "reacted": False}
+        )
+    if viewer:
+        viewer_reactions = (
+            await db.scalars(
+                select(CommentReaction).where(
+                    CommentReaction.user_id == viewer.id,
+                    CommentReaction.comment_id.in_(comment_ids),
+                )
+            )
+        ).all()
+        viewer_reaction_set = {(reaction.comment_id, reaction.emoji) for reaction in viewer_reactions}
+        for comment_id, items in reactions_map.items():
+            for item in items:
+                if (comment_id, item["emoji"]) in viewer_reaction_set:
+                    item["reacted"] = True
     return [
         {
             "id": comment.id,
@@ -434,6 +461,7 @@ async def comments_public(db: AsyncSession, comments: list[Comment], viewer: Use
             "updated_at": comment.updated_at.isoformat(),
             "author": user_public(authors.get(comment.author_id)),
             "liked": comment.id in liked_ids,
+            "reactions": reactions_map.get(comment.id, []),
             "replies": [],
         }
         for comment in comments

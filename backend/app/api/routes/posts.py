@@ -401,6 +401,29 @@ async def delete_post(post_id: str, db: AsyncSession = Depends(get_session), use
     return {"success": True}
 
 
+@router.post("/api/posts/{post_id}/restore")
+async def restore_post(post_id: str, db: AsyncSession = Depends(get_session), user: User = Depends(get_current_user)):
+    post = await db.get(Post, post_id)
+    if not post:
+        raise HTTPException(status_code=404, detail="Post not found")
+    if post.author_id != user.id and user.role not in {"global_admin", "admin"}:
+        if post.community_id:
+            await require_community_manager(db, post.community_id, user)
+        else:
+            raise HTTPException(status_code=403, detail="Cannot restore this post")
+    if post.is_deleted:
+        post.is_deleted = False
+        author = await db.get(User, post.author_id)
+        if author:
+            author.posts_count += 1
+        if post.community_id:
+            community = await db.get(Community, post.community_id)
+            if community:
+                community.posts_count += 1
+        await db.commit()
+    return {"success": True, "post": await post_public(db, post, user)}
+
+
 
 
 @router.post("/api/posts/{post_id}/like")
@@ -626,7 +649,16 @@ async def hide_post(post_id: str, db: AsyncSession = Depends(get_session), user:
     if not existing:
         db.add(PostHide(user_id=user.id, post_id=post_id))
     await db.commit()
-    return {"success": True}
+    return {"success": True, "hidden": True}
+
+
+@router.delete("/api/posts/{post_id}/hide")
+async def unhide_post(post_id: str, db: AsyncSession = Depends(get_session), user: User = Depends(get_current_user)):
+    existing = await db.scalar(select(PostHide).where(PostHide.user_id == user.id, PostHide.post_id == post_id))
+    if existing:
+        await db.delete(existing)
+        await db.commit()
+    return {"success": True, "hidden": False}
 
 
 

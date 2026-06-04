@@ -34,26 +34,24 @@ export function Button({
   );
 }
 
-export function IconButton({
-  label,
-  className,
-  children,
-  ...props
-}: React.ButtonHTMLAttributes<HTMLButtonElement> & { label: string }) {
-  return (
-    <button
-      {...props}
-      aria-label={label}
-      title={label}
-      className={cn(
-        'inline-flex h-10 w-10 items-center justify-center rounded-lg text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-500 disabled:pointer-events-none disabled:opacity-55 dark:hover:bg-zinc-900 dark:hover:text-zinc-100',
-        className,
-      )}
-    >
-      {children}
-    </button>
-  );
-}
+export const IconButton = React.forwardRef<HTMLButtonElement, React.ButtonHTMLAttributes<HTMLButtonElement> & { label: string }>(
+  function IconButton({ label, className, children, ...props }, ref) {
+    return (
+      <button
+        ref={ref}
+        {...props}
+        aria-label={label}
+        title={label}
+        className={cn(
+          'inline-flex h-10 w-10 items-center justify-center rounded-lg text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-500 disabled:pointer-events-none disabled:opacity-55 dark:hover:bg-zinc-900 dark:hover:text-zinc-100',
+          className,
+        )}
+      >
+        {children}
+      </button>
+    );
+  },
+);
 
 export function Input({ error, className, ...props }: React.InputHTMLAttributes<HTMLInputElement> & { error?: string }) {
   return (
@@ -113,10 +111,17 @@ export function Checkbox({ label, className, ...props }: React.InputHTMLAttribut
   );
 }
 
-export function Switch({ checked, onChange, label }: { checked: boolean; onChange: (checked: boolean) => void; label?: string }) {
+export function Switch({ checked, onChange, label, ariaLabel }: { checked: boolean; onChange: (checked: boolean) => void; label?: string; ariaLabel?: string }) {
   return (
-    <button type="button" onClick={() => onChange(!checked)} className="inline-flex items-center gap-2 text-sm font-bold">
-      <span className={cn('relative inline-flex h-6 w-11 shrink-0 rounded-full transition-colors', checked ? 'bg-[#FF6B00]' : 'bg-gray-300 dark:bg-zinc-700')}>
+    <button
+      type="button"
+      role="switch"
+      aria-checked={checked}
+      aria-label={ariaLabel || label}
+      onClick={() => onChange(!checked)}
+      className="inline-flex items-center gap-2 text-sm font-bold"
+    >
+      <span aria-hidden className={cn('relative inline-flex h-6 w-11 shrink-0 rounded-full transition-colors', checked ? 'bg-[#FF6B00]' : 'bg-gray-300 dark:bg-zinc-700')}>
         <span className={cn('absolute top-1 h-4 w-4 rounded-full bg-white transition-transform', checked ? 'translate-x-6' : 'translate-x-1')} />
       </span>
       {label ? <span>{label}</span> : null}
@@ -129,9 +134,11 @@ export function Badge({ children, className }: { children: React.ReactNode; clas
 }
 
 export function Avatar({ src, name, className }: { src?: string; name?: string; className?: string }) {
+  const [errored, setErrored] = useState(false);
+  const showImage = src && !errored;
   return (
     <div className={cn('flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-orange-100 font-black text-[#FF6B00]', className)}>
-      {src ? <img src={src} alt="" className="h-full w-full object-cover" /> : (name || '?').charAt(0)}
+      {showImage ? <img src={src} alt="" loading="lazy" decoding="async" className="h-full w-full object-cover" onError={() => setErrored(true)} /> : (name || '?').charAt(0)}
     </div>
   );
 }
@@ -161,14 +168,22 @@ export function Dropdown({ trigger, children }: { trigger: React.ReactNode; chil
   const [open, setOpen] = useState(false);
   const { t } = useTranslation();
   const close = useCallback(() => setOpen(false), []);
+  useEffect(() => {
+    if (!open) return;
+    const handler = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') { event.preventDefault(); close(); }
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, [open, close]);
   return (
     <DropdownContext.Provider value={close}>
       <div className="relative">
-        <div onClick={() => setOpen((value) => !value)}>{trigger}</div>
+        <div onClick={() => setOpen((value) => !value)} role="button" tabIndex={0} aria-haspopup="menu" aria-expanded={open} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setOpen((v) => !v); }}}>{trigger}</div>
         {open ? (
           <>
             <button className="fixed inset-0 z-30 cursor-default" aria-label={t('ui.close_menu')} onClick={close} />
-            <div className="absolute right-0 top-full z-40 mt-2 min-w-56 overflow-hidden rounded-lg border border-gray-200 bg-white shadow-xl dark:border-zinc-800 dark:bg-zinc-950">
+            <div role="menu" className="absolute right-0 top-full z-40 mt-2 min-w-56 overflow-hidden rounded-lg border border-gray-200 bg-white shadow-xl dark:border-zinc-800 dark:bg-zinc-950">
               {children}
             </div>
           </>
@@ -178,10 +193,20 @@ export function Dropdown({ trigger, children }: { trigger: React.ReactNode; chil
   );
 }
 
-export function DropdownItem({ children, danger, onClick }: { children: React.ReactNode; danger?: boolean; onClick: () => void }) {
+export function DropdownItem({ children, danger, disabled, onClick }: { children: React.ReactNode; danger?: boolean; disabled?: boolean; onClick: () => void }) {
   const close = useContext(DropdownContext);
   return (
-    <button onClick={() => { onClick(); close?.(); }} className={cn('flex w-full items-center gap-2 px-3 py-2 text-left text-sm font-bold hover:bg-gray-50 dark:hover:bg-zinc-900', danger ? 'text-red-600' : 'text-gray-700 dark:text-zinc-100')}>
+    <button
+      role="menuitem"
+      disabled={disabled}
+      aria-disabled={disabled || undefined}
+      onClick={() => { if (!disabled) { onClick(); close?.(); } }}
+      className={cn(
+        'flex w-full items-center gap-2 px-3 py-2 text-left text-sm font-bold hover:bg-gray-50 dark:hover:bg-zinc-900',
+        danger ? 'text-red-600' : 'text-gray-700 dark:text-zinc-100',
+        disabled && 'cursor-not-allowed opacity-50 hover:bg-transparent dark:hover:bg-transparent',
+      )}
+    >
       {children}
     </button>
   );
@@ -284,6 +309,7 @@ type ToastItem = { id: string; title: string; tone?: 'success' | 'error' | 'info
 const ToastContext = createContext<{ show: (toast: Omit<ToastItem, 'id' | 'leaving'>) => void } | null>(null);
 
 export function ToastProvider({ children }: { children: React.ReactNode }) {
+  const { t } = useTranslation();
   const [items, setItems] = useState<ToastItem[]>([]);
   const show = useCallback((toast: Omit<ToastItem, 'id' | 'leaving'>) => {
     const id = crypto.randomUUID();
@@ -302,10 +328,13 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
   return (
     <ToastContext.Provider value={value}>
       {children}
-      <div className="fixed right-4 top-4 z-[120] flex w-[min(360px,calc(100vw-2rem))] flex-col gap-2">
+      <div className="fixed right-4 top-4 z-[120] flex w-[min(360px,calc(100vw-2rem))] flex-col gap-2" role="region" aria-label={t('ui.toast_region')}>
         {items.map((item) => (
           <div
             key={item.id}
+            role={item.tone === 'error' ? 'alert' : 'status'}
+            aria-live={item.tone === 'error' ? 'assertive' : 'polite'}
+            aria-atomic="true"
             onClick={() => dismiss(item.id)}
             className={cn(
               'flex cursor-pointer items-center gap-2 rounded-lg border bg-white px-4 py-3 text-sm font-bold shadow-xl transition-all duration-300 dark:bg-zinc-950',
@@ -344,6 +373,7 @@ export function ConfirmDialog({
   onConfirm,
   onClose,
   tone = 'danger',
+  loading = false,
 }: {
   open: boolean;
   title: string;
@@ -352,6 +382,7 @@ export function ConfirmDialog({
   onConfirm: () => void;
   onClose: () => void;
   tone?: 'danger' | 'primary';
+  loading?: boolean;
 }) {
   const { t } = useTranslation();
   const confirmText = _confirmText ?? t('common.confirm');
@@ -359,8 +390,8 @@ export function ConfirmDialog({
     <Modal open={open} onClose={onClose} title={title}>
       {description ? <p className="text-sm text-gray-500 dark:text-zinc-400">{description}</p> : null}
       <div className="mt-5 flex justify-end gap-2">
-        <Button variant="outline" onClick={onClose}>{t('common.cancel')}</Button>
-        <Button variant={tone === 'danger' ? 'danger' : 'primary'} onClick={onConfirm}>{confirmText}</Button>
+        <Button variant="outline" onClick={onClose} disabled={loading}>{t('common.cancel')}</Button>
+        <Button variant={tone === 'danger' ? 'danger' : 'primary'} onClick={onConfirm} loading={loading}>{confirmText}</Button>
       </div>
     </Modal>
   );
@@ -467,6 +498,7 @@ export function CommunityCard({
 export function MediaViewer({ url, type, alt }: { url: string; type?: string; alt?: string }) {
   const { t } = useTranslation();
   const [expanded, setExpanded] = useState(false);
+  const [imgError, setImgError] = useState(false);
   const videoRef = useViewportVideo();
 
   useEffect(() => {
@@ -482,16 +514,30 @@ export function MediaViewer({ url, type, alt }: { url: string; type?: string; al
     };
   }, [expanded]);
 
+  useEffect(() => { setImgError(false); }, [url]);
+
   return (
     <>
       <div
         className="overflow-hidden rounded-lg border border-gray-100 bg-gray-50 dark:border-zinc-800 dark:bg-zinc-900 cursor-zoom-in"
-        onClick={() => setExpanded(true)}
+        onClick={() => !imgError && setExpanded(true)}
       >
-        {type?.startsWith('video/') ? (
-          <video ref={videoRef} src={url} className="max-h-[520px] w-full bg-black" controls muted playsInline preload="metadata" onClick={(e) => e.stopPropagation()} />
+        {imgError ? (
+          <div className="flex aspect-video max-h-[520px] w-full flex-col items-center justify-center gap-2 bg-gray-100 p-6 text-center dark:bg-zinc-900" role="img" aria-label={t('ui.media_failed_alt')}>
+            <AlertTriangle size={28} className="text-amber-500" aria-hidden />
+            <p className="text-sm font-bold text-gray-500 dark:text-zinc-400">{t('ui.media_failed')}</p>
+            <button
+              type="button"
+              onClick={(event) => { event.stopPropagation(); setImgError(false); }}
+              className="text-xs font-bold text-[#FF6B00] underline-offset-2 hover:underline"
+            >
+              {t('common.retry')}
+            </button>
+          </div>
+        ) : type?.startsWith('video/') ? (
+          <video ref={videoRef} src={url} className="max-h-[520px] w-full bg-black" controls muted playsInline preload="none" poster="" onClick={(e) => e.stopPropagation()} />
         ) : (
-          <img src={url} alt={alt || ''} className="max-h-[520px] w-full object-contain" loading="lazy" />
+          <img src={url} alt={alt || ''} className="max-h-[520px] w-full object-contain" loading="lazy" decoding="async" onError={() => setImgError(true)} />
         )}
       </div>
       {expanded ? (
@@ -513,5 +559,87 @@ export function MediaViewer({ url, type, alt }: { url: string; type?: string; al
         </div>
       ) : null}
     </>
+  );
+}
+
+type ErrorBoundaryProps = {
+  children: React.ReactNode;
+  fallback?: (error: Error, reset: () => void) => React.ReactNode;
+  level?: 'app' | 'route' | 'feed-item';
+  onError?: (error: Error, info: { componentStack: string }) => void;
+};
+
+type ErrorBoundaryState = { error: Error | null };
+
+/**
+ * 3-level ErrorBoundary:
+ *  - level="app"      → full-screen fallback in App.tsx (last resort)
+ *  - level="route"    → page-level fallback in router.tsx
+ *  - level="feed-item"→ inline fallback in PostCard.tsx (one post crashes, others survive)
+ */
+export class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundaryState> {
+  state: ErrorBoundaryState = { error: null };
+
+  static getDerivedStateFromError(error: Error): ErrorBoundaryState {
+    return { error };
+  }
+
+  componentDidCatch(error: Error, info: { componentStack: string }) {
+    if (this.props.onError) this.props.onError(error, info);
+    // eslint-disable-next-line no-console
+    console.error('[ErrorBoundary]', this.props.level ?? 'unknown', error, info.componentStack);
+  }
+
+  reset = () => this.setState({ error: null });
+
+  render() {
+    const { error } = this.state;
+    if (!error) return this.props.children;
+    if (this.props.fallback) return this.props.fallback(error, this.reset);
+    return <DefaultErrorFallback error={error} reset={this.reset} level={this.props.level ?? 'route'} />;
+  }
+}
+
+function DefaultErrorFallback({ error, reset, level }: { error: Error; reset: () => void; level: 'app' | 'route' | 'feed-item' }) {
+  if (level === 'feed-item') {
+    return (
+      <div className="rounded-xl border border-red-200 bg-red-50/60 p-4 text-sm text-red-700 dark:border-red-900/50 dark:bg-red-950/20 dark:text-red-300">
+        <div className="flex items-center gap-2 font-black">
+          <AlertTriangle size={14} /> Не удалось отобразить пост
+        </div>
+        <p className="mt-1 text-xs opacity-80">Остальная лента работает. Можно попробовать ещё раз.</p>
+        <button onClick={reset} className="mt-2 rounded-md bg-white px-3 py-1 text-xs font-black text-red-700 shadow-sm hover:bg-red-100 dark:bg-zinc-900 dark:hover:bg-zinc-800">
+          Повторить
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex min-h-[40vh] flex-col items-center justify-center gap-3 p-6 text-center">
+      <div className="flex h-12 w-12 items-center justify-center rounded-full bg-red-100 text-red-600 dark:bg-red-950/40 dark:text-red-300">
+        <AlertTriangle size={22} />
+      </div>
+      <h2 className="text-lg font-black text-gray-900 dark:text-zinc-100">
+        {level === 'app' ? 'Что-то пошло совсем не так' : 'Не удалось загрузить страницу'}
+      </h2>
+      <p className="max-w-sm text-sm text-gray-500 dark:text-zinc-400">
+        {error.message || 'Попробуйте обновить страницу или повторить попытку.'}
+      </p>
+      <div className="mt-2 flex gap-2">
+        <button
+          onClick={reset}
+          className="rounded-lg bg-[#FF6B00] px-4 py-2 text-sm font-black text-white transition-colors hover:bg-orange-600"
+        >
+          Повторить
+        </button>
+        <button
+          onClick={() => window.location.reload()}
+          className="rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm font-black text-gray-700 transition-colors hover:bg-gray-50 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-200 dark:hover:bg-zinc-800"
+        >
+          Перезагрузить
+        </button>
+      </div>
+    </div>
   );
 }

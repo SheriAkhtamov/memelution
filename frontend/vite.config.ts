@@ -106,5 +106,19 @@ export default defineConfig(() => {
         '/media': 'http://localhost:8000',
       },
     },
+    build: {
+      rollupOptions: {
+        output: {
+          manualChunks(id) {
+            if (!id.includes('node_modules')) return undefined;
+            if (id.includes('/react') || id.includes('/react-dom')) return 'vendor-react';
+            if (id.includes('/react-router')) return 'vendor-router';
+            if (id.includes('/@tanstack/')) return 'vendor-query';
+            if (id.includes('/lucide-react/')) return 'vendor-icons';
+            return 'vendor';
+          },
+        },
+      },
+    },
   };
 });

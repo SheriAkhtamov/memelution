@@ -2,7 +2,7 @@ from __future__ import annotations
 
 
 from fastapi import APIRouter, Depends, HTTPException, Query
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.auth import (
@@ -11,7 +11,7 @@ from app.core.auth import (
 )
 from app.db.session import get_session
 from app.models import (
-    Comment, Like, Post, User,
+    Comment, CommentReaction, Like, Post, User,
 )
 from app.schemas import (
     CommentPayload, UpdateCommentPayload,
@@ -19,6 +19,30 @@ from app.schemas import (
 from app.services.api_support import *  # noqa: F403
 
 router = APIRouter()
+ALLOWED_COMMENT_REACTIONS = {"😂", "❤️", "🔥", "😢", "😡", "👏", "💀", "🤡", "👍"}
+
+
+async def _comment_reactions_summary(db: AsyncSession, comment_id: str, viewer: User | None) -> list[dict]:
+    rows = (
+        await db.execute(
+            select(CommentReaction.emoji, func.count(CommentReaction.id).label("cnt"))
+            .where(CommentReaction.comment_id == comment_id)
+            .group_by(CommentReaction.emoji)
+        )
+    ).all()
+    viewer_emojis: set[str] = set()
+    if viewer:
+        viewer_emojis = set(
+            (
+                await db.scalars(
+                    select(CommentReaction.emoji).where(
+                        CommentReaction.comment_id == comment_id,
+                        CommentReaction.user_id == viewer.id,
+                    )
+                )
+            ).all()
+        )
+    return [{"emoji": row.emoji, "count": row.cnt, "reacted": row.emoji in viewer_emojis} for row in rows]
 
 @router.get("/api/posts/{post_id}/comments")
 async def get_comments(
@@ -161,3 +185,74 @@ async def delete_comment(
     await db.commit()
     return {"success": True}
 
+
+@router.post("/api/comments/{comment_id}/restore")
+async def restore_comment(
+    comment_id: str,
+    db: AsyncSession = Depends(get_session),
+    user: User = Depends(get_current_user),
+):
+    comment = await db.get(Comment, comment_id)
+    if not comment:
+        raise HTTPException(status_code=404, detail="Comment not found")
+    post = await db.get(Post, comment.post_id)
+    allowed = comment.author_id == user.id or user.role in {"global_admin", "admin"}
+    if not allowed and post and post.community_id:
+        await require_community_manager(db, post.community_id, user)
+        allowed = True
+    if not allowed:
+        raise HTTPException(status_code=403, detail="Cannot restore this comment")
+    if comment.is_deleted:
+        comment.is_deleted = False
+        if post:
+            post.comments_count += 1
+        await db.commit()
+    return {"success": True, "comment": await comment_public(db, comment, user)}
+
+
+@router.post("/api/comments/{comment_id}/reactions")
+async def add_comment_reaction(
+    comment_id: str,
+    emoji: str = Query(..., max_length=8),
+    db: AsyncSession = Depends(get_session),
+    user: User = Depends(get_current_user),
+):
+    if emoji not in ALLOWED_COMMENT_REACTIONS:
+        raise HTTPException(status_code=422, detail="Unsupported reaction emoji")
+    comment = await db.get(Comment, comment_id)
+    if not comment or comment.is_deleted or comment.hidden_by_moderator:
+        raise HTTPException(status_code=404, detail="Comment not found")
+    existing = await db.scalar(
+        select(CommentReaction).where(
+            CommentReaction.user_id == user.id,
+            CommentReaction.comment_id == comment_id,
+            CommentReaction.emoji == emoji,
+        )
+    )
+    if not existing:
+        db.add(CommentReaction(user_id=user.id, comment_id=comment_id, emoji=emoji))
+    await db.commit()
+    return {"success": True, "reactions": await _comment_reactions_summary(db, comment_id, user)}
+
+
+@router.delete("/api/comments/{comment_id}/reactions")
+async def remove_comment_reaction(
+    comment_id: str,
+    emoji: str = Query(..., max_length=8),
+    db: AsyncSession = Depends(get_session),
+    user: User = Depends(get_current_user),
+):
+    comment = await db.get(Comment, comment_id)
+    if not comment:
+        raise HTTPException(status_code=404, detail="Comment not found")
+    existing = await db.scalar(
+        select(CommentReaction).where(
+            CommentReaction.user_id == user.id,
+            CommentReaction.comment_id == comment_id,
+            CommentReaction.emoji == emoji,
+        )
+    )
+    if existing:
+        await db.delete(existing)
+        await db.commit()
+    return {"success": True, "reactions": await _comment_reactions_summary(db, comment_id, user)}

@@ -91,27 +91,36 @@ export function ConfettiCelebration({
     canvas.width = window.innerWidth;
     canvas.height = window.innerHeight;
 
-    particlesRef.current = createParticles(80);
+    const reducedMotion = typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+    particlesRef.current = reducedMotion ? [] : createParticles(80);
     setShowBanner(true);
-    rafRef.current = requestAnimationFrame(animate);
+    if (!reducedMotion) {
+      rafRef.current = requestAnimationFrame(animate);
+    } else {
+      onComplete?.();
+    }
 
-    const bannerTimer = setTimeout(() => setShowBanner(false), 3500);
+    const bannerTimer = setTimeout(() => setShowBanner(false), reducedMotion ? 1800 : 3500);
 
     return () => {
       cancelAnimationFrame(rafRef.current);
       clearTimeout(bannerTimer);
     };
-  }, [active, animate]);
+  }, [active, animate, onComplete]);
 
   if (!active) return null;
 
   return (
     <div className="pointer-events-none fixed inset-0 z-[200]">
-      <canvas ref={canvasRef} className="absolute inset-0" />
+      <canvas ref={canvasRef} className="absolute inset-0" aria-hidden />
       {showBanner && title && (
-        <div className="absolute inset-x-0 top-20 flex justify-center animate-in slide-in-from-top-8 fade-in duration-500">
+        <div
+          className="absolute inset-x-0 top-20 flex justify-center motion-safe:animate-in motion-safe:slide-in-from-top-8 motion-safe:fade-in motion-safe:duration-500"
+          role="status"
+          aria-live="polite"
+        >
           <div className="pointer-events-auto rounded-2xl border border-orange-200 bg-white/95 px-8 py-5 text-center shadow-2xl backdrop-blur dark:border-orange-900 dark:bg-zinc-950/95">
-            <span className="mb-2 block text-3xl">🏆</span>
+            <span className="mb-2 block text-3xl" aria-hidden>🏆</span>
             <p className="text-lg font-black text-[#FF6B00]">{title}</p>
             {description && <p className="mt-1 text-sm text-gray-500 dark:text-zinc-400">{description}</p>}
           </div>

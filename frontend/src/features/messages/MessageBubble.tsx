@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react';
-import { Check, Copy, Edit3, Forward, Loader2, MoreHorizontal, Reply, Trash2, X, ZoomIn } from 'lucide-react';
+import { Check, Copy, Edit3, Forward, Loader2, MoreHorizontal, Reply, Trash2, X } from 'lucide-react';
 import type { Message } from '../../shared/types';
 import { Button, Dropdown, DropdownItem } from '../../shared/ui';
 import { hapticTap } from '../../utils/haptic';
@@ -13,7 +13,13 @@ type BubbleActions = {
   onCopy: () => void;
 };
 
-type DisplayMessage = Message & { status?: 'pending' | 'failed' };
+type DisplayMessage = Message & {
+  status?: 'pending' | 'failed';
+  reactions?: Array<{ emoji: string; count: number; reacted?: boolean }>;
+  readAt?: string | null;
+};
+
+const REACTION_EMOJIS = ['❤️', '👍', '😂'];
 
 export function MessageBubble({
   message,
@@ -26,6 +32,7 @@ export function MessageBubble({
   actions,
   repliedMessage,
   onRetry,
+  onReact,
 }: {
   message: DisplayMessage;
   mine: boolean;
@@ -37,6 +44,7 @@ export function MessageBubble({
   actions?: BubbleActions;
   repliedMessage?: { id: string; text: string; sender: string } | null;
   onRetry?: () => void;
+  onReact?: (emoji: string, reacted?: boolean) => void;
 }) {
   const [showMenu, setShowMenu] = useState(false);
   const { t } = useTranslation();
@@ -109,6 +117,7 @@ export function MessageBubble({
   const displayText = message.is_deleted ? t('messages.deleted') : message.text;
   const replyMsg = repliedMessage || null;
   const showSwipeIcon = Math.abs(swipeX) > 15;
+  const reactionOptions = Array.from(new Set([...REACTION_EMOJIS, ...(message.reactions || []).map((reaction) => reaction.emoji)]));
 
   return (
     <div
@@ -165,7 +174,9 @@ export function MessageBubble({
             </div>
           </div>
         ) : (
-          <div className={`rounded-2xl px-4 py-3 shadow-sm ${
+          <div className={`rounded-2xl px-4 py-3 shadow-sm transition-all duration-300 ${
+            message.status === 'pending' ? 'scale-[0.98] opacity-80' : 'scale-100 opacity-100'
+          } ${
             message.is_deleted
               ? 'bg-gray-100 text-gray-400 italic dark:bg-zinc-900/50 dark:text-zinc-500'
               : mine
@@ -173,7 +184,7 @@ export function MessageBubble({
                 : 'bg-white text-gray-900 dark:bg-zinc-900 dark:text-zinc-100'
           }`}>
             {replyMsg && (
-              <div className={`bg-rounded-lg rounded-xl border-l-3 px-3 py-2 text-xs ${mine ? 'border-white/40 bg-white/15' : 'border-[#2AABEE] bg-gray-50 dark:bg-zinc-800'}`}>
+              <div className={`rounded-xl border-l-3 px-3 py-2 text-xs ${mine ? 'border-white/40 bg-white/15' : 'border-[#2AABEE] bg-gray-50 dark:bg-zinc-800'}`}>
                 <span className={`block font-black ${mine ? 'text-white/50' : 'text-[#2AABEE]'}`}>{replyMsg.sender}</span>
                 <span className="line-clamp-1 opacity-75">{replyMsg.text || t('messages.media_fallback')}</span>
               </div>
@@ -188,7 +199,7 @@ export function MessageBubble({
             ) : null}
 
             {message.shared_post_id && !message.is_deleted ? (
-              <a href={`/post/${message.shared_post_id}`} className={`mb-2 block grounded-xl px-3 py-2 text-sm font-black ${mine ? 'bg-white/15' : 'bg-black/5 dark:bg-white/5'}`}>
+              <a href={`/post/${message.shared_post_id}`} className={`mb-2 block rounded-xl px-3 py-2 text-sm font-black ${mine ? 'bg-white/15' : 'bg-black/5 dark:bg-white/5'}`}>
                 <span className="block text-xs opacity-70">{t('messages.post')}</span>
                 {message.shared_post?.text ? <span className="line-clamp-2">{message.shared_post.text}</span> : t('messages.open_post')}
               </a>
@@ -196,23 +207,62 @@ export function MessageBubble({
 
             <p className="whitespace-pre-wrap break-words leading-relaxed">{displayText || ''}</p>
 
-            <div className={`mt-1 flex items-center gap-3 text-[10px] ${mine ? 'text-white/75' : 'text-gray-400 dark:text-zinc-500'}`}>
+            <div className={`mt-1 flex items-center gap-2 text-[10px] ${mine ? 'text-white/75' : 'text-gray-400 dark:text-zinc-500'}`}>
               <span>{new Date(message.created_at).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })}{message.edited_at ? ` · ${t('messages.edited')}` : ''}</span>
-              {mine && !message.is_deleted ? <span>{message.read_count ? t('messages.read') : t('messages.sent')}</span> : null}
-              {message.status === 'pending' && (
-                <span className="flex items-center gap-1 font-bold">
-                  <Loader2 size={10} className="animate-spin" />
-                  {t('messages.sending') || 'Отправляется...'}
+              {mine && !message.is_deleted && !editing && (
+                <span className="flex items-center gap-0.5">
+                  {message.status === 'pending' && <Loader2 size={10} className="animate-spin" />}
+                  {message.status === 'failed' && (
+                    <button onClick={onRetry} className="text-[10px] font-bold text-red-500 underline hover:text-red-600">
+                      {t('messages.retry') || 'Retry'}
+                    </button>
+                  )}
+                  {!message.status && (
+                    <>
+                      {message.read_count || message.readAt ? (
+                        <span className="flex items-center text-white/90">
+                          <Check size={10} strokeWidth={3} />
+                          <Check size={10} strokeWidth={3} className="-ml-1" />
+                        </span>
+                      ) : (
+                        <span className="flex items-center text-white/60">
+                          <Check size={10} strokeWidth={3} />
+                          <Check size={10} strokeWidth={3} className="-ml-1" />
+                        </span>
+                      )}
+                    </>
+                  )}
                 </span>
-              )}
-              {message.status === 'failed' && (
-                <button onClick={onRetry} className="font-bold text-red-500 underline hover:text-red-600">
-                  {t('messages.retry') || 'Не отправлено. Повторить?'}
-                </button>
               )}
             </div>
           </div>
         )}
+
+        {!editing && !message.is_deleted && onReact ? (
+          <div className={`mt-1 flex flex-wrap items-center gap-1 ${mine ? 'justify-end' : 'justify-start'}`}>
+            {reactionOptions.map((emoji) => {
+              const reaction = message.reactions?.find((item) => item.emoji === emoji);
+              const reacted = Boolean(reaction?.reacted);
+              return (
+                <button
+                  key={emoji}
+                  onClick={() => onReact(emoji, reacted)}
+                  className={`min-h-[28px] min-w-[28px] select-none rounded-full px-2 py-1 text-xs font-bold transition-colors ${
+                    reacted
+                      ? 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-200'
+                      : reaction
+                        ? 'bg-gray-100 text-gray-700 dark:bg-zinc-800 dark:text-zinc-200'
+                        : 'hover:bg-gray-100 dark:hover:bg-zinc-800'
+                  }`}
+                  aria-pressed={reacted}
+                  aria-label={`Reaction ${emoji}`}
+                >
+                  {emoji}{reaction?.count ? ` ${reaction.count}` : ''}
+                </button>
+              );
+            })}
+          </div>
+        ) : null}
 
         {actions && !message.is_deleted && !editing && (
           <div className={`absolute top-20 ${mine ? '-left-8' : '-right-8'}`}>

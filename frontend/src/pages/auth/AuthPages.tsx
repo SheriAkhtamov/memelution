@@ -48,29 +48,90 @@ export function LoginPage() {
   );
 }
 
+type AuthStep = 'token' | 'profile' | 'ready' | 'error';
+
 export function AuthCallbackPage() {
   const { checkAuth } = useAuthStore();
   const navigate = useNavigate();
   const { t } = useTranslation();
-  const [message, setMessage] = useState(t('app.completing_login'));
+  const [step, setStep] = useState<AuthStep>('token');
   useEffect(() => {
     const hash = new URLSearchParams(window.location.hash.replace('#', '?'));
     const search = new URLSearchParams(window.location.search);
     const token = hash.get('token') || search.get('token');
     const redirectTo = hash.get('redirect_to') || search.get('redirect_to') || '/';
     if (!token) {
-      setMessage(t('app.no_token'));
+      setStep('error');
       return;
     }
     localStorage.setItem('auth_token', token);
+    setStep('profile');
     checkAuth()
-      .then(() => navigate(safeRedirectTo(redirectTo), { replace: true }))
+      .then(() => {
+        setStep('ready');
+        // Give the user a beat to see the "ready" state
+        window.setTimeout(() => navigate(safeRedirectTo(redirectTo), { replace: true }), 350);
+      })
       .catch(() => {
         localStorage.removeItem('auth_token');
-        setMessage(t('app.session_failed'));
+        setStep('error');
       });
   }, [checkAuth, navigate, t]);
-  return <div className="flex min-h-screen items-center justify-center bg-[#F3F4F6] p-4 font-black dark:bg-zinc-950">{message}</div>;
+
+  const steps: Array<{ key: AuthStep; label: string }> = [
+    { key: 'token', label: t('app.auth_step_token') },
+    { key: 'profile', label: t('app.auth_step_profile') },
+    { key: 'ready', label: t('app.auth_step_ready') },
+  ];
+  const currentIndex = steps.findIndex((s) => s.key === step);
+
+  return (
+    <div className="flex min-h-screen items-center justify-center bg-[#F3F4F6] p-4 dark:bg-zinc-950">
+      <section className="w-full max-w-md space-y-6 rounded-lg border border-gray-200 bg-white p-8 text-center shadow-sm dark:border-zinc-800 dark:bg-zinc-950" role="status" aria-live="polite">
+        <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-lg bg-[#FF6B00] text-3xl font-black text-white">М</div>
+        {step === 'error' ? (
+          <>
+            <p className="text-base font-black text-red-600 dark:text-red-400">{t('app.session_failed')}</p>
+            <a
+              href="/login"
+              className="inline-flex h-11 w-full items-center justify-center rounded-lg bg-[#FF6B00] text-sm font-black text-white transition-colors hover:bg-orange-600"
+            >
+              {t('app.auth_back_to_login')}
+            </a>
+          </>
+        ) : (
+          <>
+            <div className="space-y-2">
+              {steps.map((s, i) => {
+                const isDone = currentIndex > i || step === 'ready';
+                const isActive = currentIndex === i;
+                return (
+                  <div key={s.key} className="flex items-center gap-3 text-left">
+                    <div className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-black transition-colors ${
+                      isDone ? 'bg-green-500 text-white'
+                        : isActive ? 'bg-[#FF6B00] text-white'
+                        : 'bg-gray-100 text-gray-400 dark:bg-zinc-900 dark:text-zinc-600'
+                    }`}>
+                      {isDone ? <Check size={14} /> : isActive ? <Loader2 size={14} className="animate-spin" /> : i + 1}
+                    </div>
+                    <span className={`text-sm font-black transition-colors ${
+                      isDone || isActive ? 'text-gray-900 dark:text-zinc-100' : 'text-gray-400 dark:text-zinc-600'
+                    }`}>{s.label}</span>
+                  </div>
+                );
+              })}
+            </div>
+            <div className="h-1 overflow-hidden rounded-full bg-gray-100 dark:bg-zinc-900">
+              <div
+                className="h-full bg-[#FF6B00] transition-all duration-500"
+                style={{ width: `${Math.max(0, ((currentIndex + 1) / steps.length) * 100)}%` }}
+              />
+            </div>
+          </>
+        )}
+      </section>
+    </div>
+  );
 }
 
 export function AdminLoginPage() {
@@ -126,6 +187,7 @@ export function OnboardingPage() {
   const [displayName, setDisplayName] = useState(user?.display_name || '');
   const [avatarUrl, setAvatarUrl] = useState(user?.avatar_url || '');
   const [avatarUploading, setAvatarUploading] = useState(false);
+  const [avatarError, setAvatarError] = useState('');
   const [interests, setInterests] = useState<string[]>(user?.interests?.length ? user.interests : []);
   const [selectedCommunities, setSelectedCommunities] = useState<string[]>([]);
   const [error, setError] = useState('');
@@ -161,11 +223,12 @@ export function OnboardingPage() {
   const handleAvatarUpload = async (file?: File) => {
     if (!file) return;
     setAvatarUploading(true);
+    setAvatarError('');
     try {
       const next = await api.uploadAvatar(file);
       setAvatarUrl(next.avatar_url || '');
     } catch {
-      setError(t('upload.avatar_error'));
+      setAvatarError(t('upload.avatar_error'));
     } finally {
       setAvatarUploading(false);
     }
@@ -281,6 +344,7 @@ export function OnboardingPage() {
                     onChange={(e) => handleAvatarUpload(e.target.files?.[0])}
                   />
                 </label>
+                {avatarError ? <p className="mt-1 text-xs font-bold text-red-500">{avatarError}</p> : null}
               </div>
             </div>
             <div className="grid gap-3 sm:grid-cols-3">

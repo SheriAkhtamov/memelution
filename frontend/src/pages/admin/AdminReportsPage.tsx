@@ -1,8 +1,9 @@
 import { AlertTriangle, Check, Eye, EyeOff, Flag, MessageSquare, X } from 'lucide-react';
+import { useMemo, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { api } from '../../shared/api/client';
 import { useTranslation } from '../../shared/i18n';
-import { EmptyState, Skeleton, useToast } from '../../shared/ui';
+import { Button, ConfirmDialog, EmptyState, ErrorState, Skeleton, useToast } from '../../shared/ui';
 import { useAuthStore } from '../../store/authStore';
 
 const STATUS_STYLES: Record<string, { label: string; className: string; icon: typeof Check }> = {
@@ -20,12 +21,24 @@ const TARGET_ICONS: Record<string, typeof MessageSquare> = {
   community: Flag,
 };
 
+type TargetFilter = 'all' | 'post' | 'comment' | 'user' | 'community';
+
+const TARGET_FILTERS: Array<{ id: TargetFilter; label: string; icon: typeof MessageSquare }> = [
+  { id: 'all', label: 'admin.reports_filter_all', icon: Flag },
+  { id: 'post', label: 'admin.reports_filter_post', icon: MessageSquare },
+  { id: 'comment', label: 'admin.reports_filter_comment', icon: MessageSquare },
+  { id: 'user', label: 'admin.reports_filter_user', icon: Flag },
+  { id: 'community', label: 'admin.reports_filter_community', icon: Flag },
+];
+
 export function AdminReportsPage() {
   const { user } = useAuthStore();
   const { t } = useTranslation();
   const queryClient = useQueryClient();
   const toast = useToast();
   const isAdmin = user?.role === 'global_admin' || user?.role === 'admin';
+  const [target, setTarget] = useState<TargetFilter>('all');
+  const [confirmDismissAll, setConfirmDismissAll] = useState(false);
   const reportsQuery = useQuery({ queryKey: ['admin-reports'], queryFn: () => api.adminReports(), enabled: Boolean(isAdmin) });
   const resolveReport = useMutation({
     mutationFn: ({ id, action, status = 'resolved' }: { id: string; action?: string; status?: string }) => api.resolveReport(id, status, action),
@@ -35,13 +48,29 @@ export function AdminReportsPage() {
       toast.show({ title: t('admin.report_resolved'), tone: 'success' });
     },
   });
+  const dismissAll = useMutation({
+    mutationFn: (ids: string[]) => Promise.all(ids.map((id) => api.resolveReport(id, 'rejected', 'reject_report'))),
+    onSuccess: (_data, ids) => {
+      queryClient.invalidateQueries({ queryKey: ['admin-reports'] });
+      queryClient.invalidateQueries({ queryKey: ['admin-logs'] });
+      toast.show({ title: `${ids.length} ${t('admin.reports_dismiss')}`, tone: 'success' });
+    },
+  });
+
+  const reports = reportsQuery.data || [];
+  const byTarget = useMemo(
+    () => (target === 'all' ? reports : reports.filter((r) => String(r.target_type) === target)),
+    [reports, target],
+  );
+  const pending = useMemo(() => byTarget.filter((r) => OPEN_REPORT_STATUSES.has(String(r.status))), [byTarget]);
+  const resolved = useMemo(() => byTarget.filter((r) => !OPEN_REPORT_STATUSES.has(String(r.status))), [byTarget]);
+  const availableTargets = useMemo(() => {
+    const seen = new Set(reports.map((r) => String(r.target_type)));
+    return TARGET_FILTERS.filter((f) => f.id === 'all' || seen.has(f.id));
+  }, [reports]);
 
   if (!user) return <div className="p-6"><EmptyState title={t('admin.login_required')} /></div>;
   if (!isAdmin) return <div className="p-6"><EmptyState title={t('admin.no_access')} /></div>;
-
-  const reports = reportsQuery.data || [];
-  const pending = reports.filter((r) => OPEN_REPORT_STATUSES.has(String(r.status)));
-  const resolved = reports.filter((r) => !OPEN_REPORT_STATUSES.has(String(r.status)));
 
   return (
     <div className="space-y-6 p-6 lg:p-8">
@@ -62,6 +91,11 @@ export function AdminReportsPage() {
         <div className="space-y-3">
           {Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} className="h-28 rounded-2xl" />)}
         </div>
+      ) : reportsQuery.isError ? (
+        <ErrorState
+          description={reportsQuery.error instanceof Error ? reportsQuery.error.message : t('admin.error_load_reports')}
+          onRetry={() => reportsQuery.refetch()}
+        />
       ) : reports.length === 0 ? (
         <div className="rounded-2xl border border-gray-200/60 bg-white p-12 text-center shadow-sm dark:border-zinc-800/60 dark:bg-zinc-900/50">
           <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-emerald-100 dark:bg-emerald-900/30">
@@ -72,6 +106,42 @@ export function AdminReportsPage() {
         </div>
       ) : (
         <div className="space-y-6">
+          {/* Target type filters */}
+          {availableTargets.length > 1 ? (
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div className="flex flex-wrap gap-2">
+                {availableTargets.map((f) => {
+                  const Icon = f.icon;
+                  const active = target === f.id;
+                  return (
+                    <button
+                      key={f.id}
+                      onClick={() => setTarget(f.id)}
+                      aria-pressed={active}
+                      className={`inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-bold transition-colors ${
+                        active
+                          ? 'border-amber-300 bg-amber-50 text-amber-700 dark:border-amber-700 dark:bg-amber-950/30 dark:text-amber-300'
+                          : 'border-gray-200 bg-white text-gray-600 hover:bg-gray-50 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300 dark:hover:bg-zinc-800'
+                      }`}
+                    >
+                      <Icon size={12} aria-hidden="true" />
+                      {t(f.label)}
+                    </button>
+                  );
+                })}
+              </div>
+              {pending.length > 1 ? (
+                <Button
+                  variant="outline"
+                  loading={dismissAll.isPending}
+                  onClick={() => setConfirmDismissAll(true)}
+                >
+                  <X size={14} />
+                  {t('admin.reports_dismiss_all')} ({pending.length})
+                </Button>
+              ) : null}
+            </div>
+          ) : null}
           {/* Pending reports */}
           {pending.length > 0 && (
             <section>
@@ -111,6 +181,18 @@ export function AdminReportsPage() {
           )}
         </div>
       )}
+
+      <ConfirmDialog
+        open={confirmDismissAll}
+        onClose={() => setConfirmDismissAll(false)}
+        title={t('admin.confirm_dismiss_all_title')}
+        description={t('admin.confirm_dismiss_all_desc')}
+        loading={dismissAll.isPending}
+        onConfirm={() => {
+          dismissAll.mutate(pending.map((r) => String(r.id)));
+          setConfirmDismissAll(false);
+        }}
+      />
     </div>
   );
 }

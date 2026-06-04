@@ -163,6 +163,7 @@ export const api = {
     return request<Post>(`/api/posts/${id}`, { method: 'PATCH', body: form });
   },
   deletePost: (id: string) => request<{ success: boolean }>(`/api/posts/${id}`, { method: 'DELETE' }),
+  restorePost: (id: string) => request<{ success: boolean; post: Post }>(`/api/posts/${id}/restore`, { method: 'POST' }),
   likePost: (id: string, liked?: boolean) =>
     request<{ liked: boolean; likes_count: number }>(`/api/posts/${id}/like`, { method: liked ? 'DELETE' : 'POST' }),
   repostPost: (id: string, comment?: string, community_id?: string) =>
@@ -177,7 +178,8 @@ export const api = {
       method: saved ? 'DELETE' : 'POST',
       body: saved ? undefined : JSON.stringify({ collection_id }),
     }),
-  hidePost: (id: string) => request<{ success: boolean }>(`/api/posts/${id}/hide`, { method: 'POST' }),
+  hidePost: (id: string) => request<{ success: boolean; hidden: boolean }>(`/api/posts/${id}/hide`, { method: 'POST' }),
+  unhidePost: (id: string) => request<{ success: boolean; hidden: boolean }>(`/api/posts/${id}/hide`, { method: 'DELETE' }),
   reactPost: (id: string, emoji: string) =>
     request<{ reactions: Array<{ emoji: string; count: number; reacted: boolean }> }>(`/api/posts/${id}/reactions?emoji=${encodeURIComponent(emoji)}`, { method: 'POST' }),
   unreactPost: (id: string, emoji: string) =>
@@ -201,8 +203,13 @@ export const api = {
   updateComment: (id: string, text: string) =>
     request<Comment>(`/api/comments/${id}`, { method: 'PATCH', body: JSON.stringify({ text }) }),
   deleteComment: (id: string) => request<{ success: boolean }>(`/api/comments/${id}`, { method: 'DELETE' }),
+  restoreComment: (id: string) => request<{ success: boolean; comment: Comment }>(`/api/comments/${id}/restore`, { method: 'POST' }),
   likeComment: (id: string, liked?: boolean) =>
     request<{ liked: boolean; likes_count: number }>(`/api/comments/${id}/like`, { method: liked ? 'DELETE' : 'POST' }),
+  reactComment: (id: string, emoji: string) =>
+    request<{ reactions: Array<{ emoji: string; count: number; reacted: boolean }> }>(`/api/comments/${id}/reactions?emoji=${encodeURIComponent(emoji)}`, { method: 'POST' }),
+  unreactComment: (id: string, emoji: string) =>
+    request<{ reactions: Array<{ emoji: string; count: number; reacted: boolean }> }>(`/api/comments/${id}/reactions?emoji=${encodeURIComponent(emoji)}`, { method: 'DELETE' }),
 
   saved: (q = '', collection_id?: string, sort = 'saved_desc') => {
     const params = new URLSearchParams();
@@ -306,6 +313,10 @@ export const api = {
   updateMessage: (id: string, text: string) =>
     request<{ success: boolean }>(`/api/messages/${id}`, { method: 'PATCH', body: JSON.stringify({ text }) }),
   deleteMessage: (id: string) => request<{ success: boolean }>(`/api/messages/${id}`, { method: 'DELETE' }),
+  reactMessage: (id: string, emoji: string) =>
+    request<{ reactions: Array<{ emoji: string; count: number; reacted: boolean }> }>(`/api/messages/${id}/reactions?emoji=${encodeURIComponent(emoji)}`, { method: 'POST' }),
+  unreactMessage: (id: string, emoji: string) =>
+    request<{ reactions: Array<{ emoji: string; count: number; reacted: boolean }> }>(`/api/messages/${id}/reactions?emoji=${encodeURIComponent(emoji)}`, { method: 'DELETE' }),
   forwardMessage: (messageId: string, chatId: string) =>
     request<Message>(`/api/messages/${messageId}/forward?chat_id=${encodeURIComponent(chatId)}`, { method: 'POST' }),
   updateChatSettings: (chatId: string, payload: { is_pinned?: boolean; is_archived?: boolean; muted_until?: string | null }) =>

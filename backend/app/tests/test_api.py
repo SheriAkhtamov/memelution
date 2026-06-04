@@ -116,3 +116,98 @@ def test_disabled_post_comments_reject_new_comments():
         )
         assert response.status_code == 403
         assert response.json()["error"]["code"] == "COMMENTS_ARE_DISABLED"
+
+
+def test_hide_unhide_and_delete_restore_post():
+    with TestClient(app) as client:
+        login = client.post(
+            "/api/auth/dev-login",
+            json={"telegram_id": "restore-post-user", "username": "restore_post_user", "first_name": "Restore", "dev": True},
+        )
+        assert login.status_code == 200
+        headers = {"Authorization": f"Bearer {login.json()['token']}"}
+        post = client.post("/api/posts", headers=headers, data={"text": "restore me"}).json()
+        post_id = post["id"]
+
+        assert client.post(f"/api/posts/{post_id}/hide", headers=headers).json()["hidden"] is True
+        hidden_feed = client.get("/api/posts?feed=new&limit=10", headers=headers).json()
+        assert post_id not in {item["id"] for item in hidden_feed["items"]}
+
+        assert client.delete(f"/api/posts/{post_id}/hide", headers=headers).json()["hidden"] is False
+        visible_feed = client.get("/api/posts?feed=new&limit=10", headers=headers).json()
+        assert post_id in {item["id"] for item in visible_feed["items"]}
+
+        assert client.delete(f"/api/posts/{post_id}", headers=headers).status_code == 200
+        assert client.get(f"/api/posts/{post_id}", headers=headers).status_code == 404
+        restored = client.post(f"/api/posts/{post_id}/restore", headers=headers)
+        assert restored.status_code == 200
+        assert restored.json()["post"]["id"] == post_id
+        assert client.get(f"/api/posts/{post_id}", headers=headers).status_code == 200
+
+
+def test_comment_restore_and_reactions():
+    with TestClient(app) as client:
+        login = client.post(
+            "/api/auth/dev-login",
+            json={"telegram_id": "comment-reaction-user", "username": "comment_reactor", "first_name": "Comment", "dev": True},
+        )
+        assert login.status_code == 200
+        headers = {"Authorization": f"Bearer {login.json()['token']}"}
+        post = client.post("/api/posts", headers=headers, data={"text": "comment reaction post"}).json()
+        comment = client.post(
+            f"/api/posts/{post['id']}/comments",
+            headers=headers,
+            json={"text": "react to me"},
+        ).json()
+        comment_id = comment["id"]
+
+        reacted = client.post(f"/api/comments/{comment_id}/reactions?emoji=😂", headers=headers)
+        assert reacted.status_code == 200
+        assert reacted.json()["reactions"] == [{"emoji": "😂", "count": 1, "reacted": True}]
+
+        comments = client.get(f"/api/posts/{post['id']}/comments", headers=headers).json()["items"]
+        assert comments[0]["reactions"] == [{"emoji": "😂", "count": 1, "reacted": True}]
+
+        unreacted = client.delete(f"/api/comments/{comment_id}/reactions?emoji=😂", headers=headers)
+        assert unreacted.status_code == 200
+        assert unreacted.json()["reactions"] == []
+
+        assert client.delete(f"/api/comments/{comment_id}", headers=headers).status_code == 200
+        deleted = client.get(f"/api/posts/{post['id']}/comments", headers=headers).json()["items"][0]
+        assert deleted["is_deleted"] is True
+        restored = client.post(f"/api/comments/{comment_id}/restore", headers=headers)
+        assert restored.status_code == 200
+        assert restored.json()["comment"]["text"] == "react to me"
+
+
+def test_message_reactions_are_persisted_in_chat_messages():
+    with TestClient(app) as client:
+        first_login = client.post(
+            "/api/auth/dev-login",
+            json={"telegram_id": "message-reactor-a", "username": "message_reactor_a", "first_name": "A", "dev": True},
+        )
+        second_login = client.post(
+            "/api/auth/dev-login",
+            json={"telegram_id": "message-reactor-b", "username": "message_reactor_b", "first_name": "B", "dev": True},
+        )
+        assert first_login.status_code == 200
+        assert second_login.status_code == 200
+        first_headers = {"Authorization": f"Bearer {first_login.json()['token']}"}
+
+        chat = client.post("/api/chats", headers=first_headers, json={"username": "message_reactor_b"}).json()
+        message = client.post(
+            f"/api/chats/{chat['id']}/messages",
+            headers=first_headers,
+            json={"text": "hello reactions"},
+        ).json()
+
+        reacted = client.post(f"/api/messages/{message['id']}/reactions?emoji=👍", headers=first_headers)
+        assert reacted.status_code == 200
+        assert reacted.json()["reactions"] == [{"emoji": "👍", "count": 1, "reacted": True}]
+
+        messages = client.get(f"/api/chats/{chat['id']}/messages", headers=first_headers).json()["items"]
+        assert messages[0]["reactions"] == [{"emoji": "👍", "count": 1, "reacted": True}]
+
+        unreacted = client.delete(f"/api/messages/{message['id']}/reactions?emoji=👍", headers=first_headers)
+        assert unreacted.status_code == 200
+        assert unreacted.json()["reactions"] == []
