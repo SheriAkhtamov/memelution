@@ -121,7 +121,7 @@ export function MessageBubble({
 
   return (
     <div
-      className={`group relative flex ${mine ? 'justify-end' : 'justify-start'}`}
+      className={`motion-message-enter group relative flex ${mine ? 'justify-end' : 'justify-start'}`}
       onContextMenu={(e) => { e.preventDefault(); setShowMenu(true); }}
       onTouchStart={handleTouchStart}
       onTouchMove={handleTouchMove}
@@ -247,7 +247,8 @@ export function MessageBubble({
                 <button
                   key={emoji}
                   onClick={() => onReact(emoji, reacted)}
-                  className={`min-h-[28px] min-w-[28px] select-none rounded-full px-2 py-1 text-xs font-bold transition-colors ${
+                  data-active={reacted}
+                  className={`motion-pop motion-control min-h-[28px] min-w-[28px] select-none rounded-full px-2 py-1 text-xs font-bold ${
                     reacted
                       ? 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-200'
                       : reaction
@@ -302,7 +303,7 @@ export function MessageRepliedPreview({ replyTo, onCancel }: { replyTo: { id: st
   const { t } = useTranslation();
   if (!replyTo) return null;
   return (
-    <div className="flex items-center gap-3 border-t border-gray-100 bg-gray-50 px-4 py-2.5 dark:border-zinc-800 dark:bg-zinc-900">
+    <div className="t-panel-slide flex items-center gap-3 border-t border-gray-100 bg-gray-50 px-4 py-2.5 dark:border-zinc-800 dark:bg-zinc-900" data-open="true">
       <div className="min-w-0 flex-1 border-l-3 border-[#2AABEE] pl-3">
         <p className="text-xs font-black text-[#2AABEE]">{replyTo.sender}</p>
         <p className="line-clamp-1 text-xs text-gray-500">{replyTo.text || t('messages.media_fallback')}</p>

@@ -5,6 +5,8 @@ import { Search, X, User, Users, FileText, Hash } from 'lucide-react';
 import { api } from '../../shared/api/client';
 import { useAuthStore } from '../../store/authStore';
 import { useDebouncedValue } from '../../shared/lib/useDebouncedValue';
+import { useAnimatedPresence } from '../../shared/lib/useAnimatedPresence';
+import { cn } from '../../lib/utils';
 
 type SearchResult = {
   people: Array<{ id: string; username: string; display_name: string; avatar_url?: string }>;
@@ -21,6 +23,7 @@ export function SpotlightSearch() {
   const [selectedIndex, setSelectedIndex] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
   const resultsRef = useRef<HTMLDivElement>(null);
+  const presence = useAnimatedPresence(open, 170);
 
   // Debounce the API call but keep the input responsive (200ms = snappy for a palette)
   const debounced = useDebouncedValue(query.trim(), 200);
@@ -113,11 +116,18 @@ export function SpotlightSearch() {
     scrollSelectedIntoView();
   }, [selectedIndex, scrollSelectedIntoView]);
 
-  if (!open) return null;
+  if (!presence.mounted) return null;
 
   return (
-    <div className="fixed inset-0 z-[110] flex items-start justify-center bg-black/50 pt-[15vh] animate-in fade-in duration-150" onClick={() => { setOpen(false); setQuery(''); }}>
-      <div className="w-full max-w-lg overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-2xl dark:border-zinc-800 dark:bg-zinc-950" onClick={(e) => e.stopPropagation()}>
+    <div className="motion-overlay fixed inset-0 z-[110] flex items-start justify-center bg-black/50 pt-[15vh] backdrop-blur-[2px]" data-state={presence.state} onClick={() => { setOpen(false); setQuery(''); }}>
+      <div
+        className={cn(
+          't-modal w-full max-w-lg overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-2xl dark:border-zinc-800 dark:bg-zinc-950',
+          presence.state === 'open' && 'is-open',
+          presence.state === 'closing' && 'is-closing',
+        )}
+        onClick={(e) => e.stopPropagation()}
+      >
         <div className="flex items-center gap-3 border-b border-gray-100 px-4 py-3 dark:border-zinc-800">
           <Search size={18} className="text-gray-400" />
           <input
@@ -139,7 +149,7 @@ export function SpotlightSearch() {
           ) : searchQuery.isLoading ? (
             <div className="space-y-2 p-2">
               {Array.from({ length: 4 }).map((_, i) => (
-                <div key={i} className="h-10 animate-pulse rounded-lg bg-gray-100 dark:bg-zinc-900" />
+                <div key={i} className="motion-skeleton h-10 rounded-lg bg-gray-100 dark:bg-zinc-900" />
               ))}
             </div>
           ) : flatResults.length === 0 ? (
@@ -157,7 +167,7 @@ export function SpotlightSearch() {
                     data-selected={isSelected}
                     onClick={() => { navigate(item.path); setOpen(false); setQuery(''); }}
                     onMouseEnter={() => setSelectedIndex(index)}
-                    className={`flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left transition-colors ${
+                    className={`motion-control flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left ${
                       isSelected
                         ? 'bg-orange-50 text-[#FF6B00] dark:bg-orange-950/30 dark:text-orange-400'
                         : 'text-gray-700 hover:bg-gray-50 dark:text-zinc-200 dark:hover:bg-zinc-900'

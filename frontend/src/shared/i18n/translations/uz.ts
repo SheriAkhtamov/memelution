@@ -27,6 +27,7 @@ export const uz: Record<string, string> = {
   'common.copied': 'Havola nusxalandi',
   'common.unsaved_changes': 'Saqlanmagan o\'zgarishlar bor',
   'common.discard': 'Bekor qilish',
+  'common.undo': 'Bekor qilish',
 
   'nav.home': 'Bosh sahifa',
   'nav.explore': 'Trendlar',
@@ -107,6 +108,7 @@ export const uz: Record<string, string> = {
   'post.unreposted': 'Repost olib tashlandi',
   'post.repost_error': 'Repost qilib bo\'lmadi',
   'post.deleted': 'Post o\'chirildi',
+  'post.deleted_undo': 'Post o\'chirildi',
   'post.updated': 'Post yangilandi',
   'post.pinned': 'Post mahkamlandi',
   'post.unpinned': 'Mahkamlash olib tashlandi',
@@ -160,6 +162,7 @@ export const uz: Record<string, string> = {
   'post.reaction_skull': 'Bosh suyagi reaksiyasi ({{emoji}})',
   'post.reaction_clown': 'Masxaraboz reaksiyasi ({{emoji}})',
   'post.reaction_react': '{{emoji}} reaksiyasi',
+  'post.reaction_error': 'Reaksiya qo\'shib bo\'lmadi',
 
   'post_composer.title': 'Post yaratish',
   'post_composer.placeholder': 'Nima yangilik?',
@@ -183,6 +186,7 @@ export const uz: Record<string, string> = {
   'post_composer.visibility_public': 'Hammaga',
   'post_composer.visibility_followers': 'Obunachilarga',
   'post_composer.visibility_private': 'Faqat menga',
+  'post_composer.visibility_public_label': 'Ommaviy',
   'post_composer.visibility_followers_label': 'Obunachilar',
   'post_composer.visibility_private_label': 'Shaxsiy',
   'post_composer.no_community': 'Jamoasiz',
@@ -431,6 +435,7 @@ export const uz: Record<string, string> = {
   'messages.leave_confirm': 'Tark etish',
   'messages.deleted': 'Xabar o\'chirildi',
   'messages.edited': 'tahrir.',
+  'messages.retry': 'Qayta urinish',
   'messages.read': 'o\'qildi',
   'messages.sent': 'yuborildi',
   'messages.context_edit': 'Tahrirlash',
@@ -501,6 +506,8 @@ export const uz: Record<string, string> = {
   'onboarding.tip_saved_desc': 'Eng yaxshi memlarni kollektsiyalarda to\'plang.',
   'onboarding.interests': 'Qiziqishlar',
   'onboarding.complete': 'Tayyor!',
+  'onboarding.skip_rest': 'Qolganini o\'tkazib yuborish',
+  'onboarding.upload_avatar': 'Avatar yuklash',
 
   'community.title': 'Jamoalar',
   'community.create': 'Yaratish',

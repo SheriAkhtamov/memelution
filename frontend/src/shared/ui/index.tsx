@@ -1,7 +1,8 @@
-import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
+import React, { createContext, useCallback, useContext, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { AlertTriangle, Check, Loader2, Upload, X } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { useViewportVideo } from '../lib/useViewportVideo';
+import { useAnimatedPresence } from '../lib/useAnimatedPresence';
 import { useTranslation } from '../i18n';
 
 type ButtonVariant = 'primary' | 'secondary' | 'outline' | 'ghost' | 'danger';
@@ -18,8 +19,10 @@ export function Button({
     <button
       {...props}
       disabled={disabled || loading}
+      aria-busy={loading || undefined}
+      data-loading={loading || undefined}
       className={cn(
-        'inline-flex h-10 items-center justify-center gap-2 rounded-lg px-4 text-sm font-black transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-500 disabled:pointer-events-none disabled:opacity-55',
+        'motion-control inline-flex h-10 items-center justify-center gap-2 rounded-lg px-4 text-sm font-black focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-500 disabled:pointer-events-none disabled:opacity-55',
         variant === 'primary' && 'bg-[#FF6B00] text-white hover:bg-[#e66000]',
         variant === 'secondary' && 'bg-[#7C3AED] text-white hover:bg-[#6D28D9]',
         variant === 'outline' && 'border border-gray-200 bg-white text-gray-700 hover:bg-gray-50 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-100 dark:hover:bg-zinc-900',
@@ -43,7 +46,7 @@ export const IconButton = React.forwardRef<HTMLButtonElement, React.ButtonHTMLAt
         aria-label={label}
         title={label}
         className={cn(
-          'inline-flex h-10 w-10 items-center justify-center rounded-lg text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-500 disabled:pointer-events-none disabled:opacity-55 dark:hover:bg-zinc-900 dark:hover:text-zinc-100',
+          'motion-control inline-flex h-10 w-10 items-center justify-center rounded-lg text-gray-500 hover:bg-gray-100 hover:text-gray-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-500 disabled:pointer-events-none disabled:opacity-55 dark:hover:bg-zinc-900 dark:hover:text-zinc-100',
           className,
         )}
       >
@@ -55,16 +58,17 @@ export const IconButton = React.forwardRef<HTMLButtonElement, React.ButtonHTMLAt
 
 export function Input({ error, className, ...props }: React.InputHTMLAttributes<HTMLInputElement> & { error?: string }) {
   return (
-    <label className="block">
+    <label className={cn('t-input-wrap block', error && 'is-error')}>
       <input
         {...props}
+        aria-invalid={error ? true : props['aria-invalid']}
         className={cn(
-          'h-10 w-full rounded-lg border border-gray-200 bg-white px-3 text-sm font-bold text-gray-900 outline-none transition-colors placeholder:text-gray-400 focus:border-orange-400 focus:ring-2 focus:ring-orange-100 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-100 dark:focus:ring-orange-950',
-          error && 'border-red-400 focus:border-red-400 focus:ring-red-100',
+          't-input h-10 w-full rounded-lg border border-gray-200 bg-white px-3 text-sm font-bold text-gray-900 outline-none placeholder:text-gray-400 focus:border-orange-400 focus:ring-2 focus:ring-orange-100 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-100 dark:focus:ring-orange-950',
+          error && 'is-error is-shaking border-red-400 focus:border-red-400 focus:ring-red-100',
           className,
         )}
       />
-      {error ? <span className="mt-1 block text-xs font-bold text-red-500">{error}</span> : null}
+      <span className="t-error-msg mt-1 block text-xs font-bold text-red-500" aria-live="polite">{error || ''}</span>
     </label>
   );
 }
@@ -72,17 +76,18 @@ export function Input({ error, className, ...props }: React.InputHTMLAttributes<
 export const Textarea = React.forwardRef<HTMLTextAreaElement, React.TextareaHTMLAttributes<HTMLTextAreaElement> & { error?: string }>(
   function Textarea({ error, className, ...props }, ref) {
   return (
-    <label className="block">
+    <label className={cn('t-input-wrap block', error && 'is-error')}>
       <textarea
         {...props}
         ref={ref}
+        aria-invalid={error ? true : props['aria-invalid']}
         className={cn(
-          'min-h-24 w-full resize-y rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm font-medium text-gray-900 outline-none transition-colors placeholder:text-gray-400 focus:border-orange-400 focus:ring-2 focus:ring-orange-100 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-100 dark:focus:ring-orange-950',
-          error && 'border-red-400 focus:border-red-400 focus:ring-red-100',
+          't-input min-h-24 w-full resize-y rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm font-medium text-gray-900 outline-none placeholder:text-gray-400 focus:border-orange-400 focus:ring-2 focus:ring-orange-100 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-100 dark:focus:ring-orange-950',
+          error && 'is-error is-shaking border-red-400 focus:border-red-400 focus:ring-red-100',
           className,
         )}
       />
-      {error ? <span className="mt-1 block text-xs font-bold text-red-500">{error}</span> : null}
+      <span className="t-error-msg mt-1 block text-xs font-bold text-red-500" aria-live="polite">{error || ''}</span>
     </label>
   );
   },
@@ -93,7 +98,7 @@ export function Select({ className, children, ...props }: React.SelectHTMLAttrib
     <select
       {...props}
       className={cn(
-        'h-10 w-full rounded-lg border border-gray-200 bg-white px-3 text-sm font-bold text-gray-900 outline-none focus:border-orange-400 focus:ring-2 focus:ring-orange-100 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-100',
+        'motion-control h-10 w-full rounded-lg border border-gray-200 bg-white px-3 text-sm font-bold text-gray-900 outline-none focus:border-orange-400 focus:ring-2 focus:ring-orange-100 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-100',
         className,
       )}
     >
@@ -119,7 +124,7 @@ export function Switch({ checked, onChange, label, ariaLabel }: { checked: boole
       aria-checked={checked}
       aria-label={ariaLabel || label}
       onClick={() => onChange(!checked)}
-      className="inline-flex items-center gap-2 text-sm font-bold"
+      className="motion-control inline-flex items-center gap-2 rounded-lg text-sm font-bold"
     >
       <span aria-hidden className={cn('relative inline-flex h-6 w-11 shrink-0 rounded-full transition-colors', checked ? 'bg-[#FF6B00]' : 'bg-gray-300 dark:bg-zinc-700')}>
         <span className={cn('absolute top-1 h-4 w-4 rounded-full bg-white transition-transform', checked ? 'translate-x-6' : 'translate-x-1')} />
@@ -130,7 +135,26 @@ export function Switch({ checked, onChange, label, ariaLabel }: { checked: boole
 }
 
 export function Badge({ children, className }: { children: React.ReactNode; className?: string }) {
-  return <span className={cn('inline-flex rounded-md bg-gray-100 px-2 py-1 text-xs font-black text-gray-600 dark:bg-zinc-900 dark:text-zinc-300', className)}>{children}</span>;
+  return <span className={cn('motion-control inline-flex rounded-md bg-gray-100 px-2 py-1 text-xs font-black text-gray-600 dark:bg-zinc-900 dark:text-zinc-300', className)}>{children}</span>;
+}
+
+export function AnimatedNumber({ value, className }: { value: number | string; className?: string }) {
+  const text = String(value);
+  return (
+    <span key={text} className={className} aria-label={text}>
+      <span className="t-digit-group is-animating" aria-hidden="true">
+        {Array.from(text).map((digit, index) => (
+          <span
+            key={`${digit}-${index}`}
+            className="t-digit"
+            data-stagger={index === text.length - 2 ? '1' : index === text.length - 1 ? '2' : undefined}
+          >
+            {digit}
+          </span>
+        ))}
+      </span>
+    </span>
+  );
 }
 
 export function Avatar({ src, name, className }: { src?: string; name?: string; className?: string }) {
@@ -144,16 +168,48 @@ export function Avatar({ src, name, className }: { src?: string; name?: string; 
 }
 
 export function Tabs<T extends string>({ value, items, onChange }: { value: T; items: Array<{ id: T; label: string }>; onChange: (value: T) => void }) {
+  const listRef = useRef<HTMLDivElement>(null);
+  const pillRef = useRef<HTMLSpanElement>(null);
+  const movePill = useCallback((animate: boolean) => {
+    const list = listRef.current;
+    const pill = pillRef.current;
+    if (!list || !pill) return;
+    const active = Array.from(list.querySelectorAll<HTMLButtonElement>('[data-motion-tab]'))
+      .find((tab) => tab.dataset.motionTab === value);
+    if (!active) return;
+    if (!animate) pill.style.transition = 'none';
+    pill.style.transform = `translateX(${active.offsetLeft}px)`;
+    pill.style.width = `${active.offsetWidth}px`;
+    if (!animate) {
+      void pill.offsetWidth;
+      pill.style.transition = '';
+    }
+  }, [value]);
+
+  useLayoutEffect(() => {
+    movePill(false);
+  }, [movePill]);
+
+  useEffect(() => {
+    const list = listRef.current;
+    if (!list) return;
+    const observer = new ResizeObserver(() => movePill(false));
+    observer.observe(list);
+    return () => observer.disconnect();
+  }, [movePill]);
+
   return (
-    <div className="flex gap-2 overflow-x-auto pb-1">
+    <div ref={listRef} className="t-tabs" role="tablist">
+      <span ref={pillRef} className="t-tabs-pill" aria-hidden="true" />
       {items.map((item) => (
         <button
           key={item.id}
+          type="button"
           onClick={() => onChange(item.id)}
-          className={cn(
-            'h-9 shrink-0 rounded-lg px-3 text-sm font-black transition-colors',
-            value === item.id ? 'bg-[#FF6B00] text-white' : 'border border-gray-200 bg-white text-gray-500 hover:bg-gray-50 dark:border-zinc-800 dark:bg-zinc-950 dark:hover:bg-zinc-900',
-          )}
+          role="tab"
+          aria-selected={value === item.id}
+          data-motion-tab={item.id}
+          className="t-tab shrink-0 text-sm font-black"
         >
           {item.label}
         </button>
@@ -168,6 +224,7 @@ export function Dropdown({ trigger, children }: { trigger: React.ReactNode; chil
   const [open, setOpen] = useState(false);
   const { t } = useTranslation();
   const close = useCallback(() => setOpen(false), []);
+  const presence = useAnimatedPresence(open, 150);
   useEffect(() => {
     if (!open) return;
     const handler = (event: KeyboardEvent) => {
@@ -180,10 +237,18 @@ export function Dropdown({ trigger, children }: { trigger: React.ReactNode; chil
     <DropdownContext.Provider value={close}>
       <div className="relative">
         <div onClick={() => setOpen((value) => !value)} role="button" tabIndex={0} aria-haspopup="menu" aria-expanded={open} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setOpen((v) => !v); }}}>{trigger}</div>
-        {open ? (
+        {presence.mounted ? (
           <>
             <button className="fixed inset-0 z-30 cursor-default" aria-label={t('ui.close_menu')} onClick={close} />
-            <div role="menu" className="absolute right-0 top-full z-40 mt-2 min-w-56 overflow-hidden rounded-lg border border-gray-200 bg-white shadow-xl dark:border-zinc-800 dark:bg-zinc-950">
+            <div
+              role="menu"
+              data-origin="top-right"
+              className={cn(
+                't-dropdown absolute right-0 top-full z-40 mt-2 min-w-56 overflow-hidden rounded-lg border border-gray-200 bg-white shadow-xl dark:border-zinc-800 dark:bg-zinc-950',
+                presence.state === 'open' && 'is-open',
+                presence.state === 'closing' && 'is-closing',
+              )}
+            >
               {children}
             </div>
           </>
@@ -202,7 +267,7 @@ export function DropdownItem({ children, danger, disabled, onClick }: { children
       aria-disabled={disabled || undefined}
       onClick={() => { if (!disabled) { onClick(); close?.(); } }}
       className={cn(
-        'flex w-full items-center gap-2 px-3 py-2 text-left text-sm font-bold hover:bg-gray-50 dark:hover:bg-zinc-900',
+        'motion-control flex w-full items-center gap-2 px-3 py-2 text-left text-sm font-bold hover:bg-gray-50 dark:hover:bg-zinc-900',
         danger ? 'text-red-600' : 'text-gray-700 dark:text-zinc-100',
         disabled && 'cursor-not-allowed opacity-50 hover:bg-transparent dark:hover:bg-transparent',
       )}
@@ -225,6 +290,7 @@ export function Modal({
 }) {
   const { t } = useTranslation();
   const modalRef = useRef<HTMLDivElement>(null);
+  const presence = useAnimatedPresence(open, 170);
 
   useEffect(() => {
     if (!open) return;
@@ -250,11 +316,24 @@ export function Modal({
     };
   }, [onClose, open]);
 
-  if (!open) return null;
+  if (!presence.mounted) return null;
   return (
-    <div className="fixed inset-0 z-[80] flex items-end justify-center bg-black/45 p-0 animate-in fade-in duration-200 sm:items-center sm:p-4" role="dialog" aria-modal="true" aria-label={title}>
+    <div
+      className="motion-overlay fixed inset-0 z-[80] flex items-end justify-center bg-black/45 p-0 backdrop-blur-[2px] sm:items-center sm:p-4"
+      data-state={presence.state}
+      role="dialog"
+      aria-modal="true"
+      aria-label={title}
+    >
       <button className="absolute inset-0 cursor-default" aria-label={t('common.close')} onClick={onClose} />
-      <section ref={modalRef} className="relative max-h-[92vh] w-full overflow-y-auto rounded-t-2xl bg-white shadow-2xl dark:bg-zinc-950 sm:max-w-2xl sm:rounded-lg animate-in slide-in-from-bottom-2 duration-200">
+      <section
+        ref={modalRef}
+        className={cn(
+          't-modal relative max-h-[92vh] w-full overflow-y-auto rounded-t-2xl bg-white shadow-2xl dark:bg-zinc-950 sm:max-w-2xl sm:rounded-lg',
+          presence.state === 'open' && 'is-open',
+          presence.state === 'closing' && 'is-closing',
+        )}
+      >
         <header className="sticky top-0 z-10 flex items-center justify-between border-b border-gray-100 bg-white px-4 py-3 dark:border-zinc-800 dark:bg-zinc-950">
           <h2 className="text-lg font-black">{title}</h2>
           <IconButton label={t('common.close')} onClick={onClose}>
@@ -271,22 +350,22 @@ export const Drawer = Modal;
 export const BottomSheet = Modal;
 
 export function Skeleton({ className }: { className?: string }) {
-  return <div className={cn('animate-pulse rounded-lg bg-gray-200 dark:bg-zinc-800', className)} />;
+  return <div className={cn('motion-skeleton rounded-lg bg-gray-200 dark:bg-zinc-800', className)} />;
 }
 
 export function EmptyState({ title, description, action, icon, emoji }: { title: string; description?: string; action?: React.ReactNode; icon?: React.ReactNode; emoji?: string }) {
   return (
-    <div className="flex flex-col items-center rounded-xl border border-dashed border-gray-200 bg-gradient-to-b from-white to-gray-50/50 p-10 text-center dark:border-zinc-800 dark:from-zinc-950 dark:to-zinc-900/50">
+    <div className="t-stagger is-shown flex flex-col items-center rounded-xl border border-dashed border-gray-200 bg-gradient-to-b from-white to-gray-50/50 p-10 text-center dark:border-zinc-800 dark:from-zinc-950 dark:to-zinc-900/50">
       {emoji ? (
-        <span className="mb-3 text-4xl animate-bounce" style={{ animationDuration: '2s', animationIterationCount: 3 }}>{emoji}</span>
+        <span className="t-stagger-line t-stagger-line--1 mb-3 text-4xl">{emoji}</span>
       ) : icon ? (
-        <div className="mb-3 text-gray-300 dark:text-zinc-600">{icon}</div>
+        <div className="t-stagger-line t-stagger-line--1 mb-3 text-gray-300 dark:text-zinc-600">{icon}</div>
       ) : (
-        <span className="mb-3 text-4xl animate-bounce" style={{ animationDuration: '2s', animationIterationCount: 3 }}>🤷</span>
+        <span className="t-stagger-line t-stagger-line--1 mb-3 text-4xl">🤷</span>
       )}
-      <p className="text-lg font-black text-gray-900 dark:text-zinc-100">{title}</p>
-      {description ? <p className="mt-1.5 max-w-xs text-sm text-gray-500 dark:text-zinc-400">{description}</p> : null}
-      {action ? <div className="mt-5 flex justify-center">{action}</div> : null}
+      <p className="t-stagger-line t-stagger-line--2 text-lg font-black text-gray-900 dark:text-zinc-100">{title}</p>
+      {description ? <p className="t-stagger-line t-stagger-line--3 mt-1.5 max-w-xs text-sm text-gray-500 dark:text-zinc-400">{description}</p> : null}
+      {action ? <div className="t-stagger-line t-stagger-line--4 mt-5 flex justify-center">{action}</div> : null}
     </div>
   );
 }
@@ -295,7 +374,7 @@ export function ErrorState({ title: _title, description, onRetry }: { title?: st
   const { t } = useTranslation();
   const title = _title ?? t('error.state_title');
   return (
-    <div className="rounded-lg border border-red-100 bg-red-50 p-6 text-center text-red-700 dark:border-red-900 dark:bg-red-950/25">
+    <div className="t-input is-shaking rounded-lg border border-red-100 bg-red-50 p-6 text-center text-red-700 dark:border-red-900 dark:bg-red-950/25">
       <AlertTriangle className="mx-auto mb-2" />
       <p className="font-black">{title}</p>
       {description ? <p className="mt-1 text-sm">{description}</p> : null}
@@ -336,13 +415,13 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
             aria-live={item.tone === 'error' ? 'assertive' : 'polite'}
             aria-atomic="true"
             onClick={() => dismiss(item.id)}
+            data-leaving={item.leaving || undefined}
             className={cn(
-              'flex cursor-pointer items-center gap-2 rounded-lg border bg-white px-4 py-3 text-sm font-bold shadow-xl transition-all duration-300 dark:bg-zinc-950',
+              'motion-toast flex cursor-pointer items-center gap-2 rounded-lg border bg-white px-4 py-3 text-sm font-bold shadow-xl dark:bg-zinc-950',
               item.tone === 'error' ? 'border-red-200 text-red-700' : 'border-gray-200 text-gray-800 dark:border-zinc-800 dark:text-zinc-100',
-              item.leaving ? 'translate-x-[120%] opacity-0' : 'translate-x-0 opacity-100',
             )}
           >
-            {item.tone === 'success' ? <Check size={16} className="text-green-600" /> : null}
+            {item.tone === 'success' ? <span className="t-success-check text-green-600" data-state="in"><Check size={16} /></span> : null}
             <span className="flex-1">{item.title}</span>
             {item.action ? (
               <button
@@ -442,7 +521,7 @@ export function FileUploader({
 }) {
   const { t } = useTranslation();
   return (
-    <label className="block cursor-pointer rounded-lg border border-dashed border-gray-300 bg-gray-50 p-4 text-center text-sm font-bold text-gray-500 hover:border-orange-300 hover:bg-orange-50 dark:border-zinc-800 dark:bg-zinc-900/50 dark:hover:bg-orange-950/20">
+    <label className="motion-control block cursor-pointer rounded-lg border border-dashed border-gray-300 bg-gray-50 p-4 text-center text-sm font-bold text-gray-500 hover:border-orange-300 hover:bg-orange-50 dark:border-zinc-800 dark:bg-zinc-900/50 dark:hover:bg-orange-950/20">
       <Upload className="mx-auto mb-2" size={20} />
       {file ? file.name : t('ui.add_media')}
       <input
@@ -458,7 +537,7 @@ export function FileUploader({
 
 export function UserCard({ user, action }: { user: { username: string; display_name: string; avatar_url?: string; bio?: string }; action?: React.ReactNode }) {
   return (
-    <div className="flex items-center justify-between gap-3 rounded-lg border border-gray-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-950">
+    <div className="motion-control flex items-center justify-between gap-3 rounded-lg border border-gray-200 bg-white p-4 hover:-translate-y-0.5 hover:shadow-md dark:border-zinc-800 dark:bg-zinc-950">
       <div className="flex min-w-0 items-center gap-3">
         <Avatar src={user.avatar_url} name={user.display_name} />
         <span className="min-w-0">
@@ -481,7 +560,7 @@ export function CommunityCard({
 }) {
   const { t } = useTranslation();
   return (
-    <div className="flex items-center justify-between gap-3 rounded-lg border border-gray-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-950">
+    <div className="motion-control flex items-center justify-between gap-3 rounded-lg border border-gray-200 bg-white p-4 hover:-translate-y-0.5 hover:shadow-md dark:border-zinc-800 dark:bg-zinc-950">
       <div className="flex min-w-0 items-center gap-3">
         <Avatar src={community.avatar_url} name={community.name} />
         <span className="min-w-0">

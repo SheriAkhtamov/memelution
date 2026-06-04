@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { ArrowLeft, ImagePlus, Info, LogOut, MessageSquare, Plus, Search, Send, X } from 'lucide-react';
-import { Avatar, Button, ConfirmDialog, EmptyState, ErrorState, Input, Modal, Skeleton, Tabs, useToast } from '../../shared/ui';
+import { AnimatedNumber, Avatar, Button, ConfirmDialog, EmptyState, ErrorState, Input, Modal, Skeleton, Tabs, useToast } from '../../shared/ui';
 import { MessageBubble, MessageRepliedPreview } from '../../features/messages/MessageBubble';
 import { useAuthStore } from '../../store/authStore';
 import { useMessages } from '../../features/messages/useMessages';
@@ -190,12 +190,12 @@ export function MessagesPage() {
               {chatsQuery.isLoading ? <Skeleton className="m-4 h-32" /> : filteredChats.length ? filteredChats.map((chat) => {
                 const peer = chat.members[0];
                 return (
-                  <button key={chat.id} onClick={() => selectChat(chat.id)} className={`flex w-full gap-3 border-b border-gray-50 p-4 text-left hover:bg-gray-50 dark:border-zinc-900 dark:hover:bg-zinc-900 ${active === chat.id ? 'bg-orange-50 dark:bg-orange-950/20' : ''}`}>
+                  <button key={chat.id} onClick={() => selectChat(chat.id)} className={`motion-control flex w-full gap-3 border-b border-gray-50 p-4 text-left hover:bg-gray-50 dark:border-zinc-900 dark:hover:bg-zinc-900 ${active === chat.id ? 'bg-orange-50 dark:bg-orange-950/20' : ''}`}>
                     <Avatar src={chat.avatar_url || peer?.avatar_url} name={chat.title || peer?.display_name} className="rounded-full" />
                     <span className="min-w-0 flex-1">
                       <span className="flex items-center justify-between gap-2">
                         <span className="truncate font-black">{chat.title || peer?.display_name || t('messages.chat_title')}</span>
-                        {chat.unread_count ? <span className="rounded-full bg-red-500 px-2 py-0.5 text-xs font-black text-white">{chat.unread_count}</span> : null}
+                        {chat.unread_count ? <span className="motion-pop rounded-full bg-red-500 px-2 py-0.5 text-xs font-black text-white" data-active="true"><AnimatedNumber value={chat.unread_count} /></span> : null}
                       </span>
                       <span className="block truncate text-sm text-gray-500">{typingMap[chat.id] ? <span className="font-bold text-[#2AABEE] animate-pulse">{typingMap[chat.id]} {t('messages.typing')}</span> : (chat.latest_message?.text || t('messages.empty_chat'))}</span>
                     </span>
@@ -204,7 +204,7 @@ export function MessagesPage() {
               }) : <EmptyState title={t('messages.empty_list')} description={t('messages.empty_list_desc')} emoji="💬" />}
             </div>
           </aside>
-          <section className={`flex min-h-[680px] flex-col bg-[#F7F7F8] dark:bg-zinc-950 ${active ? '' : 'hidden lg:flex'}`}>
+          <section key={active || 'empty'} className={`motion-route-enter flex min-h-[680px] flex-col bg-[#F7F7F8] dark:bg-zinc-950 ${active ? '' : 'hidden lg:flex'}`}>
             {activeChat ? (
               <>
                 <div className="flex items-center gap-3 border-b border-gray-100 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-950">

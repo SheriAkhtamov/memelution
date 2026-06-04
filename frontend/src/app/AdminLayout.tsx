@@ -25,7 +25,7 @@ export function AdminLayout({ children }: { children: ReactNode }) {
         {/* Mobile hamburger */}
         <button
           onClick={() => setMobileOpen(true)}
-          className="fixed left-4 top-4 z-50 flex h-10 w-10 items-center justify-center rounded-xl bg-white/80 shadow-lg backdrop-blur-sm transition-all hover:scale-105 active:scale-95 dark:bg-zinc-900/80 sm:hidden"
+          className="motion-control fixed left-4 top-4 z-50 flex h-10 w-10 items-center justify-center rounded-xl bg-white/80 shadow-lg backdrop-blur-sm dark:bg-zinc-900/80 sm:hidden"
           aria-label={t('layout.open_menu')}
         >
           <Menu size={20} />
@@ -33,13 +33,13 @@ export function AdminLayout({ children }: { children: ReactNode }) {
 
         {/* Mobile overlay */}
         {mobileOpen && (
-          <div className="fixed inset-0 z-[60] bg-black/40 backdrop-blur-sm sm:hidden" onClick={() => setMobileOpen(false)} />
+          <div className="motion-overlay fixed inset-0 z-[60] bg-black/40 backdrop-blur-sm sm:hidden" data-state="open" onClick={() => setMobileOpen(false)} />
         )}
 
         {/* Sidebar */}
         <aside
           className={`
-            fixed inset-y-0 left-0 z-[70] flex h-screen flex-col border-r border-gray-200/60 bg-white/95 backdrop-blur-xl transition-all duration-300 ease-in-out dark:border-zinc-800/60 dark:bg-zinc-950/95
+            t-resize fixed inset-y-0 left-0 z-[70] flex h-screen flex-col border-r border-gray-200/60 bg-white/95 backdrop-blur-xl transition-transform duration-300 ease-in-out dark:border-zinc-800/60 dark:bg-zinc-950/95
             ${mobileOpen ? 'translate-x-0' : '-translate-x-full'}
             sm:sticky sm:top-0 sm:translate-x-0
             ${collapsed ? 'sm:w-[76px]' : 'sm:w-72'}
@@ -72,9 +72,12 @@ export function AdminLayout({ children }: { children: ReactNode }) {
             {/* Desktop collapse toggle */}
             <button
               onClick={() => setCollapsed(!collapsed)}
-              className="absolute -right-3 top-1/2 z-10 hidden h-6 w-6 -translate-y-1/2 items-center justify-center rounded-full border border-gray-200 bg-white text-gray-400 shadow-sm transition-all hover:bg-gray-50 hover:text-gray-600 dark:border-zinc-700 dark:bg-zinc-900 dark:hover:bg-zinc-800 sm:flex"
+              className="motion-control absolute -right-3 top-1/2 z-10 hidden h-6 w-6 -translate-y-1/2 items-center justify-center rounded-full border border-gray-200 bg-white text-gray-400 shadow-sm hover:bg-gray-50 hover:text-gray-600 dark:border-zinc-700 dark:bg-zinc-900 dark:hover:bg-zinc-800 sm:flex"
             >
-              {collapsed ? <ChevronRight size={12} /> : <ChevronLeft size={12} />}
+              <span className="t-icon-swap" data-state={collapsed ? 'b' : 'a'}>
+                <ChevronLeft size={12} className="t-icon" data-icon="a" />
+                <ChevronRight size={12} className="t-icon" data-icon="b" />
+              </span>
             </button>
           </div>
 
@@ -143,7 +146,9 @@ export function AdminLayout({ children }: { children: ReactNode }) {
         </aside>
 
         {/* Main content */}
-        <main className="min-h-screen min-w-0 flex-1 pt-14 sm:pt-0">{children}</main>
+        <main className="min-h-screen min-w-0 flex-1 pt-14 sm:pt-0">
+          <div key={location.pathname} className="motion-route-enter">{children}</div>
+        </main>
       </div>
     </div>
   );

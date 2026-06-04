@@ -1,5 +1,5 @@
-import { createContext, useCallback, useContext, useEffect, useLayoutEffect, useRef, useState } from 'react';
-import { createBrowserRouter, RouterProvider, useLocation } from 'react-router-dom';
+import { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
+import { createBrowserRouter, RouterProvider } from 'react-router-dom';
 import { Providers } from './providers';
 import { AppRouter } from './router';
 import { useAuthStore } from '../store/authStore';
@@ -70,10 +70,10 @@ export default function App() {
 function SplashScreen() {
   return (
     <div className="flex min-h-screen flex-col items-center justify-center bg-[#F3F4F6] dark:bg-zinc-950" role="status" aria-live="polite" aria-label="Загружаем Memelution">
-      <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-[#FF6B00] text-3xl font-black text-white shadow-lg animate-pulse">
+      <div className="motion-logo-intro flex h-16 w-16 items-center justify-center rounded-2xl bg-[#FF6B00] text-3xl font-black text-white shadow-lg">
         М
       </div>
-      <p className="mt-4 text-sm font-black text-gray-400">Memelution</p>
+      <p className="t-shimmer mt-4 text-sm font-black" data-text="Memelution">Memelution</p>
     </div>
   );
 }
@@ -96,24 +96,7 @@ function useThemeRouter() {
 }
 
 function RouteTransitionShell({ theme, setTheme }: { theme: string; setTheme: (theme: string) => void }) {
-  const location = useLocation();
-  const previousPathRef = useRef(location.pathname);
-  const [routeVisible, setRouteVisible] = useState(true);
-
-  useLayoutEffect(() => {
-    if (previousPathRef.current === location.pathname) return undefined;
-    previousPathRef.current = location.pathname;
-    setRouteVisible(false);
-
-    const frame = window.requestAnimationFrame(() => setRouteVisible(true));
-    return () => window.cancelAnimationFrame(frame);
-  }, [location.key, location.pathname]);
-
-  return (
-    <div className={`min-h-screen transition-opacity duration-150 ease-out motion-reduce:transition-none ${routeVisible ? 'opacity-100' : 'opacity-0'}`}>
-      <AppRouter theme={theme} setTheme={setTheme} />
-    </div>
-  );
+  return <AppRouter theme={theme} setTheme={setTheme} />;
 }
 
 function PwaInstallPrompt() {
@@ -161,7 +144,8 @@ function PwaInstallPrompt() {
 
   return (
     <div
-      className="fixed inset-x-3 bottom-3 z-[70] rounded-xl border border-gray-200 bg-white/95 px-4 py-3 shadow-[0_-8px_24px_rgba(15,23,42,0.08)] backdrop-blur dark:border-zinc-800 dark:bg-zinc-950/95 sm:bottom-6 sm:left-auto sm:right-6 sm:max-w-sm"
+      className="t-panel-slide fixed inset-x-3 bottom-3 z-[70] rounded-xl border border-gray-200 bg-white/95 px-4 py-3 shadow-[0_-8px_24px_rgba(15,23,42,0.08)] backdrop-blur dark:border-zinc-800 dark:bg-zinc-950/95 sm:bottom-6 sm:left-auto sm:right-6 sm:max-w-sm"
+      data-open="true"
       role="dialog"
       aria-label="Установить Memelution"
     >

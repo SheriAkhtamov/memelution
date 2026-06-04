@@ -1,6 +1,6 @@
 import { Link, useSearchParams } from 'react-router-dom';
 import { Bell, CheckCircle2, BellOff } from 'lucide-react';
-import { Button, EmptyState, ErrorState, Skeleton, Tabs } from '../../shared/ui';
+import { AnimatedNumber, Button, EmptyState, ErrorState, Skeleton, Tabs } from '../../shared/ui';
 import { useAuthStore } from '../../store/authStore';
 import { useNotifications } from '../../features/notifications/useNotifications';
 import { useTranslation } from '../../shared/i18n';
@@ -71,7 +71,7 @@ export function NotificationsPage() {
             loading={readAll.isPending}
             disabled={unreadCount === 0 || readAll.isPending}
           >
-            {unreadCount > 0 ? `${t('notifications.mark_all')} (${unreadCount})` : t('notifications.all_read')}
+            {unreadCount > 0 ? <>{t('notifications.mark_all')} (<AnimatedNumber value={unreadCount} />)</> : t('notifications.all_read')}
           </Button>
         </div>
         <Tabs
@@ -91,8 +91,8 @@ export function NotificationsPage() {
       {user.activity_score !== undefined && (
         <div className="border-b border-gray-100 bg-gradient-to-r from-orange-50 to-amber-50 px-4 py-3 dark:border-zinc-800 dark:from-orange-950/20 dark:to-amber-950/20">
           <div className="flex items-center justify-between text-xs font-black">
-            <span className="text-[#FF6B00]">{t('notifications.level')} {user.achievement_level || 1} ⚡</span>
-            <span className="text-gray-400">{user.activity_score || 0} / {((user.achievement_level || 1) + 1) * 100} XP</span>
+            <span className="text-[#FF6B00]">{t('notifications.level')} <AnimatedNumber value={user.achievement_level || 1} /> ⚡</span>
+            <span className="text-gray-400"><AnimatedNumber value={user.activity_score || 0} /> / {((user.achievement_level || 1) + 1) * 100} XP</span>
           </div>
           <div className="mt-1.5 h-2 overflow-hidden rounded-full bg-orange-100 dark:bg-orange-950/40">
             <div
@@ -167,7 +167,7 @@ function NotificationSection({
           const href = notificationHref(item);
           const body = textFor(item);
           const content = (
-            <div className={`flex items-start justify-between gap-3 rounded-lg border p-4 transition-colors ${item.is_read ? 'border-gray-200 bg-white opacity-75 hover:opacity-100 dark:border-zinc-800 dark:bg-zinc-950' : 'border-orange-100 bg-orange-50 shadow-sm dark:border-orange-900 dark:bg-orange-950/25'}`}>
+            <div className={`motion-control flex items-start justify-between gap-3 rounded-lg border p-4 ${item.is_read ? 'border-gray-200 bg-white opacity-75 hover:opacity-100 dark:border-zinc-800 dark:bg-zinc-950' : 'border-orange-100 bg-orange-50 shadow-sm dark:border-orange-900 dark:bg-orange-950/25'}`}>
               <div className="min-w-0 flex-1">
                 <p className="font-black">{titleFor(item.type)}</p>
                 <p className="text-sm text-gray-500 dark:text-zinc-400">{body}</p>

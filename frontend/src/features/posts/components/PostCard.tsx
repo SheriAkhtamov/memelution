@@ -5,7 +5,7 @@ import { formatDistanceToNow } from 'date-fns';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { api } from '../../../shared/api/client';
 import type { Post, ReactionItem } from '../../../shared/types';
-import { Avatar, Badge, Button, ConfirmDialog, ErrorBoundary, IconButton, Input, MediaViewer, Modal, ReportDialog, Select, Textarea, useToast } from '../../../shared/ui';
+import { AnimatedNumber, Avatar, Badge, Button, ConfirmDialog, ErrorBoundary, IconButton, Input, MediaViewer, Modal, ReportDialog, Select, Textarea, useToast } from '../../../shared/ui';
 import { Dropdown, DropdownItem } from '../../../shared/ui';
 import { useAuthStore } from '../../../store/authStore';
 import { ReactionPicker } from './ReactionPicker';
@@ -453,7 +453,7 @@ export function PostCard({
   return (
     <ErrorBoundary level="feed-item">
       <article
-        className="rounded-lg border border-gray-200/80 bg-white/95 shadow-[0_1px_2px_rgba(15,23,42,0.04),0_12px_32px_rgba(15,23,42,0.04)] backdrop-blur transition-all duration-200 hover:-translate-y-0.5 hover:border-gray-300 hover:shadow-[0_1px_2px_rgba(15,23,42,0.06),0_18px_40px_rgba(15,23,42,0.08)] dark:border-zinc-800 dark:bg-zinc-950/90 dark:hover:border-zinc-700"
+        className="motion-feed-card rounded-lg border border-gray-200/80 bg-white/95 shadow-[0_1px_2px_rgba(15,23,42,0.04),0_12px_32px_rgba(15,23,42,0.04)] backdrop-blur transition-[border-color,box-shadow,translate] duration-200 hover:-translate-y-0.5 hover:border-gray-300 hover:shadow-[0_1px_2px_rgba(15,23,42,0.06),0_18px_40px_rgba(15,23,42,0.08)] dark:border-zinc-800 dark:bg-zinc-950/90 dark:hover:border-zinc-700"
       onTouchStart={handlePostTouchStart}
       onTouchMove={handlePostTouchMove}
       onTouchEnd={handlePostTouchEnd}
@@ -609,16 +609,16 @@ export function PostCard({
 
             <div className="mt-4 flex flex-wrap items-center gap-1 border-t border-gray-100/80 pt-3 text-gray-500 dark:border-zinc-800/80">
               <Button variant="ghost" className="h-9 px-2.5" onClick={() => navigate(`/post/${localPost.id}`)} aria-label={t('post_page.open_comments')}>
-                <MessageSquare size={17} /> <span className="tabular-nums">{localPost.comments_count || 0}</span><span className="hidden sm:inline">{t('post.comm_short')}</span>
+                <MessageSquare size={17} /> <AnimatedNumber value={localPost.comments_count || 0} className="tabular-nums" /><span className="hidden sm:inline">{t('post.comm_short')}</span>
               </Button>
               <Button variant="ghost" className={`h-9 px-2.5 transition-transform ${localPost.liked ? 'text-red-500' : ''} ${likePulse ? 'scale-125' : ''}`} onClick={() => { requireAuth() && like.mutate(); hapticTap(); pulseFeedback(setLikePulse); }} aria-label={localPost.liked ? t('post.remove_like') : t('post.add_like')}>
-                <Heart size={17} fill={localPost.liked ? 'currentColor' : 'none'} /> <span className="tabular-nums">{localPost.likes_count || 0}</span><span className="hidden sm:inline">{t('post.like')}</span>
+                <Heart size={17} fill={localPost.liked ? 'currentColor' : 'none'} /> <AnimatedNumber value={localPost.likes_count || 0} className="tabular-nums" /><span className="hidden sm:inline">{t('post.like')}</span>
               </Button>
               <Button variant="ghost" className={`h-9 px-2.5 transition-transform ${localPost.reposted ? 'text-green-600' : ''} ${repostPulse ? 'scale-125' : ''}`} onClick={() => { if (!requireAuth()) return; if (localPost.reposted) { setConfirmUnrepost(true); } else { setRepostOpen(true); pulseFeedback(setRepostPulse); } }} aria-label={localPost.reposted ? t('post.remove_repost') : t('post.add_repost')}>
-                <Repeat2 size={17} /> <span className="tabular-nums">{localPost.reposts_count || 0}</span><span className="hidden sm:inline">{t('post.repost')}</span>
+                <Repeat2 size={17} /> <AnimatedNumber value={localPost.reposts_count || 0} className="tabular-nums" /><span className="hidden sm:inline">{t('post.repost')}</span>
               </Button>
               <Button variant="ghost" className={`h-9 px-2.5 transition-transform ${localPost.saved ? 'text-blue-600' : ''} ${savePulse ? 'scale-125' : ''}`} onClick={() => { requireAuth() && (localPost.saved ? save.mutate(undefined) : setSaveOpen(true)); if (!localPost.saved) pulseFeedback(setSavePulse); }} aria-label={localPost.saved ? t('post.menu_unsave') : t('post.save')}>
-                <Bookmark size={17} fill={localPost.saved ? 'currentColor' : 'none'} /> <span className="tabular-nums">{localPost.saves_count || 0}</span><span className="hidden sm:inline">{t('post.saved_short')}</span>
+                <Bookmark size={17} fill={localPost.saved ? 'currentColor' : 'none'} /> <AnimatedNumber value={localPost.saves_count || 0} className="tabular-nums" /><span className="hidden sm:inline">{t('post.saved_short')}</span>
               </Button>
               <Button variant="ghost" className="ml-auto h-9 px-2.5" onClick={handleShare} aria-label={t('post.share')}>
                 <Share2 size={17} /> <span className="hidden sm:inline">{t('common.share')}</span>
@@ -758,9 +758,9 @@ export function PostCard({
             [t('profile.tab_reposts'), localPost.reposts_count],
             [t('saved.title'), localPost.saves_count],
           ].map(([label, value]) => (
-            <div key={label} className="rounded-lg border border-gray-100 p-4 dark:border-zinc-800">
+            <div key={label} className="motion-control rounded-lg border border-gray-100 p-4 hover:-translate-y-0.5 hover:shadow-sm dark:border-zinc-800">
               <p className="text-xs font-black uppercase text-gray-400">{label}</p>
-              <p className="text-2xl font-black">{value}</p>
+              <p className="text-2xl font-black"><AnimatedNumber value={String(value || 0)} /></p>
             </div>
           ))}
         </div>
@@ -786,23 +786,23 @@ export function PostCard({
       </Modal>
 
       {postContextMenuOpen && (
-        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/45 p-0 animate-in fade-in duration-200 sm:items-center sm:p-4" onClick={() => setPostContextMenuOpen(false)}>
-          <div className="w-full max-w-sm rounded-t-2xl bg-white p-4 shadow-2xl dark:bg-zinc-950 sm:rounded-lg" onClick={(e) => e.stopPropagation()}>
+        <div className="motion-overlay fixed inset-0 z-50 flex items-end justify-center bg-black/45 p-0 sm:items-center sm:p-4" data-state="open" onClick={() => setPostContextMenuOpen(false)}>
+          <div className="t-modal is-open w-full max-w-sm rounded-t-2xl bg-white p-4 shadow-2xl dark:bg-zinc-950 sm:rounded-lg" onClick={(e) => e.stopPropagation()}>
             <div className="space-y-1">
               <button
-                className="flex w-full items-center gap-3 rounded-lg px-3 py-3 text-left text-sm font-bold hover:bg-gray-50 dark:hover:bg-zinc-900"
+                className="motion-control flex w-full items-center gap-3 rounded-lg px-3 py-3 text-left text-sm font-bold hover:bg-gray-50 dark:hover:bg-zinc-900"
                 onClick={() => { localPost.saved ? save.mutate(undefined) : setSaveOpen(true); setPostContextMenuOpen(false); }}
               >
                 <Bookmark size={16} /> {localPost.saved ? t('post.menu_unsave') : t('post.menu_save')}
               </button>
               <button
-                className="flex w-full items-center gap-3 rounded-lg px-3 py-3 text-left text-sm font-bold hover:bg-gray-50 dark:hover:bg-zinc-900"
+                className="motion-control flex w-full items-center gap-3 rounded-lg px-3 py-3 text-left text-sm font-bold hover:bg-gray-50 dark:hover:bg-zinc-900"
                 onClick={() => { setConfirmHide(true); setPostContextMenuOpen(false); }}
               >
                 <EyeOff size={16} /> {t('post.menu_hide')}
               </button>
               <button
-                className="flex w-full items-center gap-3 rounded-lg px-3 py-3 text-left text-sm font-bold hover:bg-gray-50 dark:hover:bg-zinc-900"
+                className="motion-control flex w-full items-center gap-3 rounded-lg px-3 py-3 text-left text-sm font-bold hover:bg-gray-50 dark:hover:bg-zinc-900"
                 onClick={() => { handleShare(); setPostContextMenuOpen(false); }}
               >
                 <Share2 size={16} /> {t('common.share')}

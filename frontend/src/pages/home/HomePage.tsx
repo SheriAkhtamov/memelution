@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useSearchParams } from 'react-router-dom';
-import { ArrowUp, ChevronDown, Flame, ListFilter, Plus, RefreshCw, Zap } from 'lucide-react';
+import { ArrowUp, ChevronDown, Flame, ListFilter, Plus, RefreshCw } from 'lucide-react';
 import type { FeedTab } from '../../shared/types';
 import { Button, EmptyState, ErrorState, Skeleton } from '../../shared/ui';
 import { SwipeContainer } from '../../shared/ui/SwipeContainer';
@@ -274,7 +274,7 @@ export function HomePage() {
         <div className="flex items-center justify-between gap-3">
           <h1 className="text-2xl font-black">{t('home.title')}</h1>
           <div className="flex items-center gap-2">
-            {isRefreshing ? <span className="text-xs font-black text-gray-400">{t('home.refreshing')}</span> : null}
+            {isRefreshing ? <span className="t-shimmer text-xs font-black" data-text={t('home.refreshing')}>{t('home.refreshing')}</span> : null}
             <Button variant="ghost" className="h-9 px-2" loading={isRefreshing} onClick={() => query.refetch()} aria-label={t('home.refresh_feed')}>
               {!isRefreshing ? <RefreshCw size={17} /> : null}
             </Button>
@@ -294,7 +294,7 @@ export function HomePage() {
               }}
               onClick={() => changeFeed(tab.id)}
               aria-current={feed === tab.id ? 'page' : undefined}
-              className={`relative shrink-0 rounded-lg px-3 py-1.5 text-sm font-black transition-colors ${
+              className={`motion-control relative shrink-0 rounded-lg px-3 py-1.5 text-sm font-black ${
                 feed === tab.id
                   ? 'bg-orange-50 text-[#FF6B00] dark:bg-orange-950/30'
                   : 'text-gray-500 hover:bg-gray-50 hover:text-gray-900 dark:hover:bg-zinc-900 dark:hover:text-zinc-100'
@@ -314,7 +314,7 @@ export function HomePage() {
               onClick={() => setMoreOpen((v) => !v)}
               aria-haspopup="menu"
               aria-expanded={moreOpen}
-              className={`flex shrink-0 items-center gap-1 rounded-lg px-3 py-1.5 text-sm font-black transition-colors ${
+              className={`motion-control flex shrink-0 items-center gap-1 rounded-lg px-3 py-1.5 text-sm font-black ${
                 isExtraFeed
                   ? 'bg-orange-50 text-[#FF6B00] dark:bg-orange-950/30'
                   : 'text-gray-500 hover:bg-gray-50 hover:text-gray-900 dark:hover:bg-zinc-900 dark:hover:text-zinc-100'
@@ -325,7 +325,7 @@ export function HomePage() {
             </button>
           </div>
           {moreOpen ? (
-            <div className="absolute right-3 top-full z-30 mt-1 w-44 overflow-hidden rounded-xl border border-gray-200 bg-white shadow-lg dark:border-zinc-800 dark:bg-zinc-950 sm:right-4" role="menu">
+            <div className="t-dropdown is-open absolute right-3 top-full z-30 mt-1 w-44 overflow-hidden rounded-xl border border-gray-200 bg-white shadow-lg dark:border-zinc-800 dark:bg-zinc-950 sm:right-4" data-origin="top-right" role="menu">
               {extraFeedTabs.map((tab) => (
                 <button
                   key={tab.id}
@@ -333,7 +333,7 @@ export function HomePage() {
                     changeFeed(tab.id);
                     setMoreOpen(false);
                   }}
-                  className={`block w-full px-4 py-2.5 text-left text-sm font-bold transition-colors ${
+                  className={`motion-control block w-full px-4 py-2.5 text-left text-sm font-bold ${
                     feed === tab.id
                       ? 'bg-orange-50 text-[#FF6B00] dark:bg-orange-950/30'
                       : 'text-gray-700 hover:bg-gray-50 dark:text-zinc-200 dark:hover:bg-zinc-900'
@@ -358,15 +358,6 @@ export function HomePage() {
           if (idx > 0) changeFeed(FEED_IDS[idx - 1]);
         }}
       >
-        <FeedLoopPanel
-          activeFeed={[...mainFeedTabs, ...extraFeedTabs].find((item) => item.id === feed)?.label || t('home.title')}
-          postsCount={posts.length}
-          isRefreshing={isRefreshing}
-          hasNewPosts={query.hasNewPosts}
-          newPostsCount={query.newPostsCount}
-          onCreate={focusComposer}
-          onRefresh={() => query.refetch()}
-        />
         <PostComposer defaultExpanded={shouldOpenComposer} autoFocus={shouldOpenComposer} />
         {query.hasNewPosts ? (
           <div className="sticky top-24 z-10 flex justify-center animate-in slide-in-from-top-4 duration-300">
@@ -381,7 +372,7 @@ export function HomePage() {
           <ErrorState description={query.error instanceof Error ? query.error.message : t('home.feed_error')} onRetry={() => query.refetch()} />
         ) : posts.length ? (
           <>
-            <div className="space-y-5">
+            <div className="motion-feed-list space-y-5">
               {posts.map((post) => (
                 <PostCard key={post.id} post={post} />
               ))}
@@ -420,50 +411,14 @@ export function HomePage() {
       {showBackToTop ? (
         <button
           onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
-          className="fixed bottom-24 right-4 z-30 flex h-10 w-10 items-center justify-center rounded-full border border-gray-200 bg-white/90 text-gray-500 shadow-lg backdrop-blur transition-all hover:bg-white hover:text-gray-900 dark:border-zinc-700 dark:bg-zinc-900/90 dark:hover:bg-zinc-800 dark:hover:text-zinc-100 sm:bottom-8"
+          className="t-panel-slide motion-control fixed bottom-24 right-4 z-30 flex h-10 w-10 items-center justify-center rounded-full border border-gray-200 bg-white/90 text-gray-500 shadow-lg backdrop-blur hover:bg-white hover:text-gray-900 dark:border-zinc-700 dark:bg-zinc-900/90 dark:hover:bg-zinc-800 dark:hover:text-zinc-100 sm:bottom-8"
+          data-open="true"
           aria-label={t('home.scroll_to_top')}
         >
           <ArrowUp size={18} />
         </button>
       ) : null}
     </div>
-  );
-}
-
-function FeedLoopPanel({
-  activeFeed,
-  postsCount,
-  isRefreshing,
-  hasNewPosts,
-  newPostsCount,
-  onCreate,
-  onRefresh,
-}: {
-  activeFeed: string;
-  postsCount: number;
-  isRefreshing: boolean;
-  hasNewPosts: boolean;
-  newPostsCount: number;
-  onCreate: () => void;
-  onRefresh: () => void;
-}) {
-  return (
-    <section className="rounded-xl border border-orange-100 bg-white p-4 shadow-sm dark:border-orange-900/30 dark:bg-zinc-950">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div className="min-w-0">
-          <div className="flex flex-wrap items-center gap-2 text-xs font-black uppercase text-gray-400">
-            <span className="inline-flex items-center gap-1 text-[#FF6B00]"><Zap size={14} /> {activeFeed}</span>
-            <span>{postsCount} постов загружено</span>
-            {hasNewPosts ? <span className="text-emerald-600">+{newPostsCount} новых</span> : null}
-          </div>
-          <p className="mt-1 text-lg font-black text-gray-950 dark:text-zinc-100">Реакция, комментарий, сохранение — и следующий мем уже рядом</p>
-        </div>
-        <div className="flex shrink-0 flex-wrap gap-2">
-          <Button onClick={onCreate}><Plus size={16} /> Опубликовать</Button>
-          <Button variant="outline" loading={isRefreshing} onClick={onRefresh}><RefreshCw size={16} /> Обновить</Button>
-        </div>
-      </div>
-    </section>
   );
 }
 

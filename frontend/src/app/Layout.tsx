@@ -4,7 +4,7 @@ import { Bell, Bookmark, Compass, Home, MessageSquare, Plus, Search, Settings, S
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { api } from '../shared/api/client';
 import type { NotificationItem } from '../shared/types';
-import { Avatar, Badge, Button, EmptyState, Skeleton } from '../shared/ui';
+import { AnimatedNumber, Avatar, Badge, Button, EmptyState, Skeleton } from '../shared/ui';
 import { useAuthStore } from '../store/authStore';
 import { authRedirectUrl } from '../utils/authRedirect';
 import { PostComposer } from '../features/posts/components/PostComposer';
@@ -13,6 +13,8 @@ import { OfflineIndicator } from '../shared/ui/OfflineIndicator';
 import { useTranslation } from '../shared/i18n';
 import { trackEvent } from '../shared/lib/analytics';
 import { SpotlightSearch } from '../features/search/SpotlightSearch';
+import { useAnimatedPresence } from '../shared/lib/useAnimatedPresence';
+import { cn } from '../lib/utils';
 
 export function Layout({ children }: { children: ReactNode }) {
   const { user } = useAuthStore();
@@ -53,7 +55,6 @@ export function Layout({ children }: { children: ReactNode }) {
     { to: '/search', label: t('nav.search'), icon: Search },
     { to: '/communities', label: t('nav.communities'), icon: Users },
     { to: '/messages', label: t('nav.messages'), icon: MessageSquare },
-    { to: '/notifications', label: t('nav.notifications'), icon: Bell },
     { to: '/saved', label: t('nav.saved'), icon: Bookmark },
     { to: '/settings', label: t('nav.settings'), icon: Settings },
   ], [t]);
@@ -103,7 +104,7 @@ export function Layout({ children }: { children: ReactNode }) {
     <div className="min-h-screen bg-[linear-gradient(180deg,#F8FAFC_0%,#F3F4F6_42%,#EEF2F7_100%)] text-[#1F2937] dark:bg-[linear-gradient(180deg,#09090B_0%,#101014_48%,#09090B_100%)] dark:text-zinc-100">
       <a href="#main-content" className="skip-link">{t('layout.skip_to_content')}</a>
       <div className="flex w-full min-w-0">
-        <aside className="sticky top-0 hidden h-screen w-20 shrink-0 flex-col border-r border-gray-200/80 bg-white/95 backdrop-blur dark:border-zinc-800 dark:bg-zinc-950/90 sm:flex xl:w-64">
+        <aside className="t-resize sticky top-0 hidden h-screen w-20 shrink-0 flex-col border-r border-gray-200/80 bg-white/95 backdrop-blur dark:border-zinc-800 dark:bg-zinc-950/90 sm:flex xl:w-64">
           <Link to="/" className="flex items-center gap-3 p-4 xl:p-6">
             <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#FF6B00] text-xl font-black text-white">М</span>
             <span className="hidden text-2xl font-black uppercase tracking-tight text-[#FF6B00] xl:block">{t('common.site_name')}</span>
@@ -113,13 +114,7 @@ export function Layout({ children }: { children: ReactNode }) {
               <NavItem
                 key={item.to}
                 {...item}
-                badge={
-                  item.to === '/messages' && unreadChats > 0
-                    ? unreadChats
-                    : item.to === '/notifications' && unread > 0
-                      ? unread
-                      : undefined
-                }
+                badge={item.to === '/messages' && unreadChats > 0 ? unreadChats : undefined}
               />
             ))}
             <NavItem to={user ? `/user/${user.username}` : loginPath} label={t('nav.profile')} icon={UserIcon} />
@@ -171,7 +166,7 @@ export function Layout({ children }: { children: ReactNode }) {
             ) : (
               <Link
                 to={loginPath}
-                className="relative flex h-10 w-10 items-center justify-center rounded-lg text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-900 dark:hover:bg-zinc-900 dark:hover:text-zinc-100"
+                className="motion-control relative flex h-10 w-10 items-center justify-center rounded-lg text-gray-500 hover:bg-gray-100 hover:text-gray-900 dark:hover:bg-zinc-900 dark:hover:text-zinc-100"
                 aria-label={t('layout.login_for_notif')}
               >
                 <Bell size={20} />
@@ -180,13 +175,13 @@ export function Layout({ children }: { children: ReactNode }) {
           </header>
 
           <main id="main-content" className="min-h-screen min-w-0 overflow-x-hidden pb-24 sm:pb-0" tabIndex={-1}>
-            <div key={location.pathname} className="animate-page-enter">
+            <div key={location.pathname} className="motion-route-enter">
               {children}
             </div>
           </main>
         </div>
 
-        <aside className="sticky top-0 hidden h-screen w-80 shrink-0 flex-col border-l border-gray-200/80 bg-white/95 backdrop-blur dark:border-zinc-800 dark:bg-zinc-950/90 lg:flex">
+        <aside className="t-resize sticky top-0 hidden h-screen w-80 shrink-0 flex-col border-l border-gray-200/80 bg-white/95 backdrop-blur dark:border-zinc-800 dark:bg-zinc-950/90 lg:flex">
           {/* Notification Bell — outside scroll area so dropdown isn't clipped */}
           {user ? (
             <div className="relative z-[60] flex items-center justify-end border-b border-gray-100 px-5 py-3 dark:border-zinc-800">
@@ -227,7 +222,7 @@ export function Layout({ children }: { children: ReactNode }) {
                   <p className="mb-2 text-xs font-black uppercase text-gray-400">{t('layout.posts_today')}</p>
                   <div className="space-y-2">
                     {trendsQuery.data.rising_posts.slice(0, 3).map((post) => (
-                      <Link key={post.id} to={`/post/${post.id}`} className="block rounded-lg border border-gray-100 p-3 hover:bg-gray-50 dark:border-zinc-800 dark:hover:bg-zinc-900">
+                      <Link key={post.id} to={`/post/${post.id}`} className="motion-control block rounded-lg border border-gray-100 p-3 hover:bg-gray-50 dark:border-zinc-800 dark:hover:bg-zinc-900">
                         <p className="line-clamp-2 text-sm font-bold">{post.text || t('layout.media_post')}</p>
                         <p className="mt-1 text-xs text-gray-400">{post.likes_count} {t('layout.likes')} · {post.comments_count} {t('layout.comments')}</p>
                       </Link>
@@ -238,7 +233,7 @@ export function Layout({ children }: { children: ReactNode }) {
                   <p className="mb-2 text-xs font-black uppercase text-gray-400">{t('layout.active_communities')}</p>
                   <div className="space-y-2">
                     {trendsQuery.data.active_communities.slice(0, 4).map((community) => (
-                      <Link key={community.id} to={`/communities/${community.slug}`} className="flex items-center gap-2 rounded-lg p-2 hover:bg-gray-50 dark:hover:bg-zinc-900">
+                      <Link key={community.id} to={`/communities/${community.slug}`} className="motion-control flex items-center gap-2 rounded-lg p-2 hover:bg-gray-50 dark:hover:bg-zinc-900">
                         <Avatar src={community.avatar_url} name={community.name} className="h-8 w-8" />
                         <span className="min-w-0">
                           <span className="block truncate text-sm font-black">{community.name}</span>
@@ -261,7 +256,7 @@ export function Layout({ children }: { children: ReactNode }) {
           <MobileLink to="/explore" label={t('nav.explore')} icon={<Compass size={22} />} />
           <button
             onClick={() => (user ? setComposerOpen(true) : navigate(loginPath))}
-            className="mx-auto flex h-14 w-14 -translate-y-4 items-center justify-center rounded-full bg-[#FF6B00] text-white shadow-lg shadow-orange-500/30 transition-transform active:scale-95"
+            className="motion-control mx-auto flex h-14 w-14 -translate-y-4 items-center justify-center rounded-full bg-[#FF6B00] text-white shadow-lg shadow-orange-500/30"
             aria-label={user ? t('nav.create_post') : t('nav.login_to_create')}
             title={user ? t('nav.create_post') : t('nav.login_to_create')}
           >
@@ -271,7 +266,7 @@ export function Layout({ children }: { children: ReactNode }) {
           <MobileLink to={user ? `/user/${user.username}` : loginPath} label={t('nav.profile')} icon={<UserCircle size={22} />} />
         </nav>
       </div>
-      <button onClick={() => (user ? setComposerOpen(true) : navigate(loginPath))} className="fixed bottom-6 right-6 z-40 hidden h-14 w-14 items-center justify-center rounded-full bg-[#FF6B00] text-white shadow-xl sm:flex lg:hidden" aria-label={t('nav.create_post')}>
+      <button onClick={() => (user ? setComposerOpen(true) : navigate(loginPath))} className="motion-control fixed bottom-6 right-6 z-40 hidden h-14 w-14 items-center justify-center rounded-full bg-[#FF6B00] text-white shadow-xl sm:flex lg:hidden" aria-label={t('nav.create_post')}>
         <Plus size={24} />
       </button>
       <PostComposer mode="modal" open={composerOpen} onClose={() => setComposerOpen(false)} />
@@ -310,6 +305,7 @@ function NotificationBell({
 }) {
   const { t } = useTranslation();
   const ref = useRef<HTMLDivElement>(null);
+  const presence = useAnimatedPresence(open, 150);
 
   // Close on click outside
   useEffect(() => {
@@ -325,21 +321,28 @@ function NotificationBell({
     <div ref={ref} className="relative">
       <button
         onClick={onToggle}
-        className="relative flex h-10 w-10 items-center justify-center rounded-lg text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-900 dark:hover:bg-zinc-900 dark:hover:text-zinc-100"
+        className="motion-control relative flex h-10 w-10 items-center justify-center rounded-lg text-gray-500 hover:bg-gray-100 hover:text-gray-900 dark:hover:bg-zinc-900 dark:hover:text-zinc-100"
         aria-label={t('nav.notifications')}
         aria-haspopup="dialog"
         aria-expanded={open}
       >
         <Bell size={20} />
-        {unread > 0 ? (
-          <span className="absolute -right-0.5 -top-0.5 flex h-5 min-w-5 items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-black text-white">
-            {unread > 99 ? '99+' : unread}
+        <span className="t-badge !-right-0.5 !-top-0.5" data-open={unread > 0} aria-hidden="true">
+          <span className="t-badge-dot flex h-5 min-w-5 items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-black text-white">
+            <AnimatedNumber value={unread > 99 ? '99+' : unread} />
           </span>
-        ) : null}
+        </span>
       </button>
 
-      {open ? (
-        <div className="absolute right-0 top-full z-[100] mt-2 w-80 max-w-[calc(100vw-2rem)] overflow-hidden rounded-xl border border-gray-200 bg-white shadow-xl dark:border-zinc-800 dark:bg-zinc-950">
+      {presence.mounted ? (
+        <div
+          className={cn(
+            't-dropdown absolute right-0 top-full z-[100] mt-2 w-80 max-w-[calc(100vw-2rem)] overflow-hidden rounded-xl border border-gray-200 bg-white shadow-xl dark:border-zinc-800 dark:bg-zinc-950',
+            presence.state === 'open' && 'is-open',
+            presence.state === 'closing' && 'is-closing',
+          )}
+          data-origin="top-right"
+        >
           <div className="flex items-center justify-between border-b border-gray-100 px-4 py-3 dark:border-zinc-800">
             <p className="text-sm font-black">{t('nav.notifications')}</p>
             {unread > 0 ? (
@@ -464,13 +467,17 @@ function NavItem({ to, label, icon: Icon, badge }: { to: string; label: string; 
   return (
     <Link
       to={to}
-      className={`flex items-center gap-3 rounded-lg p-3 text-sm font-black transition-colors ${active ? 'bg-orange-50 text-[#FF6B00] dark:bg-orange-950/30' : 'text-gray-500 hover:bg-gray-50 hover:text-gray-900 dark:hover:bg-zinc-900 dark:hover:text-zinc-100'}`}
+      data-active={active}
+      aria-current={active ? 'page' : undefined}
+      className={`motion-nav-link motion-control flex items-center gap-3 rounded-lg p-3 text-sm font-black ${active ? 'bg-orange-50 text-[#FF6B00] dark:bg-orange-950/30' : 'text-gray-500 hover:bg-gray-50 hover:text-gray-900 dark:hover:bg-zinc-900 dark:hover:text-zinc-100'}`}
     >
       <span className="relative">
         <Icon size={21} />
-        {badge ? (
-          <span className="absolute -right-1.5 -top-1.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-0.5 text-[9px] font-black text-white">{badge > 9 ? '9+' : badge}</span>
-        ) : null}
+        <span className="t-badge !-right-1.5 !-top-1.5" data-open={Boolean(badge)} aria-hidden="true">
+          <span className="t-badge-dot flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-0.5 text-[9px] font-black text-white">
+            <AnimatedNumber value={badge && badge > 9 ? '9+' : badge || 0} />
+          </span>
+        </span>
       </span>
       <span className="hidden xl:block">{label}</span>
     </Link>
@@ -483,12 +490,17 @@ function MobileLink({ to, label, icon, badge }: { to: string; label: string; ico
   return (
     <Link
       to={to}
-      className={`relative flex min-h-14 flex-col items-center justify-center gap-1 rounded-lg text-[11px] font-black transition-colors active:bg-gray-100 dark:active:bg-zinc-900 ${active ? 'text-[#FF6B00]' : 'text-gray-400'}`}
+      data-active={active}
+      className={`motion-control relative flex min-h-14 flex-col items-center justify-center gap-1 rounded-lg text-[11px] font-black active:bg-gray-100 dark:active:bg-zinc-900 ${active ? 'text-[#FF6B00]' : 'text-gray-400'}`}
       aria-label={label}
       aria-current={active ? 'page' : undefined}
     >
       {icon}
-      {badge ? <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-0.5 text-[9px] font-black text-white">{badge > 9 ? '9+' : badge}</span> : null}
+      <span className="t-badge !-right-0.5 !-top-0.5" data-open={Boolean(badge)} aria-hidden="true">
+        <span className="t-badge-dot flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-0.5 text-[9px] font-black text-white">
+          <AnimatedNumber value={badge && badge > 9 ? '9+' : badge || 0} />
+        </span>
+      </span>
       <span>{label}</span>
     </Link>
   );

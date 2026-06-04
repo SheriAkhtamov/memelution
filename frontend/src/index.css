@@ -2,6 +2,7 @@
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
 @import "@fontsource-variable/geist";
+@import "./motion.css";
 
 @custom-variant dark (&:is(.dark *));
 
@@ -195,7 +196,6 @@
     animation: none !important;
     scroll-behavior: auto !important;
     transition: none !important;
-    transform: none !important;
   }
   .animate-like-heart,
   .animate-spin,

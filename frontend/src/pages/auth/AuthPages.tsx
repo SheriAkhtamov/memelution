@@ -23,20 +23,20 @@ export function LoginPage() {
   }, [navigate, redirectTo, user]);
   return (
     <div className="flex min-h-screen items-center justify-center bg-[#F3F4F6] p-4 dark:bg-zinc-950">
-      <section className="w-full max-w-md space-y-6 rounded-lg border border-gray-200 bg-white p-8 text-center shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
-        <Link to="/" className="mx-auto flex h-16 w-16 items-center justify-center rounded-lg bg-[#FF6B00] text-3xl font-black text-white">М</Link>
+      <section className="motion-route-enter w-full max-w-md space-y-6 rounded-lg border border-gray-200 bg-white p-8 text-center shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
+        <Link to="/" className="motion-logo-intro mx-auto flex h-16 w-16 items-center justify-center rounded-lg bg-[#FF6B00] text-3xl font-black text-white">М</Link>
         <div>
           <h1 className="text-4xl font-black">{t('common.site_name')}</h1>
           <p className="mt-2 text-gray-500">{t('app.welcome')}</p>
         </div>
         {error ? (
-          <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm font-bold text-red-700 dark:border-red-900/60 dark:bg-red-950/30 dark:text-red-300">
+          <div className="t-input is-shaking rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm font-bold text-red-700 dark:border-red-900/60 dark:bg-red-950/30 dark:text-red-300">
             {t('app.login_error')}
           </div>
         ) : null}
         <a
           href={api.telegramStartUrl(redirectTo)}
-          className="inline-flex h-12 w-full items-center justify-center rounded-lg bg-[#2AABEE] px-4 text-sm font-black text-white transition-colors hover:bg-[#229ED9] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2AABEE]/40"
+          className="motion-control inline-flex h-12 w-full items-center justify-center rounded-lg bg-[#2AABEE] px-4 text-sm font-black text-white hover:bg-[#229ED9] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2AABEE]/40"
         >
           {t('app.continue_telegram')}
         </a>
@@ -87,8 +87,8 @@ export function AuthCallbackPage() {
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-[#F3F4F6] p-4 dark:bg-zinc-950">
-      <section className="w-full max-w-md space-y-6 rounded-lg border border-gray-200 bg-white p-8 text-center shadow-sm dark:border-zinc-800 dark:bg-zinc-950" role="status" aria-live="polite">
-        <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-lg bg-[#FF6B00] text-3xl font-black text-white">М</div>
+      <section className="motion-route-enter w-full max-w-md space-y-6 rounded-lg border border-gray-200 bg-white p-8 text-center shadow-sm dark:border-zinc-800 dark:bg-zinc-950" role="status" aria-live="polite">
+        <div className="motion-logo-intro mx-auto flex h-16 w-16 items-center justify-center rounded-lg bg-[#FF6B00] text-3xl font-black text-white">М</div>
         {step === 'error' ? (
           <>
             <p className="text-base font-black text-red-600 dark:text-red-400">{t('app.session_failed')}</p>
@@ -112,7 +112,7 @@ export function AuthCallbackPage() {
                         : isActive ? 'bg-[#FF6B00] text-white'
                         : 'bg-gray-100 text-gray-400 dark:bg-zinc-900 dark:text-zinc-600'
                     }`}>
-                      {isDone ? <Check size={14} /> : isActive ? <Loader2 size={14} className="animate-spin" /> : i + 1}
+                      {isDone ? <span className="t-success-check" data-state="in"><Check size={14} /></span> : isActive ? <Loader2 size={14} className="animate-spin" /> : i + 1}
                     </div>
                     <span className={`text-sm font-black transition-colors ${
                       isDone || isActive ? 'text-gray-900 dark:text-zinc-100' : 'text-gray-400 dark:text-zinc-600'
@@ -167,7 +167,7 @@ export function AdminLoginPage() {
   };
   return (
     <div className="flex min-h-screen items-center justify-center bg-[#F3F4F6] p-4 dark:bg-zinc-950">
-      <section className="w-full max-w-md space-y-4 rounded-lg border border-gray-200 bg-white p-8 shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
+      <section className="motion-route-enter w-full max-w-md space-y-4 rounded-lg border border-gray-200 bg-white p-8 shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
         <Shield className="text-[#FF6B00]" size={36} />
         <h1 className="text-3xl font-black">{t('app.admin_panel')}</h1>
         <Input value={login} onChange={(event) => setLogin(event.target.value)} placeholder={t('app.login')} />
@@ -236,7 +236,7 @@ export function OnboardingPage() {
   const recommendedCommunities = (communitiesQuery.data || []).slice(0, 6);
   return (
     <div className="flex min-h-screen items-center justify-center bg-[#F3F4F6] p-4 dark:bg-zinc-950">
-      <section className="w-full max-w-3xl space-y-6 rounded-lg border border-gray-200 bg-white p-6 shadow-sm dark:border-zinc-800 dark:bg-zinc-950 sm:p-8">
+      <section className="motion-route-enter w-full max-w-3xl space-y-6 rounded-lg border border-gray-200 bg-white p-6 shadow-sm dark:border-zinc-800 dark:bg-zinc-950 sm:p-8">
         <div>
           <h1 className="text-3xl font-black">{t('onboarding.title')}</h1>
           <div className="mt-4 grid grid-cols-3 gap-2 text-xs font-black">
@@ -245,7 +245,7 @@ export function OnboardingPage() {
               ['communities', 'Сообщества'],
               ['profile', 'Профиль'],
             ].map(([id, label]) => (
-              <div key={id} className={`rounded-lg px-3 py-2 text-center ${step === id ? 'bg-[#FF6B00] text-white' : 'bg-gray-100 text-gray-500 dark:bg-zinc-900 dark:text-zinc-400'}`}>
+              <div key={id} data-active={step === id} className={`motion-pop rounded-lg px-3 py-2 text-center transition-colors ${step === id ? 'bg-[#FF6B00] text-white' : 'bg-gray-100 text-gray-500 dark:bg-zinc-900 dark:text-zinc-400'}`}>
                 {label}
               </div>
             ))}
@@ -289,7 +289,8 @@ export function OnboardingPage() {
                     key={community.id}
                     type="button"
                     onClick={() => toggleCommunity(community.slug)}
-                    className={`flex gap-3 rounded-lg border p-4 text-left transition-all ${
+                    data-active={selected}
+                    className={`motion-pop motion-control flex gap-3 rounded-lg border p-4 text-left ${
                       selected
                         ? 'border-[#FF6B00] bg-orange-50 ring-2 ring-orange-100 dark:bg-orange-950/20 dark:ring-orange-950'
                         : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50 dark:border-zinc-800 dark:hover:bg-zinc-900'
@@ -349,7 +350,7 @@ export function OnboardingPage() {
             </div>
             <div className="grid gap-3 sm:grid-cols-3">
               {[...onboardingRecommendations, { title: 'Первый мем', description: 'После завершения откроется форма публикации.' }].map((item) => (
-                <article key={item.title} className="rounded-lg border border-gray-200 p-4 dark:border-zinc-800">
+                <article key={item.title} className="motion-control rounded-lg border border-gray-200 p-4 hover:-translate-y-0.5 hover:shadow-md dark:border-zinc-800">
                   <h2 className="font-black">{item.title}</h2>
                   <p className="mt-1 text-sm font-medium text-gray-500">{item.description}</p>
                 </article>
