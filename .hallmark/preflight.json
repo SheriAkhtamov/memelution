@@ -1,0 +1,17 @@
+{
+  "scanned_at": "2026-06-05T17:40:49+05:00",
+  "framework": "React 19 with Vite",
+  "styling": "Tailwind CSS v4 plus shared CSS tokens in frontend/src/index.css",
+  "font_stack": "Geist Variable via @fontsource-variable/geist",
+  "palette": "Memelution orange, purple, neutral app surface tokens in :root",
+  "motion": "Motion-cut; no dedicated motion library detected",
+  "spacing": "Token and utility driven spacing based on Tailwind scale",
+  "preserve": [
+    "existing route structure",
+    "shared app shell",
+    "Geist typography",
+    "Memelution orange accent",
+    "thin neutral borders",
+    "code-native controls and states"
+  ]
+}

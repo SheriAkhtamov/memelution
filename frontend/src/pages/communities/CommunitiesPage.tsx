@@ -2,7 +2,6 @@ import { useMemo, useRef, useState, type ReactNode } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import {
   BookOpen,
-  Camera,
   Check,
   ChevronRight,
   Crown,
@@ -11,7 +10,6 @@ import {
   Gamepad2,
   Globe,
   Grid2X2,
-  Image,
   Lock,
   MessageSquare,
   Monitor,
@@ -33,7 +31,7 @@ import {
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { api } from '../../shared/api/client';
 import type { Community, Post } from '../../shared/types';
-import { Avatar, Button, ConfirmDialog, EmptyState, ErrorState, Input, Modal, Skeleton, Tabs, Textarea, useToast } from '../../shared/ui';
+import { Avatar, Button, ConfirmDialog, EmptyState, ErrorState, Input, Skeleton, Tabs, Textarea, useToast } from '../../shared/ui';
 import { PostCard } from '../../features/posts/components/PostCard';
 import { PostComposer } from '../../features/posts/components/PostComposer';
 import { useAuthStore } from '../../store/authStore';
@@ -408,7 +406,6 @@ export function CommunityPage() {
   const queryClient = useQueryClient();
   const toast = useToast();
   const [tab, setTab] = useState<CommunityTab>('feed');
-  const [settingsOpen, setSettingsOpen] = useState(false);
   const [confirmLeaveOpen, setConfirmLeaveOpen] = useState(false);
   const { query, join, members: membersQuery, requests: requestsQuery } = useCommunity(slug, tab);
 
@@ -431,7 +428,7 @@ export function CommunityPage() {
             <div className="-mt-12 flex flex-wrap items-end justify-between gap-4">
               <Avatar src={community.avatar_url} name={community.name} className="h-24 w-24 rounded-2xl border-4 border-white shadow-lg dark:border-zinc-900" />
               <div className="flex gap-2">
-                {canManage ? <Button variant="outline" onClick={() => setSettingsOpen(true)}><Settings size={16} /> {t('community.manage')}</Button> : null}
+                {canManage ? <Link to={`/communities/${community.slug}/settings`}><Button variant="outline"><Settings size={16} /> {t('community.manage')}</Button></Link> : null}
                 <Button onClick={() => {
                   if (query.data.membership === 'active') {
                     setConfirmLeaveOpen(true);
@@ -509,7 +506,6 @@ export function CommunityPage() {
           join.mutate();
         }}
       />
-      <CommunitySettings open={settingsOpen} onClose={() => setSettingsOpen(false)} slug={slug} community={community} />
     </div>
   );
 }
@@ -562,79 +558,6 @@ function CommunityManagement({ slug, requests }: { slug: string; requests: Array
         )}
       </div>
     </section>
-  );
-}
-
-function CommunitySettings({ open, onClose, slug, community }: { open: boolean; onClose: () => void; slug: string; community: Community }) {
-  const { t } = useTranslation();
-  const queryClient = useQueryClient();
-  const toast = useToast();
-  const [draft, setDraft] = useState({ name: community.name, slug: community.slug, description: community.description, avatar_url: community.avatar_url || '', cover_url: community.cover_url || '', rules: community.rules });
-  const mutation = useMutation({
-    mutationFn: () => api.updateCommunity(slug, draft),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['community'] });
-      toast.show({ title: t('community.settings_saved'), tone: 'success' });
-      onClose();
-    },
-  });
-  const uploadAvatar = useMutation({
-    mutationFn: (file: File) => api.uploadCommunityAvatar(slug, file),
-    onSuccess: (next) => {
-      setDraft((value) => ({ ...value, avatar_url: next.avatar_url || '' }));
-      queryClient.invalidateQueries({ queryKey: ['community'] });
-      toast.show({ title: t('community.avatar_updated'), tone: 'success' });
-    },
-  });
-  const uploadCover = useMutation({
-    mutationFn: (file: File) => api.uploadCommunityCover(slug, file),
-    onSuccess: (next) => {
-      setDraft((value) => ({ ...value, cover_url: next.cover_url || '' }));
-      queryClient.invalidateQueries({ queryKey: ['community'] });
-      toast.show({ title: t('community.cover_updated'), tone: 'success' });
-    },
-  });
-  return (
-    <Modal open={open} onClose={onClose} title={t('community.settings_title')}>
-      <div className="space-y-5">
-        {/* Media uploads */}
-        <div className="grid gap-3 sm:grid-cols-2">
-          <label className="group cursor-pointer rounded-xl border-2 border-dashed border-gray-200 bg-gray-50/50 p-4 text-center transition-all hover:border-orange-300 hover:bg-orange-50/30 dark:border-zinc-700 dark:bg-zinc-800/30 dark:hover:border-orange-800">
-            <Camera size={24} className="mx-auto mb-1 text-gray-400 transition-colors group-hover:text-orange-500" />
-            <p className="text-sm font-bold text-gray-500">{uploadAvatar.isPending ? t('common.loading') : t('community.avatar')}</p>
-            <p className="text-xs text-gray-400">{t('community.click_to_upload')}</p>
-            <input type="file" accept="image/*" className="hidden" onChange={(event) => event.target.files?.[0] && uploadAvatar.mutate(event.target.files[0])} />
-          </label>
-          <label className="group cursor-pointer rounded-xl border-2 border-dashed border-gray-200 bg-gray-50/50 p-4 text-center transition-all hover:border-orange-300 hover:bg-orange-50/30 dark:border-zinc-700 dark:bg-zinc-800/30 dark:hover:border-orange-800">
-            <Image size={24} className="mx-auto mb-1 text-gray-400 transition-colors group-hover:text-orange-500" />
-            <p className="text-sm font-bold text-gray-500">{uploadCover.isPending ? t('common.loading') : t('community.cover')}</p>
-            <p className="text-xs text-gray-400">{t('community.click_to_upload')}</p>
-            <input type="file" accept="image/*" className="hidden" onChange={(event) => event.target.files?.[0] && uploadCover.mutate(event.target.files[0])} />
-          </label>
-        </div>
-        {/* Fields */}
-        <div>
-          <label className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-gray-500">{t('community.name_short')}</label>
-          <Input value={draft.name} onChange={(event) => setDraft((value) => ({ ...value, name: event.target.value }))} placeholder={t('community.name_short')} />
-        </div>
-        <div>
-          <label className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-gray-500">Slug</label>
-          <Input value={draft.slug} onChange={(event) => setDraft((value) => ({ ...value, slug: event.target.value }))} placeholder="slug" />
-        </div>
-        <div>
-          <label className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-gray-500">{t('community.description')}</label>
-          <Textarea value={draft.description} onChange={(event) => setDraft((value) => ({ ...value, description: event.target.value }))} placeholder={t('community.desc_placeholder')} />
-        </div>
-        <div>
-          <label className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-gray-500">{t('community.rules')}</label>
-          <Textarea value={draft.rules} onChange={(event) => setDraft((value) => ({ ...value, rules: event.target.value }))} placeholder={t('community.rules_placeholder')} />
-        </div>
-        <div className="flex justify-end gap-2 border-t border-gray-100 pt-4 dark:border-zinc-800">
-          <Button variant="outline" onClick={onClose}>{t('common.cancel')}</Button>
-          <Button onClick={() => mutation.mutate()} loading={mutation.isPending}>{t('common.save')}</Button>
-        </div>
-      </div>
-    </Modal>
   );
 }
 

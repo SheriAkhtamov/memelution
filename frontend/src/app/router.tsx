@@ -13,6 +13,7 @@ const ProfilePage = lazy(() => import('../pages/profile/ProfilePage').then((modu
 const CommunitiesPage = lazy(() => import('../pages/communities/CommunitiesPage').then((module) => ({ default: module.CommunitiesPage })));
 const CommunityPage = lazy(() => import('../pages/communities/CommunitiesPage').then((module) => ({ default: module.CommunityPage })));
 const CreateCommunityPage = lazy(() => import('../pages/communities/CommunitiesPage').then((module) => ({ default: module.CreateCommunityPage })));
+const CommunitySettingsPage = lazy(() => import('../pages/communities/CommunitySettingsPage').then((module) => ({ default: module.CommunitySettingsPage })));
 const SearchPage = lazy(() => import('../pages/search/SearchPage').then((module) => ({ default: module.SearchPage })));
 const HashtagPage = lazy(() => import('../pages/hashtag/HashtagPage').then((module) => ({ default: module.HashtagPage })));
 const MessagesPage = lazy(() => import('../pages/messages/MessagesPage').then((module) => ({ default: module.MessagesPage })));
@@ -78,6 +79,7 @@ export function AppRouter({ theme, setTheme }: { theme: string; setTheme: (theme
         <Route path="/user/:username" element={<RouteLoader><ProfilePage /></RouteLoader>} />
         <Route path="/communities" element={<RouteLoader><CommunitiesPage /></RouteLoader>} />
         <Route path="/communities/new" element={<RouteLoader><CreateCommunityPage /></RouteLoader>} />
+        <Route path="/communities/:slug/settings" element={<RouteLoader><CommunitySettingsPage /></RouteLoader>} />
         <Route path="/communities/:slug" element={<RouteLoader><CommunityPage /></RouteLoader>} />
         <Route path="/search" element={<RouteLoader><SearchPage /></RouteLoader>} />
         <Route path="/hashtag/:name" element={<RouteLoader><HashtagPage /></RouteLoader>} />
