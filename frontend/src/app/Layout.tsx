@@ -1,10 +1,10 @@
 import { ReactNode, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { Bell, Bookmark, Compass, Home, MessageSquare, Plus, Search, Settings, Shield, Users, User as UserIcon, ExternalLink, UserCircle } from 'lucide-react';
+import { Bell, Bookmark, Compass, Home, MessageSquare, Plus, Search, Settings, Shield, Users, User as UserIcon, ExternalLink, UserCircle, TrendingUp } from 'lucide-react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { api } from '../shared/api/client';
 import type { NotificationItem } from '../shared/types';
-import { AnimatedNumber, Avatar, Badge, Button, EmptyState, Skeleton } from '../shared/ui';
+import { AnimatedNumber, Avatar, Badge, Button, Skeleton } from '../shared/ui';
 import { useAuthStore } from '../store/authStore';
 import { authRedirectUrl } from '../utils/authRedirect';
 import { PostComposer } from '../features/posts/components/PostComposer';
@@ -48,6 +48,13 @@ export function Layout({ children }: { children: ReactNode }) {
   const isAdmin = user?.role === 'global_admin' || user?.role === 'admin';
   const chatsQuery = useQuery({ queryKey: ['chats-badge'], queryFn: api.chats, enabled: Boolean(user), refetchInterval: 30_000 });
   const unreadChats = (chatsQuery.data || []).reduce((sum, chat) => sum + (chat.unread_count || 0), 0);
+  const hasTrendRailContent = Boolean(
+    trendsQuery.data && (
+      trendsQuery.data.hashtags.length
+      || trendsQuery.data.rising_posts.length
+      || trendsQuery.data.active_communities.length
+    ),
+  );
 
   const navItems = useMemo(() => [
     { to: '/', label: t('nav.home'), icon: Home },
@@ -101,15 +108,15 @@ export function Layout({ children }: { children: ReactNode }) {
   }, [location.pathname]);
 
   return (
-    <div className="min-h-screen bg-[linear-gradient(180deg,#F8FAFC_0%,#F3F4F6_42%,#EEF2F7_100%)] text-[#1F2937] dark:bg-[linear-gradient(180deg,#09090B_0%,#101014_48%,#09090B_100%)] dark:text-zinc-100">
+    <div className="app-shell-root dark:text-zinc-100">
       <a href="#main-content" className="skip-link">{t('layout.skip_to_content')}</a>
       <div className="flex w-full min-w-0">
-        <aside className="t-resize sticky top-0 hidden h-screen w-20 shrink-0 flex-col border-r border-gray-200/80 bg-white/95 backdrop-blur dark:border-zinc-800 dark:bg-zinc-950/90 sm:flex xl:w-64">
-          <Link to="/" className="flex items-center gap-3 p-4 xl:p-6">
-            <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#FF6B00] text-xl font-black text-white">М</span>
-            <span className="hidden text-2xl font-black uppercase tracking-tight text-[#FF6B00] xl:block">{t('common.site_name')}</span>
+        <aside className="app-sidebar t-resize sticky top-0 hidden h-screen w-[92px] shrink-0 flex-col border-r backdrop-blur sm:flex xl:w-[288px]">
+          <Link to="/" className="flex items-center gap-3 px-5 py-7 xl:px-7" aria-label={t('common.site_name')}>
+            <span className="app-logo-mark flex h-11 w-11 items-center justify-center rounded-xl text-xl font-black text-white">М</span>
+            <span className="hidden text-[1.45rem] font-black uppercase tracking-[-0.045em] text-[#F45B0B] xl:block">{t('common.site_name')}</span>
           </Link>
-          <nav className="flex-1 space-y-1 px-3" aria-label={t('layout.main_nav')}>
+          <nav className="flex-1 space-y-1.5 overflow-y-auto px-3 xl:px-4" aria-label={t('layout.main_nav')}>
             {navItems.map((item) => (
               <NavItem
                 key={item.to}
@@ -121,7 +128,7 @@ export function Layout({ children }: { children: ReactNode }) {
             {isAdmin ? (
               <Link
                 to="/admin"
-                className="flex items-center gap-3 rounded-lg p-3 text-sm font-black text-[#7C3AED] transition-colors hover:bg-purple-50 dark:hover:bg-purple-950/30"
+                className="motion-control flex min-h-14 items-center gap-4 rounded-2xl px-4 text-sm font-black text-[#7C3AED] transition-colors hover:bg-purple-50 dark:hover:bg-purple-950/30"
               >
                 <span className="relative">
                   <Shield size={21} />
@@ -131,25 +138,25 @@ export function Layout({ children }: { children: ReactNode }) {
               </Link>
             ) : null}
           </nav>
-          <div className="border-t border-gray-100 p-3 dark:border-zinc-800">
+          <div className="p-3 xl:p-4">
             {user ? (
-              <Link to={`/user/${user.username}`} className="flex items-center gap-3 rounded-lg p-2 hover:bg-gray-50 dark:hover:bg-zinc-900">
-                <Avatar src={user.avatar_url} name={user.display_name} />
+              <Link to={`/user/${user.username}`} className="app-user-card flex items-center gap-3 rounded-2xl p-2.5 transition-colors hover:bg-gray-50 dark:hover:bg-zinc-900">
+                <Avatar src={user.avatar_url} name={user.display_name} className="h-11 w-11 rounded-xl" />
                 <span className="hidden min-w-0 xl:block">
                   <span className="block truncate text-sm font-black">{user.display_name}</span>
-                  <span className="block truncate text-xs font-bold text-gray-400">@{user.username}</span>
+                  <span className="block truncate text-xs font-semibold text-gray-400">@{user.username}</span>
                 </span>
               </Link>
             ) : (
-              <Button className="w-full" onClick={() => navigate(loginPath)}>{t('nav.login')}</Button>
+              <Button className="w-full rounded-xl" onClick={() => navigate(loginPath)}>{t('nav.login')}</Button>
             )}
           </div>
         </aside>
 
-        <div className="min-w-0 flex-1">
-          <header className="sticky top-0 z-50 flex h-16 items-center justify-between border-b border-gray-200/80 bg-white/95 px-3 backdrop-blur dark:border-zinc-800 dark:bg-zinc-950/95 sm:hidden">
+        <div className="app-main-column min-w-0 flex-1">
+          <header className="page-header sticky top-0 z-50 flex h-16 items-center justify-between px-3 sm:hidden">
             <Link to="/" className="flex items-center gap-2" aria-label={t('common.site_name')}>
-              <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#FF6B00] text-xl font-black text-white">М</span>
+              <span className="app-logo-mark flex h-10 w-10 items-center justify-center rounded-xl text-xl font-black text-white">М</span>
               <span className="text-xl font-black uppercase tracking-tight text-[#FF6B00]">{t('common.site_name')}</span>
             </Link>
             {user ? (
@@ -174,17 +181,17 @@ export function Layout({ children }: { children: ReactNode }) {
             )}
           </header>
 
-          <main id="main-content" className="min-h-screen min-w-0 overflow-x-hidden pb-24 sm:pb-0" tabIndex={-1}>
+          <main id="main-content" className="min-h-screen min-w-0 overflow-x-clip pb-24 sm:pb-0" tabIndex={-1}>
             <div key={location.pathname} className="motion-route-enter">
               {children}
             </div>
           </main>
         </div>
 
-        <aside className="t-resize sticky top-0 hidden h-screen w-80 shrink-0 flex-col border-l border-gray-200/80 bg-white/95 backdrop-blur dark:border-zinc-800 dark:bg-zinc-950/90 lg:flex">
+        <aside className="app-right-rail t-resize sticky top-0 hidden h-screen w-[368px] shrink-0 flex-col border-l backdrop-blur 2xl:flex">
           {/* Notification Bell — outside scroll area so dropdown isn't clipped */}
-          {user ? (
-            <div className="relative z-[60] flex items-center justify-end border-b border-gray-100 px-5 py-3 dark:border-zinc-800">
+          <div className="relative z-[60] flex h-20 items-center justify-end border-b border-[var(--app-line)] px-6">
+            {user ? (
               <NotificationBell
                 notifications={notifications}
                 unread={unread}
@@ -195,57 +202,85 @@ export function Layout({ children }: { children: ReactNode }) {
                 readAllPending={readAll.isPending}
                 onReadOne={(id) => readOne.mutate(id)}
               />
-            </div>
-          ) : null}
+            ) : (
+              <Link
+                to={loginPath}
+                className="motion-control relative flex h-11 w-11 items-center justify-center rounded-xl border border-[var(--app-line)] bg-white text-gray-500 shadow-sm hover:bg-gray-50 hover:text-gray-900 dark:bg-zinc-950 dark:hover:bg-zinc-900 dark:hover:text-zinc-100"
+                aria-label={t('layout.login_for_notif')}
+              >
+                <Bell size={20} />
+              </Link>
+            )}
+          </div>
 
-          <div className="flex-1 overflow-y-auto p-5">
-            <h2 className="mb-4 text-lg font-black">{t('layout.whats_hot')}</h2>
+          <div className="flex-1 overflow-y-auto p-6">
+            <h2 className="mb-5 flex items-center gap-2 text-lg font-black tracking-[-0.025em]">
+              {t('layout.whats_hot')}
+              <span className="h-2 w-2 rounded-full bg-[#8B5CF6]" aria-hidden="true" />
+            </h2>
             {trendsQuery.isLoading ? (
               <div className="space-y-3">
-                <Skeleton className="h-20" />
-                <Skeleton className="h-28" />
-                <Skeleton className="h-20" />
+                <Skeleton className="h-24 rounded-2xl" />
+                <Skeleton className="h-44 rounded-2xl" />
+                <Skeleton className="h-36 rounded-2xl" />
               </div>
-            ) : trendsQuery.data ? (
-              <div className="space-y-5">
-                <section>
-                  <p className="mb-2 text-xs font-black uppercase text-gray-400">{t('layout.hashtags')}</p>
+            ) : trendsQuery.data && hasTrendRailContent ? (
+              <div className="space-y-0">
+                {trendsQuery.data.hashtags.length ? (
+                <section className="border-b border-[var(--app-line)] pb-5">
+                  <p className="mb-3 text-xs font-black uppercase tracking-wide text-gray-400">{t('layout.hashtags')}</p>
                   <div className="flex flex-wrap gap-2">
-                    {trendsQuery.data.hashtags.map((tag) => (
+                    {trendsQuery.data.hashtags.slice(0, 6).map((tag) => (
                       <Link key={tag.id} to={`/hashtag/${tag.name}`}>
-                        <Badge>#{tag.name}</Badge>
+                        <Badge className="rounded-xl bg-[#F4F1FF] px-3 py-1.5 text-[#6552B8] hover:bg-[#ECE7FF] dark:bg-purple-950/30 dark:text-purple-200">#{tag.name}</Badge>
                       </Link>
                     ))}
                   </div>
                 </section>
-                <section>
-                  <p className="mb-2 text-xs font-black uppercase text-gray-400">{t('layout.posts_today')}</p>
-                  <div className="space-y-2">
+                ) : null}
+                {trendsQuery.data.rising_posts.length ? (
+                <section className="border-b border-[var(--app-line)] py-5">
+                  <p className="mb-3 text-xs font-black uppercase tracking-wide text-gray-400">{t('layout.posts_today')}</p>
+                  <div className="space-y-1">
                     {trendsQuery.data.rising_posts.slice(0, 3).map((post) => (
-                      <Link key={post.id} to={`/post/${post.id}`} className="motion-control block rounded-lg border border-gray-100 p-3 hover:bg-gray-50 dark:border-zinc-800 dark:hover:bg-zinc-900">
-                        <p className="line-clamp-2 text-sm font-bold">{post.text || t('layout.media_post')}</p>
-                        <p className="mt-1 text-xs text-gray-400">{post.likes_count} {t('layout.likes')} · {post.comments_count} {t('layout.comments')}</p>
-                      </Link>
-                    ))}
-                  </div>
-                </section>
-                <section>
-                  <p className="mb-2 text-xs font-black uppercase text-gray-400">{t('layout.active_communities')}</p>
-                  <div className="space-y-2">
-                    {trendsQuery.data.active_communities.slice(0, 4).map((community) => (
-                      <Link key={community.id} to={`/communities/${community.slug}`} className="motion-control flex items-center gap-2 rounded-lg p-2 hover:bg-gray-50 dark:hover:bg-zinc-900">
-                        <Avatar src={community.avatar_url} name={community.name} className="h-8 w-8" />
+                      <Link key={post.id} to={`/post/${post.id}`} className="motion-control flex min-w-0 gap-3 rounded-xl p-2 hover:bg-gray-50 dark:hover:bg-zinc-900">
+                        {post.media_url ? <img src={post.media_url} alt="" className="h-11 w-11 shrink-0 rounded-xl object-cover" /> : <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-orange-50 text-[#FF6B00]"><TrendingUp size={18} /></span>}
                         <span className="min-w-0">
-                          <span className="block truncate text-sm font-black">{community.name}</span>
-                          <span className="block text-xs text-gray-400">{community.members_count} {t('layout.members')}</span>
+                          <span className="line-clamp-2 text-sm font-bold leading-snug">{post.text || t('layout.media_post')}</span>
+                          <span className="mt-1 block text-xs text-gray-400">{post.likes_count} {t('layout.likes')} · {post.comments_count} {t('layout.comments')}</span>
                         </span>
                       </Link>
                     ))}
                   </div>
                 </section>
+                ) : null}
+                {trendsQuery.data.active_communities.length ? (
+                <section className="pt-5">
+                  <p className="mb-3 text-xs font-black uppercase tracking-wide text-gray-400">{t('layout.active_communities')}</p>
+                  <div className="space-y-1">
+                    {trendsQuery.data.active_communities.slice(0, 4).map((community) => (
+                      <Link key={community.id} to={`/communities/${community.slug}`} className="motion-control flex items-center gap-3 rounded-xl p-2 hover:bg-gray-50 dark:hover:bg-zinc-900">
+                        <Avatar src={community.avatar_url} name={community.name} className="h-10 w-10 rounded-xl" />
+                        <span className="min-w-0 flex-1">
+                          <span className="block truncate text-sm font-black">{community.name}</span>
+                          <span className="block text-xs text-gray-400">{community.members_count} {t('layout.members')}</span>
+                        </span>
+                        <span className="h-2 w-2 shrink-0 rounded-full bg-emerald-500" aria-hidden="true" />
+                      </Link>
+                    ))}
+                  </div>
+                </section>
+                ) : null}
               </div>
             ) : (
-              <EmptyState title={t('layout.no_trends')} description={t('layout.no_trends_desc')} />
+              <div className="app-rail-card rounded-2xl p-5">
+                <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-xl bg-orange-50 text-[#FF6B00] dark:bg-orange-950/30">
+                  <TrendingUp size={20} />
+                </div>
+                <p className="font-black">{t('layout.no_trends')}</p>
+                <p className="mt-1.5 text-sm leading-relaxed text-gray-500 dark:text-zinc-400">{t('layout.no_trends_desc')}</p>
+                <Link to="/explore" className="mt-4 inline-flex text-sm font-black text-[#FF6B00] hover:text-orange-700">{t('nav.explore')}</Link>
+              </div>
             )}
           </div>
         </aside>
@@ -469,10 +504,15 @@ function NavItem({ to, label, icon: Icon, badge }: { to: string; label: string; 
       to={to}
       data-active={active}
       aria-current={active ? 'page' : undefined}
-      className={`motion-nav-link motion-control flex items-center gap-3 rounded-lg p-3 text-sm font-black ${active ? 'bg-orange-50 text-[#FF6B00] dark:bg-orange-950/30' : 'text-gray-500 hover:bg-gray-50 hover:text-gray-900 dark:hover:bg-zinc-900 dark:hover:text-zinc-100'}`}
+      className={`motion-nav-link motion-control relative flex min-h-14 items-center gap-4 rounded-2xl px-4 text-[0.94rem] font-black ${
+        active
+          ? 'bg-[linear-gradient(100deg,#FFF4EC,#FFF8F3)] text-[#F45B0B] shadow-[inset_0_0_0_1px_rgba(255,107,0,0.04)] dark:bg-orange-950/30'
+          : 'text-[#596579] hover:bg-gray-50 hover:text-gray-900 dark:text-zinc-400 dark:hover:bg-zinc-900 dark:hover:text-zinc-100'
+      }`}
     >
+      {active ? <span className="absolute -left-3 h-8 w-1 rounded-r-full bg-[#FF6B00]" aria-hidden="true" /> : null}
       <span className="relative">
-        <Icon size={21} />
+        <Icon size={22} strokeWidth={active ? 2.25 : 1.9} />
         <span className="t-badge !-right-1.5 !-top-1.5" data-open={Boolean(badge)} aria-hidden="true">
           <span className="t-badge-dot flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-0.5 text-[9px] font-black text-white">
             <AnimatedNumber value={badge && badge > 9 ? '9+' : badge || 0} />

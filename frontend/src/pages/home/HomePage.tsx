@@ -1,9 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useSearchParams } from 'react-router-dom';
-import { ArrowUp, ChevronDown, Flame, ListFilter, Plus, RefreshCw } from 'lucide-react';
+import { ArrowUp, ChevronDown, Flame, Plus, RefreshCw } from 'lucide-react';
 import type { FeedTab } from '../../shared/types';
-import { Button, EmptyState, ErrorState, Skeleton } from '../../shared/ui';
+import { Button, ErrorState, Skeleton } from '../../shared/ui';
 import { SwipeContainer } from '../../shared/ui/SwipeContainer';
 import { useInfiniteSentinel } from '../../shared/lib/useInfiniteSentinel';
 import { useImagePreload } from '../../shared/lib/useImagePreload';
@@ -13,6 +13,7 @@ import { useFeed } from '../../features/feed/useFeed';
 import { useFeedUIStore } from '../../store/feedUIStore';
 import { useTranslation } from '../../shared/i18n';
 import { trackEvent } from '../../shared/lib/analytics';
+import { ProductEmptyState } from '../../shared/ui/ProductEmptyState';
 
 const MAIN_FEED_IDS: FeedTab[] = ['for-you', 'following', 'popular', 'new'];
 const EXTRA_FEED_IDS: FeedTab[] = ['memes', 'video', 'polls', 'communities', 'local'];
@@ -270,21 +271,18 @@ export function HomePage() {
           </div>
         </div>
       ) : null}
-      <header className="border-b border-gray-200/70 bg-slate-50/80 px-3 py-4 backdrop-blur-xl dark:border-zinc-800 dark:bg-zinc-950/80 sm:px-4">
+      <header className="page-header sticky top-16 z-20 px-4 pb-3 pt-5 sm:top-0 sm:px-6 sm:pb-4 sm:pt-7">
         <div className="flex items-center justify-between gap-3">
-          <h1 className="text-2xl font-black">{t('home.title')}</h1>
+          <h1 className="page-title">{t('home.title')}</h1>
           <div className="flex items-center gap-2">
             {isRefreshing ? <span className="t-shimmer text-xs font-black" data-text={t('home.refreshing')}>{t('home.refreshing')}</span> : null}
-            <Button variant="ghost" className="h-9 px-2" loading={isRefreshing} onClick={() => query.refetch()} aria-label={t('home.refresh_feed')}>
+            <Button variant="outline" className="h-11 w-11 rounded-xl px-0 shadow-sm" loading={isRefreshing} onClick={() => query.refetch()} aria-label={t('home.refresh_feed')}>
               {!isRefreshing ? <RefreshCw size={17} /> : null}
             </Button>
-            <ListFilter className="text-gray-400" size={20} />
           </div>
         </div>
-      </header>
-      <div className="sticky top-16 z-10 border-b border-gray-200/70 bg-slate-50/95 backdrop-blur-xl dark:border-zinc-800 dark:bg-zinc-950/95 sm:top-0">
-        <div ref={moreRef} className="relative">
-          <div className="flex items-center gap-1 overflow-x-auto scroll-smooth px-3 py-2 [-webkit-overflow-scrolling:touch] [scrollbar-width:none] sm:px-4 [&::-webkit-scrollbar]:hidden">
+        <div ref={moreRef} className="relative mt-4 sm:mt-5">
+          <div className="flex items-center gap-1 overflow-x-auto scroll-smooth [-webkit-overflow-scrolling:touch] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           {mainFeedTabs.map((tab) => (
             <button
               key={tab.id}
@@ -294,9 +292,9 @@ export function HomePage() {
               }}
               onClick={() => changeFeed(tab.id)}
               aria-current={feed === tab.id ? 'page' : undefined}
-              className={`motion-control relative shrink-0 rounded-lg px-3 py-1.5 text-sm font-black ${
+              className={`motion-control relative shrink-0 rounded-xl px-4 py-2.5 text-sm font-black ${
                 feed === tab.id
-                  ? 'bg-orange-50 text-[#FF6B00] dark:bg-orange-950/30'
+                  ? 'bg-[linear-gradient(110deg,#FFF0E5,#FFF7F1)] text-[#F45B0B] shadow-[inset_0_0_0_1px_rgba(255,107,0,0.05)] dark:bg-orange-950/30'
                   : 'text-gray-500 hover:bg-gray-50 hover:text-gray-900 dark:hover:bg-zinc-900 dark:hover:text-zinc-100'
               }`}
             >
@@ -314,7 +312,7 @@ export function HomePage() {
               onClick={() => setMoreOpen((v) => !v)}
               aria-haspopup="menu"
               aria-expanded={moreOpen}
-              className={`motion-control flex shrink-0 items-center gap-1 rounded-lg px-3 py-1.5 text-sm font-black ${
+              className={`motion-control flex shrink-0 items-center gap-1 rounded-xl px-4 py-2.5 text-sm font-black ${
                 isExtraFeed
                   ? 'bg-orange-50 text-[#FF6B00] dark:bg-orange-950/30'
                   : 'text-gray-500 hover:bg-gray-50 hover:text-gray-900 dark:hover:bg-zinc-900 dark:hover:text-zinc-100'
@@ -325,7 +323,7 @@ export function HomePage() {
             </button>
           </div>
           {moreOpen ? (
-            <div className="t-dropdown is-open absolute right-3 top-full z-30 mt-1 w-44 overflow-hidden rounded-xl border border-gray-200 bg-white shadow-lg dark:border-zinc-800 dark:bg-zinc-950 sm:right-4" data-origin="top-right" role="menu">
+            <div className="t-dropdown is-open absolute right-0 top-full z-30 mt-2 w-44 overflow-hidden rounded-xl border border-gray-200 bg-white shadow-lg dark:border-zinc-800 dark:bg-zinc-950" data-origin="top-right" role="menu">
               {extraFeedTabs.map((tab) => (
                 <button
                   key={tab.id}
@@ -346,9 +344,9 @@ export function HomePage() {
             </div>
           ) : null}
         </div>
-      </div>
+      </header>
       <SwipeContainer
-        className="space-y-4 p-3 sm:space-y-5 sm:p-4"
+        className="space-y-4 p-3 sm:space-y-5 sm:p-5 lg:p-6"
         onSwipeLeft={() => {
           const idx = FEED_IDS.indexOf(feed);
           if (idx < FEED_IDS.length - 1) changeFeed(FEED_IDS[idx + 1]);
@@ -358,7 +356,9 @@ export function HomePage() {
           if (idx > 0) changeFeed(FEED_IDS[idx - 1]);
         }}
       >
-        <PostComposer defaultExpanded={shouldOpenComposer} autoFocus={shouldOpenComposer} />
+        <div className="home-composer">
+          <PostComposer defaultExpanded={shouldOpenComposer} autoFocus={shouldOpenComposer} />
+        </div>
         {query.hasNewPosts ? (
           <div className="sticky top-24 z-10 flex justify-center animate-in slide-in-from-top-4 duration-300">
             <Button onClick={query.showNewPosts} className="rounded-full shadow-lg shadow-orange-500/20">
@@ -395,14 +395,16 @@ export function HomePage() {
             </div>
           </>
         ) : (
-          <EmptyState
+          <ProductEmptyState
+            className="sm:min-h-[34rem]"
             title={t('home.empty_title')}
             description={t('home.empty_desc')}
+            tone="flame"
             icon={<Flame size={36} />}
             action={
               <div className="flex flex-wrap justify-center gap-2">
-                <Button loading={isRefreshing} onClick={focusComposer}><Plus size={16} /> Опубликовать мем</Button>
-                <Button variant="outline" loading={isRefreshing} onClick={() => query.refetch()}>{t('home.refresh_feed')}</Button>
+                <Button className="h-12 rounded-xl px-6 shadow-[0_12px_24px_rgba(255,107,0,0.24)]" loading={isRefreshing} onClick={focusComposer}><Plus size={16} /> Опубликовать мем</Button>
+                <Button className="h-12 rounded-xl px-6" variant="outline" loading={isRefreshing} onClick={() => query.refetch()}><RefreshCw size={16} /> {t('home.refresh_feed')}</Button>
               </div>
             }
           />

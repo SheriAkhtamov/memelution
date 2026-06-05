@@ -1,7 +1,7 @@
 import { useRef, useState } from 'react';
 import { Check, Copy, Edit3, Forward, Loader2, MoreHorizontal, Reply, Trash2, X } from 'lucide-react';
 import type { Message } from '../../shared/types';
-import { Button, Dropdown, DropdownItem } from '../../shared/ui';
+import { Avatar, Button, Dropdown, DropdownItem } from '../../shared/ui';
 import { hapticTap } from '../../utils/haptic';
 import { useTranslation } from '../../shared/i18n';
 
@@ -47,7 +47,7 @@ export function MessageBubble({
   onReact?: (emoji: string, reacted?: boolean) => void;
 }) {
   const [showMenu, setShowMenu] = useState(false);
-  const { t } = useTranslation();
+  const { t, lang } = useTranslation();
   const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Swipe-to-reply state
@@ -121,7 +121,8 @@ export function MessageBubble({
 
   return (
     <div
-      className={`motion-message-enter group relative flex ${mine ? 'justify-end' : 'justify-start'}`}
+      className={`messages-bubble-row motion-message-enter group relative flex ${mine ? 'justify-end' : 'justify-start'}`}
+      data-mine={mine}
       onContextMenu={(e) => { e.preventDefault(); setShowMenu(true); }}
       onTouchStart={handleTouchStart}
       onTouchMove={handleTouchMove}
@@ -130,7 +131,7 @@ export function MessageBubble({
       {/* Swipe-to-reply icon behind bubble */}
       {showSwipeIcon && (
         <div
-          className={`absolute top-1/2 -translate-y-1/2 flex h-8 w-8 items-center justify-center rounded-full transition-opacity ${
+          className={`messages-swipe-reply absolute top-1/2 -translate-y-1/2 flex h-8 w-8 items-center justify-center rounded-full transition-opacity ${
             Math.abs(swipeX) >= SWIPE_THRESHOLD ? 'bg-[#2AABEE] text-white' : 'bg-gray-200 text-gray-400 dark:bg-zinc-700 dark:text-zinc-400'
           } ${mine ? 'left-2' : 'right-2'}`}
           style={{ opacity: Math.min(1, Math.abs(swipeX) / SWIPE_THRESHOLD) }}
@@ -139,23 +140,24 @@ export function MessageBubble({
         </div>
       )}
 
+      {!mine ? <Avatar src={message.sender.avatar_url} name={message.sender.display_name} className="messages-bubble-avatar" /> : null}
       <div
-        className={`relative max-w-[78%] ${mine ? 'order-1' : ''}`}
+        className={`messages-bubble-stack relative ${mine ? 'order-1' : ''}`}
         style={{
           transform: swipeX ? `translateX(${swipeX}px)` : undefined,
           transition: swipeX ? 'none' : 'transform 200ms ease-out',
         }}
       >
         {!mine && message.sender && (
-          <p className="mb-1 ml-1 text-xs font-black text-[#7C3AED]">{message.sender.display_name}</p>
+          <p className="messages-bubble-sender">{message.sender.display_name}</p>
         )}
 
         {editing ? (
-          <div className="flex flex-col gap-2 rounded-2xl bg-white p-3 shadow-md ring-2 ring-[#2AABEE] dark:bg-zinc-900">
+          <div className="messages-bubble-edit">
             <textarea
               value={editText}
               onChange={(e) => onEditChange?.(e.target.value)}
-              className="w-full resize-none rounded-lg border border-gray-200 bg-gray-50 p-2 text-sm text-gray-900 focus:border-[#2AABEE] focus:outline-none dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
+              className="w-full resize-none rounded-xl border border-[var(--app-line)] bg-[var(--app-surface-subtle)] p-2 text-sm text-gray-900 focus:border-[#FF6B00] focus:outline-none dark:text-zinc-100"
               rows={3}
               autoFocus
               onKeyDown={(e) => {
@@ -174,18 +176,18 @@ export function MessageBubble({
             </div>
           </div>
         ) : (
-          <div className={`rounded-2xl px-4 py-3 shadow-sm transition-all duration-300 ${
+          <div className={`messages-bubble transition-all duration-300 ${
             message.status === 'pending' ? 'scale-[0.98] opacity-80' : 'scale-100 opacity-100'
           } ${
             message.is_deleted
-              ? 'bg-gray-100 text-gray-400 italic dark:bg-zinc-900/50 dark:text-zinc-500'
+              ? 'messages-bubble--deleted'
               : mine
-                ? 'bg-[#2AABEE] text-white'
-                : 'bg-white text-gray-900 dark:bg-zinc-900 dark:text-zinc-100'
+                ? 'messages-bubble--mine'
+                : 'messages-bubble--theirs'
           }`}>
             {replyMsg && (
-              <div className={`rounded-xl border-l-3 px-3 py-2 text-xs ${mine ? 'border-white/40 bg-white/15' : 'border-[#2AABEE] bg-gray-50 dark:bg-zinc-800'}`}>
-                <span className={`block font-black ${mine ? 'text-white/50' : 'text-[#2AABEE]'}`}>{replyMsg.sender}</span>
+              <div className={`messages-reply-fragment ${mine ? 'is-mine' : ''}`}>
+                <span className="block font-black">{replyMsg.sender}</span>
                 <span className="line-clamp-1 opacity-75">{replyMsg.text || t('messages.media_fallback')}</span>
               </div>
             )}
@@ -205,10 +207,10 @@ export function MessageBubble({
               </a>
             ) : null}
 
-            <p className="whitespace-pre-wrap break-words leading-relaxed">{displayText || ''}</p>
+            <p className="messages-bubble-text">{displayText || ''}</p>
 
-            <div className={`mt-1 flex items-center gap-2 text-[10px] ${mine ? 'text-white/75' : 'text-gray-400 dark:text-zinc-500'}`}>
-              <span>{new Date(message.created_at).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })}{message.edited_at ? ` · ${t('messages.edited')}` : ''}</span>
+            <div className={`messages-bubble-meta ${mine ? 'is-mine' : ''}`}>
+              <span>{new Date(message.created_at).toLocaleTimeString(lang === 'en' ? 'en-US' : 'ru-RU', { hour: '2-digit', minute: '2-digit' })}{message.edited_at ? ` · ${t('messages.edited')}` : ''}</span>
               {mine && !message.is_deleted && !editing && (
                 <span className="flex items-center gap-0.5">
                   {message.status === 'pending' && <Loader2 size={10} className="animate-spin" />}
@@ -238,9 +240,9 @@ export function MessageBubble({
           </div>
         )}
 
-        {!editing && !message.is_deleted && onReact ? (
-          <div className={`mt-1 flex flex-wrap items-center gap-1 ${mine ? 'justify-end' : 'justify-start'}`}>
-            {reactionOptions.map((emoji) => {
+        {!editing && !message.is_deleted && onReact && message.reactions?.length ? (
+          <div className={`messages-reactions ${mine ? 'justify-end' : 'justify-start'}`}>
+            {reactionOptions.filter((emoji) => message.reactions?.some((reaction) => reaction.emoji === emoji)).map((emoji) => {
               const reaction = message.reactions?.find((item) => item.emoji === emoji);
               const reacted = Boolean(reaction?.reacted);
               return (
@@ -266,9 +268,9 @@ export function MessageBubble({
         ) : null}
 
         {actions && !message.is_deleted && !editing && (
-          <div className={`absolute top-20 ${mine ? '-left-8' : '-right-8'}`}>
+          <div className={`messages-bubble-menu absolute ${mine ? '-left-8' : '-right-8'}`}>
             <Dropdown trigger={
-              <button className={`rounded-full p-1 transition-opacity bg-white shadow-md hover:bg-gray-100 dark:bg-zinc-800 dark:hover:bg-zinc-700 ${showMenu ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}>
+              <button className={`rounded-full bg-white p-1 shadow-md transition-opacity hover:bg-gray-100 dark:bg-zinc-800 dark:hover:bg-zinc-700 ${showMenu ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}>
                 <MoreHorizontal size={14} className="text-gray-500" />
               </button>
             }>
@@ -295,6 +297,7 @@ export function MessageBubble({
           </div>
         )}
       </div>
+      {mine ? <Avatar src={message.sender.avatar_url} name={message.sender.display_name} className="messages-bubble-avatar" /> : null}
     </div>
   );
 }

@@ -1,11 +1,12 @@
 import { useState, type ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { Compass, Hash, MessageCircle, Trophy, Users } from 'lucide-react';
+import { CalendarDays, Compass, Hash, MessageCircle, Rocket, Sun, Trophy, Users, Zap } from 'lucide-react';
 import { api } from '../../shared/api/client';
-import { Avatar, Badge, Button, EmptyState, ErrorState, Skeleton, Tabs } from '../../shared/ui';
+import { Avatar, Badge, Button, ErrorState, Skeleton } from '../../shared/ui';
 import { PostCard } from '../../features/posts/components/PostCard';
 import { useTranslation } from '../../shared/i18n';
+import { ProductEmptyState } from '../../shared/ui/ProductEmptyState';
 
 type Period = 'day' | 'week';
 
@@ -28,29 +29,64 @@ export function ExplorePage() {
 
   return (
     <div>
-      <header className="sticky top-0 z-20 border-b border-gray-200 bg-[#F3F4F6]/90 px-3 py-4 backdrop-blur dark:border-zinc-800 dark:bg-zinc-950/90 sm:px-4">
-        <div className="mb-4 flex items-center justify-between gap-3">
-          <div>
-            <h1 className="flex items-center gap-2 text-2xl font-black"><Compass className="text-[#FF6B00]" /> {t('explore.title')}</h1>
-            <p className="text-sm font-bold text-gray-400">{t('explore.subtitle')}</p>
+      <header className="page-header sticky top-16 z-20 px-4 py-5 sm:top-0 sm:px-6 sm:py-7">
+        <div className="flex items-start gap-3">
+          <span className="page-icon-tile"><Zap size={22} fill="currentColor" /></span>
+          <div className="min-w-0">
+            <h1 className="page-title">{t('explore.title')}</h1>
+            <p className="page-subtitle mt-1.5">{t('explore.subtitle')}</p>
           </div>
         </div>
-        <Tabs
-          value={period}
-          onChange={(value) => setPeriod(value)}
-          items={[
-            { id: 'day', label: t('explore.filter_day') },
-            { id: 'week', label: t('explore.filter_week') },
-          ]}
-        />
+        <div className="mt-5 flex gap-2" role="tablist" aria-label={t('explore.title')}>
+          <button
+            type="button"
+            role="tab"
+            aria-selected={period === 'day'}
+            onClick={() => setPeriod('day')}
+            className={`motion-control inline-flex h-11 items-center gap-2 rounded-xl px-5 text-sm font-black ${
+              period === 'day'
+                ? 'bg-[linear-gradient(135deg,#FF7A1A,#FF5A00)] text-white shadow-[0_10px_20px_rgba(255,107,0,0.22)]'
+                : 'border border-gray-200 bg-white text-gray-700 hover:bg-gray-50 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-200 dark:hover:bg-zinc-900'
+            }`}
+          >
+            <Sun size={17} /> {t('explore.filter_day')}
+          </button>
+          <button
+            type="button"
+            role="tab"
+            aria-selected={period === 'week'}
+            onClick={() => setPeriod('week')}
+            className={`motion-control inline-flex h-11 items-center gap-2 rounded-xl px-5 text-sm font-black ${
+              period === 'week'
+                ? 'bg-[linear-gradient(135deg,#FF7A1A,#FF5A00)] text-white shadow-[0_10px_20px_rgba(255,107,0,0.22)]'
+                : 'border border-gray-200 bg-white text-gray-700 hover:bg-gray-50 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-200 dark:hover:bg-zinc-900'
+            }`}
+          >
+            <CalendarDays size={17} /> {t('explore.filter_week')}
+          </button>
+        </div>
       </header>
-      <div className="space-y-5 p-3 sm:p-4">
+      <div className="space-y-5 p-3 sm:p-5 lg:p-6">
         {query.isLoading ? (
-          <Skeleton className="h-72" />
+          <Skeleton className="h-[32rem] rounded-3xl" />
         ) : query.isError ? (
           <ErrorState description={t('explore.error')} onRetry={() => query.refetch()} />
         ) : !hasAnyTrends ? (
-          <EmptyState title={t('explore.empty')} />
+          <ProductEmptyState
+            className="sm:min-h-[38rem]"
+            title={t('explore.empty')}
+            description={t('explore.empty_desc')}
+            tone="rocket"
+            icon={<Rocket size={38} />}
+            action={
+              <Link
+                to="/search"
+                className="motion-control inline-flex h-12 items-center justify-center gap-2 rounded-xl bg-[linear-gradient(135deg,#FF7A1A,#FF5A00)] px-6 text-sm font-black text-white shadow-[0_12px_24px_rgba(255,107,0,0.24)] hover:brightness-105"
+              >
+                <Compass size={17} /> {t('explore.action_discover')}
+              </Link>
+            }
+          />
         ) : (
           <>
             {query.data?.hashtags.length ? (
@@ -160,7 +196,7 @@ function MemeBattle({
   );
 
   return (
-    <div className="rounded-xl border border-amber-100 bg-white p-4 shadow-sm dark:border-amber-900/40 dark:bg-zinc-950">
+    <div className="rounded-2xl border border-amber-100 bg-white p-4 shadow-sm dark:border-amber-900/40 dark:bg-zinc-950">
       <div className="grid gap-3 sm:grid-cols-[1fr_auto_1fr] sm:items-stretch">
         {renderPost(posts[0], 0)}
         <div className="hidden items-center justify-center text-xs font-black uppercase text-gray-300 sm:flex">VS</div>
@@ -172,7 +208,7 @@ function MemeBattle({
 
 function TrendSection({ title, icon, children }: { title: string; icon?: ReactNode; children: ReactNode }) {
   return (
-    <section className="space-y-3">
+    <section className="surface-card space-y-3 rounded-2xl p-4 sm:p-5">
       <h2 className="flex items-center gap-2 text-sm font-black uppercase text-gray-500 dark:text-zinc-400">
         {icon}
         {title}

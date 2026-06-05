@@ -3,11 +3,12 @@ import { Link, useSearchParams } from 'react-router-dom';
 import { Hash, Search, SearchX, TrendingUp } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { api } from '../../shared/api/client';
-import { Avatar, Button, EmptyState, ErrorState, Input, Skeleton, Tabs } from '../../shared/ui';
+import { Avatar, Button, ErrorState, Skeleton, Tabs } from '../../shared/ui';
 import { useDebouncedValue } from '../../shared/lib/useDebouncedValue';
 import { PostCard } from '../../features/posts/components/PostCard';
 import { useTranslation } from '../../shared/i18n';
 import { trackEvent } from '../../shared/lib/analytics';
+import { ProductEmptyState } from '../../shared/ui/ProductEmptyState';
 
 const SEARCH_HISTORY_KEY = 'memelution-search-history';
 type SearchTab = 'all' | 'posts' | 'people' | 'communities' | 'hashtags' | 'media' | 'video';
@@ -98,22 +99,35 @@ export function SearchPage() {
 
   return (
     <div>
-      <header className="sticky top-0 z-20 border-b border-gray-200 bg-[#F3F4F6]/90 px-3 py-4 backdrop-blur dark:border-zinc-800 dark:bg-zinc-950/90 sm:px-4">
-        <div className="mb-4 flex items-center gap-3">
-          <Search className="text-[#FF6B00]" />
-          <h1 className="text-2xl font-black">{t('search.title')}</h1>
+      <header className="page-header sticky top-16 z-20 px-4 py-5 sm:top-0 sm:px-6 sm:py-7">
+        <div className="mb-5 flex items-center gap-3">
+          <Search className="text-[#FF6B00]" size={32} strokeWidth={2.2} />
+          <h1 className="page-title">{t('search.title')}</h1>
         </div>
-        <input
-          ref={inputRef}
-          value={q}
-          onChange={(event) => setQ(event.target.value)}
-          onKeyDown={(event) => {
-            if (event.key === 'Escape') setQ('');
-          }}
-          placeholder={t('search.placeholder')}
-          aria-label={t('search.placeholder')}
-          className="h-12 w-full rounded-lg border border-gray-200 bg-white px-3 text-base font-bold text-gray-900 outline-none transition-colors placeholder:text-gray-400 focus:border-orange-400 focus:ring-2 focus:ring-orange-100 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-100 dark:focus:ring-orange-950"
-        />
+        <div className="search-hero-field">
+          <div className="search-hero-field-inner">
+            <Search className="shrink-0 text-gray-400" size={24} />
+            <input
+              ref={inputRef}
+              value={q}
+              onChange={(event) => setQ(event.target.value)}
+              onKeyDown={(event) => {
+                if (event.key === 'Escape') setQ('');
+              }}
+              placeholder={t('search.placeholder')}
+              aria-label={t('search.placeholder')}
+              className="h-10 min-w-0 flex-1 border-0 bg-transparent px-1 text-base font-semibold text-gray-900 outline-none placeholder:text-gray-400 dark:text-zinc-100"
+            />
+            <button
+              type="button"
+              onClick={() => inputRef.current?.focus()}
+              className="motion-control flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[linear-gradient(135deg,#FF7A1A,#FF5A00)] text-white shadow-[0_10px_20px_rgba(255,107,0,0.22)]"
+              aria-label={t('search.title')}
+            >
+              <Search size={20} />
+            </button>
+          </div>
+        </div>
         {q ? (
           <button
             type="button"
@@ -133,7 +147,7 @@ export function SearchPage() {
             {history.length ? <Button variant="ghost" className="h-7 px-2 text-xs" onClick={() => { localStorage.removeItem(SEARCH_HISTORY_KEY); setHistory([]); }}>{t('search.clear_history')}</Button> : null}
           </div>
         ) : null}
-        <div className="mt-4">
+        <div className="surface-card mt-4 overflow-x-auto rounded-2xl p-1.5 [&_.t-tab]:flex-1 [&_.t-tabs]:flex [&_.t-tabs]:w-full [&_.t-tabs]:bg-transparent">
           <Tabs
             value={type}
             onChange={(value) => setType(value as SearchTab)}
@@ -141,7 +155,7 @@ export function SearchPage() {
           />
         </div>
       </header>
-      <div className="space-y-5 p-3 sm:p-4">
+      <div className="space-y-5 p-3 sm:p-5 lg:p-6">
         {!debounced ? (
           <SearchDiscovery
             title={t('search.empty_query')}
@@ -213,7 +227,7 @@ export function SearchPage() {
           </>
         ) : (
           <div className="space-y-4">
-            <EmptyState title={t('search.not_found')} description={t('search.not_found_desc')} icon={<SearchX size={32} />} />
+            <ProductEmptyState className="sm:min-h-[25rem]" title={t('search.not_found')} description={t('search.not_found_desc')} tone="search" icon={<SearchX size={38} />} />
             {popularTags.length ? (
               <section className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
                 <div className="mb-3 flex items-center gap-2">
@@ -255,39 +269,34 @@ function SearchDiscovery({
   onPick: (query: string) => void;
   onClearHistory: () => void;
 }) {
+  const { t } = useTranslation();
   return (
     <div className="space-y-4">
-      <EmptyState title={title} description={description} icon={<Search size={32} />} />
-      <section className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
+      <ProductEmptyState className="sm:min-h-[25rem]" title={title} description={description} tone="search" icon={<Search size={38} />} />
+      {popularTags.length ? (
+      <section className="surface-card rounded-2xl p-4 sm:p-5">
         <div className="mb-3 flex items-center gap-2">
           <TrendingUp size={18} className="text-[#FF6B00]" />
-          <h2 className="font-black">Популярные запросы</h2>
+          <h2 className="font-black">{t('search.popular_queries')}</h2>
         </div>
         <div className="flex flex-wrap gap-2">
-          {popularTags.length ? popularTags.map((tag) => (
+          {popularTags.map((tag) => (
             <button
               key={tag}
               onClick={() => onPick(`#${tag}`)}
-              className="inline-flex items-center gap-1 rounded-lg bg-orange-50 px-3 py-2 text-sm font-black text-[#FF6B00] transition-colors hover:bg-orange-100 dark:bg-orange-950/30 dark:hover:bg-orange-950/50"
+              className="inline-flex items-center gap-1 rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-sm font-black text-gray-700 transition-colors hover:border-orange-200 hover:bg-orange-50 hover:text-[#FF6B00] dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-300 dark:hover:bg-orange-950/30"
             >
               <Hash size={14} /> {tag}
-            </button>
-          )) : ['мемы', 'айти', 'игры', 'работа'].map((query) => (
-            <button
-              key={query}
-              onClick={() => onPick(query)}
-              className="rounded-lg bg-gray-100 px-3 py-2 text-sm font-black text-gray-600 transition-colors hover:bg-gray-200 dark:bg-zinc-900 dark:text-zinc-300 dark:hover:bg-zinc-800"
-            >
-              {query}
             </button>
           ))}
         </div>
       </section>
+      ) : null}
       {history.length ? (
-        <section className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
+        <section className="surface-card rounded-2xl p-4 sm:p-5">
           <div className="mb-3 flex items-center justify-between gap-3">
-            <h2 className="font-black">Недавние поиски</h2>
-            <Button variant="ghost" className="h-8 px-2 text-xs" onClick={onClearHistory}>Очистить</Button>
+            <h2 className="font-black">{t('search.recent_searches')}</h2>
+            <Button variant="ghost" className="h-8 px-2 text-xs" onClick={onClearHistory}>{t('search.clear_recent')}</Button>
           </div>
           <div className="flex flex-wrap gap-2">
             {history.map((item) => (

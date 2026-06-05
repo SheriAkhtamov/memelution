@@ -1,49 +1,327 @@
-import { useState } from 'react';
+import { useMemo, useRef, useState, type ReactNode } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import { Camera, Check, Clock, Crown, FileText, Globe, Image, Lock, MessageSquare, PenLine, Plus, Search, Settings, Shield, Upload, UserCheck, UserPlus, Users, X } from 'lucide-react';
+import {
+  BookOpen,
+  Camera,
+  Check,
+  ChevronRight,
+  Crown,
+  FileText,
+  Film,
+  Gamepad2,
+  Globe,
+  Grid2X2,
+  Image,
+  Lock,
+  MessageSquare,
+  Monitor,
+  PenLine,
+  Plus,
+  Search,
+  Settings,
+  Shield,
+  SlidersHorizontal,
+  Smile,
+  Sparkles,
+  Star,
+  UserCheck,
+  UserPlus,
+  Users,
+  X,
+  type LucideIcon,
+} from 'lucide-react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { api } from '../../shared/api/client';
 import type { Community, Post } from '../../shared/types';
-import { Avatar, Button, ConfirmDialog, EmptyState, ErrorState, Input, Modal, Select, Skeleton, Tabs, Textarea, useToast } from '../../shared/ui';
+import { Avatar, Button, ConfirmDialog, EmptyState, ErrorState, Input, Modal, Skeleton, Tabs, Textarea, useToast } from '../../shared/ui';
 import { PostCard } from '../../features/posts/components/PostCard';
 import { PostComposer } from '../../features/posts/components/PostComposer';
 import { useAuthStore } from '../../store/authStore';
 import { useCommunity } from '../../features/communities/useCommunity';
 import { useTranslation } from '../../shared/i18n';
+import { ProductEmptyState } from '../../shared/ui/ProductEmptyState';
+import { authRedirectUrl } from '../../utils/authRedirect';
+
+type CommunityCategory = 'all' | 'memes' | 'it' | 'games' | 'cinema' | 'humor' | 'education';
+type CommunityTypeFilter = 'all' | 'public' | 'closed' | 'private' | 'joined';
+
+const COMMUNITY_SECTION_LIMIT = 5;
+
+const COMMUNITY_CATEGORIES: Array<{
+  id: CommunityCategory;
+  labelKey: string;
+  icon: LucideIcon;
+  keywords: string[];
+}> = [
+  { id: 'all', labelKey: 'community.category_all', icon: Grid2X2, keywords: [] },
+  { id: 'memes', labelKey: 'community.category_memes', icon: Smile, keywords: ['мем', 'meme', 'mem'] },
+  { id: 'it', labelKey: 'community.category_it', icon: Monitor, keywords: ['it', 'айти', 'код', 'code', 'dev', 'программ', 'tech', 'тех', 'дизайн', 'design', 'нейро', 'neuro'] },
+  { id: 'games', labelKey: 'community.category_games', icon: Gamepad2, keywords: ['игр', 'game', 'gaming', 'гейм'] },
+  { id: 'cinema', labelKey: 'community.category_cinema', icon: Film, keywords: ['кино', 'film', 'movie', 'сериал'] },
+  { id: 'humor', labelKey: 'community.category_humor', icon: Smile, keywords: ['юмор', 'humor', 'fun', 'смеш', 'шут'] },
+  { id: 'education', labelKey: 'community.category_education', icon: BookOpen, keywords: ['образ', 'learn', 'study', 'учеб', 'наук'] },
+];
 
 export function CommunitiesPage() {
   const { t } = useTranslation();
   const [q, setQ] = useState('');
+  const [activeCategory, setActiveCategory] = useState<CommunityCategory>('all');
+  const [typeFilter, setTypeFilter] = useState<CommunityTypeFilter>('all');
+  const [filtersOpen, setFiltersOpen] = useState(false);
+  const [showAllPopular, setShowAllPopular] = useState(false);
+  const [showAllNew, setShowAllNew] = useState(false);
+  const categoryRailRef = useRef<HTMLDivElement>(null);
   const query = useQuery({ queryKey: ['communities', q], queryFn: () => api.communities(q), staleTime: 30_000 });
+
+  const visibleCommunities = useMemo(() => {
+    const category = COMMUNITY_CATEGORIES.find((item) => item.id === activeCategory);
+    const categoryKeywords = category?.keywords || [];
+
+    return (query.data || []).filter((community) => {
+      if (typeFilter === 'joined' && community.membership !== 'active') return false;
+      if (typeFilter !== 'all' && typeFilter !== 'joined' && community.type !== typeFilter) return false;
+      if (!categoryKeywords.length) return true;
+
+      const haystack = [
+        community.name,
+        community.description,
+        community.slug,
+        community.language,
+        community.type,
+      ].join(' ').toLowerCase();
+
+      return categoryKeywords.some((keyword) => haystack.includes(keyword.toLowerCase()));
+    });
+  }, [activeCategory, query.data, typeFilter]);
+
+  const sortedByActivity = useMemo(
+    () => [...visibleCommunities].sort((a, b) => communityActivity(b) - communityActivity(a)),
+    [visibleCommunities],
+  );
+  const popularCandidates = sortedByActivity;
+  const visiblePopular = showAllPopular ? popularCandidates : popularCandidates.slice(0, COMMUNITY_SECTION_LIMIT);
+  const popularIds = new Set(popularCandidates.slice(0, COMMUNITY_SECTION_LIMIT).map((community) => community.id));
+  const newCandidates = visibleCommunities.filter((community) => !popularIds.has(community.id));
+  const visibleNew = showAllNew ? newCandidates : newCandidates.slice(0, COMMUNITY_SECTION_LIMIT);
+  const activeFilterCount = (activeCategory !== 'all' ? 1 : 0) + (typeFilter !== 'all' ? 1 : 0);
+  const hasSearchContext = Boolean(q.trim() || activeFilterCount);
+
   return (
     <div>
-      <header className="sticky top-0 z-20 border-b border-gray-200/60 bg-white/90 px-3 py-5 backdrop-blur-xl dark:border-zinc-800/60 dark:bg-zinc-950/90 sm:px-4">
-        <div className="mb-4 flex items-center justify-between gap-3">
+      <header className="page-header sticky top-16 z-20 px-4 py-5 sm:top-0 sm:px-6 sm:py-7">
+        <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
           <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-purple-500 to-violet-600 text-white shadow-md shadow-purple-200/50 dark:shadow-purple-900/30">
-              <Users size={18} />
+            <span className="page-icon-tile bg-[linear-gradient(145deg,#9B5CFF,#7C3AED)]"><Users size={22} /></span>
+            <div className="min-w-0">
+              <h1 className="page-title">{t('community.title')}</h1>
+              <p className="page-subtitle mt-1.5">{t('community.subtitle')}</p>
             </div>
-            <h1 className="text-2xl font-black tracking-tight">{t('community.title')}</h1>
           </div>
-          <Link to="/communities/new"><Button><Plus size={16} /> {t('common.create')}</Button></Link>
+          <Link
+            to="/communities/new"
+            className="motion-control inline-flex h-12 items-center justify-center gap-2 rounded-xl bg-[linear-gradient(135deg,#FF7A1A,#FF5A00)] px-5 text-sm font-black text-white shadow-[0_12px_24px_rgba(255,107,0,0.24)] hover:brightness-105"
+          >
+            <Plus size={18} /> {t('common.create')}
+          </Link>
         </div>
-        <div className="relative">
-          <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-          <Input value={q} onChange={(event) => setQ(event.target.value)} placeholder={t('community.search')} className="pl-10" />
+        <div className="mt-5 grid gap-3 md:grid-cols-[minmax(0,1fr)_10rem]">
+          <label className="relative block min-w-0">
+            <span className="sr-only">{t('community.search')}</span>
+            <Search size={24} className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
+            <input
+              value={q}
+              onChange={(event) => setQ(event.target.value)}
+              placeholder={t('community.search')}
+              className="h-14 w-full rounded-2xl border border-[var(--app-line)] bg-white pl-14 pr-4 text-base font-semibold text-gray-900 shadow-sm outline-none placeholder:text-gray-400 focus:border-orange-300 focus:ring-4 focus:ring-orange-100 dark:bg-zinc-950 dark:text-zinc-100 dark:focus:ring-orange-950"
+            />
+          </label>
+          <button
+            type="button"
+            aria-expanded={filtersOpen}
+            aria-controls="community-extra-filters"
+            onClick={() => setFiltersOpen((value) => !value)}
+            className="motion-control inline-flex h-14 items-center justify-center gap-2 rounded-2xl border border-[var(--app-line)] bg-white px-5 text-sm font-black text-gray-700 shadow-sm hover:bg-gray-50 dark:bg-zinc-950 dark:text-zinc-100 dark:hover:bg-zinc-900"
+          >
+            <SlidersHorizontal size={19} />
+            {t('community.filters')}
+            {activeFilterCount ? <span className="rounded-full bg-orange-100 px-2 py-0.5 text-xs text-[#FF6B00]">{activeFilterCount}</span> : null}
+          </button>
         </div>
+
+        {filtersOpen ? (
+          <div id="community-extra-filters" className="mt-3 flex flex-wrap gap-2 rounded-2xl border border-[var(--app-line)] bg-white p-2 shadow-sm dark:bg-zinc-950">
+            {(['all', 'public', 'closed', 'private', 'joined'] as CommunityTypeFilter[]).map((filter) => (
+              <button
+                key={filter}
+                type="button"
+                data-active={typeFilter === filter}
+                onClick={() => setTypeFilter(filter)}
+                className="community-filter-chip"
+              >
+                {t(`community.filter_${filter}`)}
+              </button>
+            ))}
+          </div>
+        ) : null}
       </header>
-      <div className="p-3 sm:p-4">
+
+      <nav className="border-b border-[var(--app-line)] bg-white/72 px-3 py-3 backdrop-blur dark:bg-zinc-950/72 sm:px-5" aria-label={t('community.categories')} id="community-category-tabs">
+        <div ref={categoryRailRef} className="flex items-center gap-2 overflow-x-auto scroll-smooth [-webkit-overflow-scrolling:touch] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          {COMMUNITY_CATEGORIES.map((category) => {
+            const Icon = category.icon;
+            return (
+              <button
+                key={category.id}
+                type="button"
+                data-active={activeCategory === category.id}
+                onClick={() => setActiveCategory(category.id)}
+                className="community-category-pill"
+              >
+                <Icon size={18} />
+                {t(category.labelKey)}
+              </button>
+            );
+          })}
+          <button
+            type="button"
+            onClick={() => categoryRailRef.current?.scrollBy({ left: 240, behavior: 'smooth' })}
+            className="community-category-pill community-category-pill--icon"
+            aria-label={t('community.scroll_categories')}
+          >
+            <ChevronRight size={18} />
+          </button>
+        </div>
+      </nav>
+
+      <div className="space-y-5 p-3 sm:p-5 lg:p-6">
         {query.isLoading ? (
-          <div className="grid gap-4 sm:grid-cols-2">
-            {Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-36 rounded-2xl" />)}
-          </div>
-        ) : query.data?.length ? (
-          <div className="grid gap-4 sm:grid-cols-2">
-            {query.data.map((community) => <CommunityCard key={community.id} community={community} />)}
-          </div>
-        ) : <EmptyState title={t('community.not_found')} description={t('community.not_found_desc')} action={<Link to="/communities/new"><Button><Plus size={16} /> {t('common.create')}</Button></Link>} />}
+          <CommunitiesDiscoverySkeleton />
+        ) : query.isError ? (
+          <ErrorState description={t('community.load_error')} onRetry={() => query.refetch()} />
+        ) : visibleCommunities.length ? (
+          <>
+            <CommunitySection
+              title={t('community.popular_section')}
+              icon={<Sparkles size={19} className="text-[#FF6B00]" />}
+              action={popularCandidates.length > COMMUNITY_SECTION_LIMIT ? (
+                <button type="button" onClick={() => setShowAllPopular((value) => !value)} className="community-section-action">
+                  {showAllPopular ? t('community.show_less') : t('community.show_all')}
+                </button>
+              ) : null}
+            >
+              <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
+                {visiblePopular.map((community) => <CommunityCard key={community.id} community={community} variant="featured" />)}
+              </div>
+            </CommunitySection>
+
+            {newCandidates.length ? (
+              <CommunitySection
+                title={t('community.new_section')}
+                icon={<Star size={19} className="text-amber-400" fill="currentColor" />}
+                action={newCandidates.length > COMMUNITY_SECTION_LIMIT ? (
+                  <button type="button" onClick={() => setShowAllNew((value) => !value)} className="community-section-action">
+                    {showAllNew ? t('community.show_less') : t('community.show_all')}
+                  </button>
+                ) : null}
+              >
+                <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
+                  {visibleNew.map((community) => <CommunityCard key={community.id} community={community} variant="compact" />)}
+                </div>
+              </CommunitySection>
+            ) : null}
+          </>
+        ) : (
+          <ProductEmptyState
+            className="sm:min-h-[34rem]"
+            title={t('community.not_found')}
+            description={hasSearchContext ? t('community.not_found_desc') : t('community.empty_desc')}
+            tone="rocket"
+            icon={<Users size={38} />}
+            action={
+              <div className="flex flex-wrap justify-center gap-2">
+                {hasSearchContext ? (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setQ('');
+                      setActiveCategory('all');
+                      setTypeFilter('all');
+                    }}
+                    className="motion-control inline-flex h-12 items-center justify-center rounded-xl border border-[var(--app-line)] bg-white px-5 text-sm font-black text-gray-700 shadow-sm hover:bg-gray-50 dark:bg-zinc-950 dark:text-zinc-100 dark:hover:bg-zinc-900"
+                  >
+                    {t('community.reset_filters')}
+                  </button>
+                ) : null}
+                <Link
+                  to="/communities/new"
+                  className="motion-control inline-flex h-12 items-center justify-center gap-2 rounded-xl bg-[linear-gradient(135deg,#FF7A1A,#FF5A00)] px-5 text-sm font-black text-white shadow-[0_12px_24px_rgba(255,107,0,0.24)] hover:brightness-105"
+                >
+                  <Plus size={17} /> {t('common.create')}
+                </Link>
+              </div>
+            }
+          />
+        )}
       </div>
     </div>
+  );
+}
+
+function communityActivity(community: Community) {
+  return (community.members_count || 0) * 2 + (community.posts_count || 0);
+}
+
+function CommunitySection({
+  title,
+  icon,
+  action,
+  children,
+}: {
+  title: string;
+  icon?: ReactNode;
+  action?: ReactNode;
+  children: ReactNode;
+}) {
+  return (
+    <section className="community-section">
+      <div className="mb-5 flex items-center justify-between gap-3">
+        <div className="flex min-w-0 items-center gap-2.5">
+          {icon ? <span className="shrink-0">{icon}</span> : null}
+          <h2 className="truncate text-xl font-black tracking-[-0.035em] text-[var(--app-ink)]">{title}</h2>
+        </div>
+        {action}
+      </div>
+      {children}
+    </section>
+  );
+}
+
+function CommunitiesDiscoverySkeleton() {
+  return (
+    <>
+      <section className="community-section">
+        <div className="mb-5 flex items-center justify-between">
+          <Skeleton className="h-7 w-56 rounded-xl" />
+          <Skeleton className="h-9 w-28 rounded-xl" />
+        </div>
+        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
+          {Array.from({ length: 5 }).map((_, index) => (
+            <Skeleton key={index} className="h-[19.25rem] rounded-[1.2rem]" />
+          ))}
+        </div>
+      </section>
+      <section className="community-section">
+        <div className="mb-5 flex items-center justify-between">
+          <Skeleton className="h-7 w-48 rounded-xl" />
+          <Skeleton className="h-9 w-28 rounded-xl" />
+        </div>
+        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
+          {Array.from({ length: 5 }).map((_, index) => (
+            <Skeleton key={index} className="h-[14.5rem] rounded-[1.2rem]" />
+          ))}
+        </div>
+      </section>
+    </>
   );
 }
 
@@ -360,28 +638,98 @@ function CommunitySettings({ open, onClose, slug, community }: { open: boolean; 
   );
 }
 
-function CommunityCard({ community }: { community: Community }) {
+function CommunityCard({ community, variant }: { community: Community; variant: 'featured' | 'compact' }) {
+  const { t } = useTranslation();
   const TypeIcon = community.type === 'private' ? Lock : community.type === 'closed' ? UserCheck : Globe;
+  const mediaClassName = variant === 'featured' ? 'community-card-media h-36' : 'community-card-media h-20';
   return (
-    <Link to={`/communities/${community.slug}`} className="group overflow-hidden rounded-2xl border border-gray-200/60 bg-white shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-md dark:border-zinc-800/60 dark:bg-zinc-900/50">
-      <div className="h-20 bg-gradient-to-r from-purple-500/20 via-pink-500/10 to-orange-500/20 dark:from-purple-900/30 dark:via-pink-900/20 dark:to-orange-900/30">
-        {community.cover_url && <img src={community.cover_url} alt="" className="h-full w-full object-cover" />}
-      </div>
-      <div className="-mt-6 px-4 pb-4">
-        <Avatar src={community.avatar_url} name={community.name} className="h-12 w-12 rounded-xl border-2 border-white shadow-sm dark:border-zinc-900" />
-        <div className="mt-2 min-w-0">
-          <div className="flex items-center gap-1.5">
-            <p className="truncate font-black">{community.name}</p>
-            <TypeIcon size={14} className="shrink-0 text-gray-400" />
+    <article className="community-card">
+      <Link to={`/communities/${community.slug}`} className="group block min-w-0" aria-label={community.name}>
+        <CommunityMedia community={community} className={mediaClassName} />
+        <div className="mt-4 min-w-0">
+          <div className="flex min-w-0 items-center gap-1.5">
+            <h3 className="truncate text-[0.95rem] font-black tracking-[-0.02em] text-[var(--app-ink)]">{community.name}</h3>
+            <TypeIcon size={14} className="shrink-0 text-[#7C3AED]" />
           </div>
-          <p className="line-clamp-2 text-sm text-gray-500 dark:text-zinc-400">{community.description}</p>
-          <div className="mt-2 flex items-center gap-3 text-xs font-bold text-gray-400">
-            <span className="flex items-center gap-1"><Users size={12} />{community.members_count}</span>
-            <span className="flex items-center gap-1"><MessageSquare size={12} />{community.posts_count}</span>
+          <p className={`${variant === 'featured' ? 'min-h-10' : 'min-h-9'} mt-1.5 line-clamp-2 text-sm font-medium leading-snug text-gray-500 dark:text-zinc-400`}>
+            {community.description || t('community.no_description')}
+          </p>
+          <div className="mt-3 flex items-center gap-3 text-xs font-bold text-gray-500 dark:text-zinc-500">
+            <span className="flex items-center gap-1"><Users size={13} />{community.members_count} {t('community.members')}</span>
+            {variant === 'featured' ? <span className="flex items-center gap-1"><MessageSquare size={13} />{community.posts_count}</span> : null}
           </div>
         </div>
+      </Link>
+      <CommunityAction community={community} />
+    </article>
+  );
+}
+
+function CommunityMedia({ community, className }: { community: Community; className: string }) {
+  const initial = community.name.trim().slice(0, 1).toUpperCase() || 'M';
+
+  if (community.cover_url) {
+    return (
+      <div className={className}>
+        <img src={community.cover_url} alt="" className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.03]" />
       </div>
-    </Link>
+    );
+  }
+
+  if (community.avatar_url) {
+    return (
+      <div className={className}>
+        <img src={community.avatar_url} alt="" className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.03]" />
+      </div>
+    );
+  }
+
+  return (
+    <div className={`${className} community-card-fallback`} aria-hidden="true">
+      <span>{initial}</span>
+    </div>
+  );
+}
+
+function CommunityAction({ community }: { community: Community }) {
+  const { user } = useAuthStore();
+  const { t } = useTranslation();
+  const toast = useToast();
+  const queryClient = useQueryClient();
+  const isJoined = community.membership === 'active';
+  const mutation = useMutation({
+    mutationFn: () => api.joinCommunity(community.slug, false),
+    onSuccess: (result) => {
+      queryClient.invalidateQueries({ queryKey: ['communities'] });
+      queryClient.invalidateQueries({ queryKey: ['community', community.slug] });
+      toast.show({
+        title: result.membership === 'active' ? t('community.joined') : t('community.request_sent'),
+        tone: 'success',
+      });
+    },
+    onError: (event) => toast.show({ title: event instanceof Error ? event.message : t('community.join_error'), tone: 'error' }),
+  });
+
+  if (isJoined) {
+    return (
+      <Link to={`/communities/${community.slug}`} className="community-card-action community-card-action--secondary">
+        {t('community.open')}
+      </Link>
+    );
+  }
+
+  if (!user) {
+    return (
+      <Link to={authRedirectUrl(`/communities/${community.slug}`)} className="community-card-action">
+        {community.type === 'closed' ? t('community.request') : t('community.join')}
+      </Link>
+    );
+  }
+
+  return (
+    <button type="button" onClick={() => mutation.mutate()} disabled={mutation.isPending} className="community-card-action">
+      {mutation.isPending ? t('community.joining') : community.type === 'closed' ? t('community.request') : t('community.join')}
+    </button>
   );
 }
 
