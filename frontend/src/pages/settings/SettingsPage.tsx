@@ -1,10 +1,7 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
-  AlertTriangle,
   AtSign,
-  Award,
   Bell,
-  Briefcase,
   Camera,
   Check,
   CheckCircle2,
@@ -13,12 +10,10 @@ import {
   Cpu,
   Eye,
   EyeOff,
-  Flame,
   Hash,
   Heart,
   Link2,
   Loader2,
-  Lock,
   LogOut,
   MapPin,
   MessageCircle,
@@ -42,7 +37,8 @@ import { api } from '../../shared/api/client';
 import { Avatar, ConfirmDialog, useToast } from '../../shared/ui';
 import { ProductEmptyState } from '../../shared/ui/ProductEmptyState';
 import { useAuthStore } from '../../store/authStore';
-import { cn } from '../../lib/utils';
+import { useTranslation } from '../../shared/i18n';
+import type { User } from '../../shared/types';
 
 type SettingsTab = 'profile' | 'privacy' | 'notifications' | 'appearance' | 'sessions';
 
@@ -149,10 +145,6 @@ export function SettingsPage({ theme, setTheme }: { theme: string; setTheme: (th
     location: user?.location || '',
     interests: (user?.interests || []).join('|'),
   });
-
-  const markChanged = useCallback(() => {
-    /* state changes trigger hasChanges through the derived comparison below */
-  }, []);
 
   const hasChanges = useMemo(() => {
     return (
@@ -470,114 +462,73 @@ export function SettingsPage({ theme, setTheme }: { theme: string; setTheme: (th
     { id: 'sessions', label: t('settings.tab_sessions'), icon: Shield, badge: sessions.length > 1 ? sessions.length : undefined },
   ];
 
-  const completeness = useMemo(() => {
-    const checks = [
-      Boolean(displayName.trim()),
-      Boolean(bio.trim()),
-      Boolean(user.avatar_url),
-      Boolean(user.cover_url),
-      Boolean(location.trim()),
-      Boolean(website.trim()),
-      interests.length > 0,
-    ];
-    const filled = checks.filter(Boolean).length;
-    return Math.round((filled / checks.length) * 100);
-  }, [displayName, bio, user.avatar_url, user.cover_url, location, website, interests]);
-
   return (
-    <div className="settings-shell">
-      {/* HERO */}
-      <section className="settings-hero" aria-label={t('settings.title')}>
-        <div className="settings-hero-inner">
-          <div className="min-w-0">
-            <div className="settings-hero-title">
-              <span className="settings-hero-icon" aria-hidden="true">
-                <SettingsIcon size={26} />
-              </span>
-              <div className="min-w-0">
-                <h1>{t('settings.title')}</h1>
-                <p className="settings-hero-subtitle">{t('settings.subtitle')}</p>
-              </div>
-            </div>
-            <div className="settings-hero-meta">
-              <span className="settings-meta-chip" data-tone="orange">
-                <AtSign size={14} />@{user.username}
-              </span>
-              {user.is_verified ? (
-                <span className="settings-meta-chip" data-tone="green">
-                  <Check size={14} />
-                  {t('settings.sessions_active_now')}
-                </span>
-              ) : null}
-              <span className="settings-meta-chip" data-tone="amber">
-                <Flame size={14} />
-                {user.activity_score ?? 0} XP
-              </span>
-            </div>
-          </div>
-          <SettingsCompletenessCard value={completeness} />
-        </div>
-      </section>
+    <div className="settings-page">
+      <header className="settings-page-header">
+        <span className="settings-title-icon" aria-hidden="true">
+          <SettingsIcon size={30} />
+        </span>
+        <h1>{t('settings.title')}</h1>
+      </header>
 
-      {/* MOBILE TABS (below lg) */}
-      <div className="settings-layout">
-        <div className="lg:hidden">
-          <div className="settings-mobile-tabs" role="tablist" aria-label={t('settings.title')}>
-            {tabs.map((item) => {
-              const active = tab === item.id;
-              const Icon = item.icon;
-              return (
-                <button
-                  key={item.id}
-                  type="button"
-                  role="tab"
-                  aria-selected={active}
-                  onClick={() => setTab(item.id)}
-                  data-active={active}
-                  className="settings-mobile-tab"
-                >
-                  <Icon size={16} />
-                  {item.label}
-                </button>
-              );
-            })}
-          </div>
-        </div>
+      <div className="settings-workspace">
+        <nav className="settings-nav" aria-label={t('settings.title')} role="tablist">
+          {tabs.map((item) => {
+            const active = tab === item.id;
+            const Icon = item.icon;
+            return (
+              <button
+                key={item.id}
+                type="button"
+                role="tab"
+                aria-selected={active}
+                onClick={() => setTab(item.id)}
+                data-active={active}
+                className="settings-nav-item"
+              >
+                <Icon size={20} />
+                <span>{item.label}</span>
+                {item.badge ? <span className="settings-nav-badge">{item.badge}</span> : null}
+              </button>
+            );
+          })}
+        </nav>
 
-        {/* SIDEBAR (lg+) */}
-        <aside className="hidden lg:block" aria-label={t('settings.title')}>
-          <nav className="settings-sidebar">
-            <p className="settings-sidebar-label">{t('settings.title')}</p>
-            {tabs.map((item) => {
-              const active = tab === item.id;
-              const Icon = item.icon;
-              return (
-                <button
-                  key={item.id}
-                  type="button"
-                  onClick={() => setTab(item.id)}
-                  data-active={active}
-                  className="settings-sidebar-link"
-                  aria-current={active ? 'page' : undefined}
-                >
-                  <Icon size={18} />
-                  <span>{item.label}</span>
-                  {item.badge ? <span className="settings-sidebar-badge">{item.badge}</span> : null}
-                </button>
-              );
-            })}
-          </nav>
-        </aside>
+        <section className="settings-content" role="tabpanel">
+          {tab === 'profile' ? (
+            <>
+              <ProfileTab {...{
+                user, username, displayName, bio, website, location, interests, t,
+                avatarUploading, coverUploading, uploadAvatar, uploadCover,
+                usernameChecking, usernameAvailable, usernameShapeValid, usernameDirty,
+                setUsername, setDisplayName, setBio, setWebsite, setLocation, setInterests,
+                handleAddInterest, handleRemoveInterest, handleInterestKeyDown, interestInputRef,
+              }} />
 
-        {/* MAIN */}
-        <div className="min-w-0">
-          {tab === 'profile' ? <ProfileTab {...{
-            user, username, displayName, bio, website, location, interests, t,
-            avatarUploading, coverUploading, uploadAvatar, uploadCover,
-            usernameChecking, usernameAvailable, usernameShapeValid, usernameDirty, markChanged,
-            setUsername, setDisplayName, setBio, setWebsite, setLocation, setInterests,
-            handleAddInterest, handleRemoveInterest, handleInterestKeyDown, interestInputRef,
-          }} /> : null}
+              <footer className="settings-panel-footer" aria-live="polite">
+                <span>{hasChanges ? t('common.unsaved_changes') : t('settings.profile_footer_note')}</span>
+                <div className="settings-panel-actions">
+                  <button
+                    type="button"
+                    className="motion-control settings-panel-button"
+                    onClick={resetChanges}
+                    disabled={saving || !hasChanges}
+                  >
+                    {t('common.discard')}
+                  </button>
+                  <button
+                    type="button"
+                    className="motion-control settings-panel-button settings-panel-button--primary"
+                    onClick={save}
+                    disabled={saving || usernameInvalid || !hasChanges}
+                  >
+                    {saving ? <Loader2 size={15} className="animate-spin" /> : <Check size={15} />}
+                    {t('settings.profile_save')}
+                  </button>
+                </div>
+              </footer>
+            </>
+          ) : null}
           {tab === 'privacy' ? <PrivacyTab {...{
             t, showLikes, profilePrivate, allowDms, switchBusy, switchPrivacy,
           }} /> : null}
@@ -591,37 +542,8 @@ export function SettingsPage({ theme, setTheme }: { theme: string; setTheme: (th
           {tab === 'sessions' ? <SessionsTab {...{
             t, sessions, setRevokeOpen, setLogoutOpen,
           }} /> : null}
-        </div>
-
-        {/* PREVIEW ASIDE (xl+) */}
-        <ProfilePreviewAside user={user} displayName={displayName} username={username} bio={bio} interests={interests} t={t} />
+        </section>
       </div>
-
-      {/* STICKY SAVE BAR */}
-      {hasChanges ? (
-        <div className="settings-save-bar" role="status" aria-live="polite">
-          <div className="settings-save-bar-inner">
-            <div className="settings-save-bar-info">
-              <span className="settings-save-bar-info-dot" aria-hidden="true" />
-              {t('common.unsaved_changes')}
-            </div>
-            <div className="settings-save-bar-buttons">
-              <button type="button" className="settings-save-btn" onClick={resetChanges} disabled={saving}>
-                {t('common.discard')}
-              </button>
-              <button
-                type="button"
-                className="settings-save-btn settings-save-btn--primary"
-                onClick={save}
-                disabled={saving || usernameInvalid}
-              >
-                {saving ? <Loader2 size={14} className="animate-spin" /> : <Check size={14} />}
-                {t('settings.profile_save')}
-              </button>
-            </div>
-          </div>
-        </div>
-      ) : null}
 
       {/* INLINE TOAST (after auto-save) */}
       {inlineToast ? (
@@ -658,7 +580,7 @@ export function SettingsPage({ theme, setTheme }: { theme: string; setTheme: (th
    ============================================================ */
 
 interface ProfileTabProps {
-  user: NonNullable<ReturnType<typeof useAuthStore>['user']>;
+  user: User;
   username: string;
   displayName: string;
   bio: string;
@@ -674,7 +596,6 @@ interface ProfileTabProps {
   usernameAvailable: boolean | null;
   usernameShapeValid: boolean;
   usernameDirty: boolean;
-  markChanged: () => void;
   setUsername: (v: string) => void;
   setDisplayName: (v: string) => void;
   setBio: (v: string) => void;
@@ -695,219 +616,235 @@ function ProfileTab({
   handleAddInterest, handleRemoveInterest, handleInterestKeyDown, interestInputRef,
 }: ProfileTabProps) {
   return (
-    <div>
-      <SettingsSection tone="purple" title={t('settings.profile_section_identity')} subtitle={t('settings.subtitle')}>
-        <ProfileMediaCard
-          user={user}
-          t={t}
-          avatarUploading={avatarUploading}
-          coverUploading={coverUploading}
-          uploadAvatar={uploadAvatar}
-          uploadCover={uploadCover}
-        />
-      </SettingsSection>
+    <div className="settings-profile-stack">
+      <ProfileMediaCard
+        user={user}
+        displayName={displayName}
+        username={username}
+        t={t}
+        avatarUploading={avatarUploading}
+        coverUploading={coverUploading}
+        uploadAvatar={uploadAvatar}
+        uploadCover={uploadCover}
+      />
 
-      <SettingsSection title={t('settings.profile_section_about')}>
-        <SettingsRow
-          icon={<AtSign size={18} />}
-          tone="orange"
-          label={t('settings.username')}
-          helper={t('settings.username_helper')}
-          controlStatus={
-            <UsernameStatus
-              t={t}
-              dirty={usernameDirty}
-              checking={usernameChecking}
-              available={usernameAvailable}
-              shapeValid={usernameShapeValid}
-            />
-          }
-        >
-          <div className="settings-input-wrap">
-            <span className="settings-input-affix settings-input-affix--left" aria-hidden="true">@</span>
+      <div className="settings-form-stack">
+        <div className="settings-grouped-card">
+          <SettingsFieldRow
+            icon={<span className="settings-field-at">@</span>}
+            label={t('settings.username')}
+            helper={t('settings.username_helper')}
+          >
+            <div className="settings-input-with-status">
+              <input
+                type="text"
+                className="settings-text-control"
+                value={username}
+                onChange={(e) => setUsername(e.target.value.toLowerCase())}
+                placeholder="username"
+                autoCapitalize="none"
+                autoCorrect="off"
+                spellCheck={false}
+                aria-label={t('settings.username')}
+                aria-invalid={usernameDirty && (!usernameShapeValid || usernameAvailable === false)}
+              />
+              <UsernameStatus
+                t={t}
+                dirty={usernameDirty}
+                checking={usernameChecking}
+                available={usernameAvailable}
+                shapeValid={usernameShapeValid}
+              />
+            </div>
+          </SettingsFieldRow>
+
+          <SettingsFieldRow
+            icon={<UserIcon size={18} />}
+            label={t('settings.display_name')}
+            helper={t('settings.display_name_helper')}
+          >
             <input
               type="text"
-              className="settings-input"
-              value={username}
-              onChange={(e) => setUsername(e.target.value.toLowerCase())}
-              placeholder="username"
-              autoCapitalize="none"
-              autoCorrect="off"
-              spellCheck={false}
-              aria-label={t('settings.username')}
-              data-invalid={usernameDirty && (!usernameShapeValid || usernameAvailable === false)}
-              data-valid={usernameDirty && usernameShapeValid && usernameAvailable === true}
+              className="settings-text-control"
+              value={displayName}
+              onChange={(e) => setDisplayName(e.target.value)}
+              placeholder={t('settings.display_name_placeholder')}
+              aria-label={t('settings.display_name')}
+              maxLength={50}
             />
-          </div>
-        </SettingsRow>
+          </SettingsFieldRow>
 
-        <SettingsRow
-          icon={<UserIcon size={18} />}
-          tone="purple"
-          label={t('settings.display_name')}
-          helper={t('settings.display_name_helper')}
-        >
-          <input
-            type="text"
-            className="settings-input"
-            value={displayName}
-            onChange={(e) => setDisplayName(e.target.value)}
-            placeholder={t('settings.display_name_placeholder')}
-            aria-label={t('settings.display_name')}
-            maxLength={50}
-          />
-        </SettingsRow>
+          <SettingsFieldRow
+            icon={<Heart size={18} />}
+            label={t('settings.bio')}
+            helper={t('settings.bio_helper')}
+            align="start"
+          >
+            <div className="settings-textarea-wrap">
+              <textarea
+                className="settings-text-control settings-textarea"
+                value={bio}
+                onChange={(e) => setBio(e.target.value)}
+                placeholder={t('settings.bio_placeholder')}
+                aria-label={t('settings.bio')}
+                maxLength={160}
+                rows={3}
+              />
+              <span className="settings-character-count">{bio.length} / 160</span>
+            </div>
+          </SettingsFieldRow>
 
-        <SettingsRow
-          icon={<Heart size={18} />}
-          tone="rose"
-          label={t('settings.bio')}
-          helper={t('settings.bio_helper')}
-          counter={bio.length}
-          counterMax={160}
-        >
-          <textarea
-            className="settings-textarea"
-            value={bio}
-            onChange={(e) => setBio(e.target.value)}
-            placeholder={t('settings.bio_placeholder')}
-            aria-label={t('settings.bio')}
-            maxLength={160}
-            rows={3}
-          />
-        </SettingsRow>
-      </SettingsSection>
-
-      <SettingsSection title={t('settings.profile_section_presence')} tone="blue">
-        <SettingsRow
-          icon={<Link2 size={18} />}
-          tone="blue"
-          label={t('settings.website')}
-          helper={t('settings.website_helper')}
-        >
-          <div className="settings-input-wrap">
-            <Link2 size={14} className="settings-input-affix settings-input-affix--left" aria-hidden="true" />
+          <SettingsFieldRow
+            icon={<Link2 size={18} />}
+            label={t('settings.website')}
+            helper={t('settings.website_helper')}
+          >
             <input
               type="url"
-              className="settings-input"
+              className="settings-text-control"
               value={website}
               onChange={(e) => setWebsite(e.target.value)}
               placeholder="https://example.com"
               aria-label={t('settings.website')}
               inputMode="url"
             />
-          </div>
-        </SettingsRow>
+          </SettingsFieldRow>
+        </div>
 
-        <SettingsRow
-          icon={<MapPin size={18} />}
-          tone="amber"
-          label={t('settings.location')}
-          helper={t('settings.location_helper')}
-        >
-          <div className="settings-input-wrap">
-            <MapPin size={14} className="settings-input-affix settings-input-affix--left" aria-hidden="true" />
+        <div className="settings-grouped-card">
+          <SettingsFieldRow
+            icon={<MapPin size={18} />}
+            label={t('settings.location')}
+            helper={t('settings.location_helper')}
+          >
             <input
               type="text"
-              className="settings-input"
+              className="settings-text-control"
               value={location}
               onChange={(e) => setLocation(e.target.value)}
               placeholder={t('settings.location_placeholder')}
               aria-label={t('settings.location')}
             />
-          </div>
-        </SettingsRow>
+          </SettingsFieldRow>
 
-        <SettingsRow
-          icon={<Hash size={18} />}
-          tone="violet"
-          label={t('settings.interests')}
-          helper={t('settings.interests_helper')}
-        >
-          <ChipInput
-            values={interests}
-            t={t}
-            inputRef={interestInputRef}
-            onAdd={handleAddInterest}
-            onRemove={handleRemoveInterest}
-            onKeyDown={handleInterestKeyDown}
-            onClear={() => setInterests([])}
-            suggestions={SUGGESTED_INTERESTS}
-          />
-        </SettingsRow>
-      </SettingsSection>
+          <SettingsFieldRow
+            icon={<Hash size={18} />}
+            label={t('settings.interests')}
+            helper={t('settings.interests_helper')}
+            align="start"
+          >
+            <ChipInput
+              values={interests}
+              t={t}
+              inputRef={interestInputRef}
+              onAdd={handleAddInterest}
+              onRemove={handleRemoveInterest}
+              onKeyDown={handleInterestKeyDown}
+              onClear={() => setInterests([])}
+              suggestions={SUGGESTED_INTERESTS}
+            />
+          </SettingsFieldRow>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function SettingsFieldRow({
+  icon, label, helper, align, children,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  helper?: string;
+  align?: 'start';
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="settings-field-row" data-align={align}>
+      <span className="settings-field-icon" aria-hidden="true">
+        {icon}
+      </span>
+      <div className="settings-field-copy">
+        <p>{label}</p>
+        {helper ? <span>{helper}</span> : null}
+      </div>
+      <div className="settings-field-control">{children}</div>
     </div>
   );
 }
 
 function ProfileMediaCard({
-  user, t, avatarUploading, coverUploading, uploadAvatar, uploadCover,
+  user, displayName, username, t, avatarUploading, coverUploading, uploadAvatar, uploadCover,
 }: {
-  user: NonNullable<ReturnType<typeof useAuthStore>['user']>;
+  user: User;
+  displayName: string;
+  username: string;
   t: (key: string, values?: Record<string, string | number>) => string;
   avatarUploading: boolean;
   coverUploading: boolean;
   uploadAvatar: (file?: File) => Promise<void>;
   uploadCover: (file?: File) => Promise<void>;
 }) {
+  const visibleName = displayName.trim() || user.display_name || `@${user.username}`;
+  const visibleUsername = username.trim() || user.username;
+
   return (
-    <div className="settings-media-card">
-      <div className="settings-cover" role="img" aria-label={t('settings.cover_label')}>
-        {user.cover_url ? <img src={user.cover_url} alt="" /> : null}
-        <div className="settings-cover-actions">
-          <label className="settings-media-btn">
-            <Camera size={14} />
-            {coverUploading ? <Loader2 size={14} className="animate-spin" /> : t('settings.cover_change')}
-            <input
-              type="file"
-              accept="image/*"
-              className="hidden"
-              disabled={coverUploading}
-              onChange={(e) => uploadCover(e.target.files?.[0])}
-            />
-          </label>
-        </div>
-        {coverUploading ? <div className="settings-cover-uploading" aria-hidden="true" /> : null}
+    <div className="settings-profile-card">
+      <div className="settings-profile-cover" role="img" aria-label={t('settings.cover_label')}>
+        {user.cover_url ? (
+          <img src={user.cover_url} alt="" className="h-full w-full object-cover" />
+        ) : (
+          <>
+            <span className="settings-cover-wave settings-cover-wave--one" aria-hidden="true" />
+            <span className="settings-cover-wave settings-cover-wave--two" aria-hidden="true" />
+          </>
+        )}
+        <label className="settings-cover-upload">
+          <span className="settings-cover-upload-pill">
+            {coverUploading ? <Loader2 size={14} className="animate-spin" /> : <Camera size={14} />}
+            {t('settings.cover_change')}
+          </span>
+          <input
+            type="file"
+            accept="image/*"
+            className="hidden"
+            disabled={coverUploading}
+            aria-label={t('settings.cover_change')}
+            onChange={(e) => uploadCover(e.target.files?.[0])}
+          />
+        </label>
+        {coverUploading ? (
+          <div className="settings-upload-overlay" aria-hidden="true">
+            <Loader2 size={24} className="animate-spin text-white" />
+          </div>
+        ) : null}
       </div>
 
-      <div className="settings-avatar-block">
-        <div className="settings-avatar">
-          <Avatar src={user.avatar_url} name={user.display_name} className="h-full w-full rounded-none" />
-          {avatarUploading ? <div className="settings-cover-uploading" aria-hidden="true" /> : null}
-          <label className="settings-avatar-edit" data-busy={avatarUploading || undefined}>
-            <Camera size={14} />
-            <input
-              type="file"
-              accept="image/*"
-              className="hidden"
-              disabled={avatarUploading}
-              aria-label={t('settings.avatar_change')}
-              onChange={(e) => uploadAvatar(e.target.files?.[0])}
-            />
-          </label>
-        </div>
-        <div className="settings-profile-summary">
-          <p className="settings-profile-summary-name">{user.display_name || '@' + user.username}</p>
-          <p className="settings-profile-summary-username">@{user.username}</p>
-        </div>
-      </div>
-
-      <div className="settings-profile-meta">
-        <div className="settings-profile-meta-cell">
-          <span className="settings-profile-meta-value">{user.followers_count ?? 0}</span>
-          <span className="settings-profile-meta-label">{t('profile.followers')}</span>
-        </div>
-        <div className="settings-profile-meta-cell">
-          <span className="settings-profile-meta-value">{user.following_count ?? 0}</span>
-          <span className="settings-profile-meta-label">{t('profile.following')}</span>
-        </div>
-        <div className="settings-profile-meta-cell">
-          <span className="settings-profile-meta-value">{user.posts_count ?? 0}</span>
-          <span className="settings-profile-meta-label">{t('profile.posts')}</span>
+      <div className="settings-profile-summary">
+        <label className="settings-avatar-uploader">
+          <Avatar src={user.avatar_url} name={visibleName} className="settings-profile-avatar" />
+          {avatarUploading ? (
+            <span className="settings-avatar-overlay" aria-hidden="true">
+              <Loader2 size={22} className="animate-spin text-white" />
+            </span>
+          ) : null}
+          <span className="settings-avatar-edit" aria-hidden="true">
+            <Camera size={15} />
+          </span>
+          <input
+            type="file"
+            accept="image/*"
+            className="hidden"
+            disabled={avatarUploading}
+            aria-label={t('settings.avatar_change')}
+            onChange={(e) => uploadAvatar(e.target.files?.[0])}
+          />
+        </label>
+        <div className="min-w-0">
+          <p className="settings-profile-name">{visibleName}</p>
+          <p className="settings-profile-handle">@{visibleUsername}</p>
         </div>
       </div>
-
-      <p className="settings-media-hint">{t('settings.cover_hint')}</p>
     </div>
   );
 }
@@ -921,7 +858,13 @@ function UsernameStatus({
   available: boolean | null;
   shapeValid: boolean;
 }) {
-  if (!dirty) return <span className="settings-row-status" data-tone="muted">{t('settings.field_optional')}</span>;
+  if (!dirty) {
+    return (
+      <span className="settings-field-check" aria-label={t('settings.username_available')}>
+        <Check size={16} />
+      </span>
+    );
+  }
   if (checking) {
     return (
       <span className="settings-row-status" data-tone="muted">
@@ -948,9 +891,8 @@ function UsernameStatus({
   }
   if (available === true) {
     return (
-      <span className="settings-row-status" data-tone="ok">
-        <CheckCircle2 size={14} />
-        {t('settings.username_available')}
+      <span className="settings-field-check" aria-label={t('settings.username_available')}>
+        <CheckCircle2 size={16} />
       </span>
     );
   }
@@ -1417,85 +1359,15 @@ function SessionsTab({ t, sessions, setRevokeOpen, setLogoutOpen }: SessionsTabP
 }
 
 /* ============================================================
-   PROFILE PREVIEW (xl+ aside)
-   ============================================================ */
-
-function ProfilePreviewAside({
-  user, displayName, username, bio, interests, t,
-}: {
-  user: NonNullable<ReturnType<typeof useAuthStore>['user']>;
-  displayName: string;
-  username: string;
-  bio: string;
-  interests: string[];
-  t: (key: string) => string;
-}) {
-  return (
-    <aside className="settings-preview-aside" aria-label={t('settings.preview_title')}>
-      <div className="settings-preview-card">
-        <div className="settings-preview-cover">
-          {user.cover_url ? <img src={user.cover_url} alt="" /> : null}
-        </div>
-        <div className="settings-preview-body">
-          <div className="settings-preview-avatar">
-            {user.avatar_url ? <img src={user.avatar_url} alt="" /> : (displayName || user.display_name || '?').charAt(0).toUpperCase()}
-          </div>
-          <p className="settings-preview-name">{displayName || user.display_name}</p>
-          <p className="settings-preview-username">@{username || user.username}</p>
-          <p className="settings-preview-bio" data-empty={!bio.trim()}>
-            {bio.trim() || t('settings.bio_placeholder')}
-          </p>
-          {interests.length > 0 ? (
-            <div className="settings-preview-interests">
-              {interests.slice(0, 6).map((item, idx) => (
-                <span key={item} className="chip" data-tone={chipToneFor(idx)}>
-                  #{item}
-                </span>
-              ))}
-            </div>
-          ) : null}
-        </div>
-        <div className="settings-preview-footer">
-          <span>{user.followers_count ?? 0} {t('profile.followers')}</span>
-          <span>·</span>
-          <span>{user.posts_count ?? 0} {t('profile.posts')}</span>
-          <a href={`/@${user.username}`}>↗</a>
-        </div>
-      </div>
-      <p className="settings-preview-hint">{t('settings.preview_subtitle')}</p>
-    </aside>
-  );
-}
-
-/* ============================================================
    GENERIC SECTION + ROW + SWITCH + CHIP INPUT
    ============================================================ */
-
-function SettingsCompletenessCard({ value }: { value: number }) {
-  const { t } = useTranslation();
-  const full = value >= 80;
-  return (
-    <div className="settings-completeness" aria-live="polite">
-      <div className="settings-completeness-label">
-        <span>{t('settings.section_meta')}</span>
-        <Award size={14} aria-hidden="true" />
-      </div>
-      <div className="settings-completeness-value">
-        {t('settings.completeness', { value })}
-      </div>
-      <div className="settings-completeness-bar" data-tone={full ? 'full' : undefined} role="progressbar" aria-valuenow={value} aria-valuemin={0} aria-valuemax={100}>
-        <div className="settings-completeness-fill" style={{ width: `${value}%` }} />
-      </div>
-    </div>
-  );
-}
 
 function SettingsSection({
   title, subtitle, tone = 'orange', children,
 }: {
   title: string;
   subtitle?: string;
-  tone?: 'orange' | 'purple' | 'blue' | 'green' | 'rose';
+  tone?: 'orange' | 'purple' | 'blue' | 'green' | 'rose' | 'amber' | 'violet' | 'slate';
   children: React.ReactNode;
 }) {
   return (

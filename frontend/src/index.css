@@ -5373,6 +5373,319 @@
   }
 }
 
+/* Settings reference alignment: settings-profile.png */
+.settings-page {
+  display: block;
+  min-width: 0;
+  max-width: 72rem;
+  margin: 0 auto;
+  padding: 2rem 1.5rem 2.5rem;
+  color: var(--app-ink);
+}
+
+.settings-page-header {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 0.95rem;
+  margin-bottom: 1.45rem;
+}
+
+.settings-page-header h1 {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  color: var(--app-ink);
+  font-size: 1.72rem;
+  font-weight: 900;
+  letter-spacing: 0;
+  line-height: 1.08;
+}
+
+.settings-title-icon {
+  height: 2.75rem;
+  width: 2.75rem;
+  color: var(--memelution-orange);
+}
+
+.settings-workspace {
+  max-width: 70rem;
+  grid-template-columns: 13.9rem minmax(0, 1fr);
+  border-radius: 1.35rem;
+  background: color-mix(in oklch, var(--app-surface) 98%, transparent);
+}
+
+.settings-nav {
+  gap: 0.78rem;
+  padding: 1.45rem 1.1rem;
+}
+
+.settings-nav-item {
+  min-height: 3.9rem;
+  border-radius: 0.85rem;
+  padding-inline: 1.05rem;
+  font-size: 0.94rem;
+  letter-spacing: 0;
+}
+
+.settings-nav-badge {
+  margin-left: auto;
+  display: inline-flex;
+  min-width: 1.35rem;
+  height: 1.35rem;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  background: var(--memelution-orange);
+  color: white;
+  padding-inline: 0.35rem;
+  font-size: 0.7rem;
+  font-weight: 900;
+}
+
+.settings-content {
+  padding: 1.45rem 1.75rem 0;
+}
+
+.settings-profile-stack {
+  gap: 1.15rem;
+}
+
+.settings-profile-card {
+  border-radius: 1.15rem;
+}
+
+.settings-profile-cover {
+  height: 13.6rem;
+  animation: none;
+}
+
+.settings-profile-cover img {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+}
+
+.settings-profile-summary {
+  min-height: 5.75rem;
+  padding: 0 1.85rem 1.42rem;
+}
+
+.settings-profile-card .settings-profile-summary {
+  min-height: 5.75rem;
+  padding: 0 1.85rem 1.42rem;
+}
+
+.settings-profile-avatar {
+  height: 6.7rem;
+  width: 6.7rem;
+  border-radius: 1.45rem;
+}
+
+.settings-profile-name {
+  font-size: 1.7rem;
+  letter-spacing: 0;
+}
+
+.settings-profile-handle {
+  letter-spacing: 0;
+}
+
+.settings-grouped-card {
+  border-radius: 1rem;
+}
+
+.settings-field-row {
+  min-height: 5.35rem;
+  grid-template-columns: 3.1rem minmax(10.5rem, 0.72fr) minmax(16rem, 1.28fr);
+  padding: 0.96rem 1.05rem;
+}
+
+.settings-field-row + .settings-field-row {
+  border-top: 1px solid var(--app-line);
+}
+
+.settings-field-icon {
+  height: 3rem;
+  width: 3rem;
+}
+
+.settings-field-copy p,
+.settings-field-copy span,
+.settings-text-control,
+.settings-row-status,
+.chip-input-field,
+.settings-character-count {
+  letter-spacing: 0;
+}
+
+.settings-text-control {
+  min-height: 3.1rem;
+  width: 100%;
+  min-width: 0;
+  border: 1px solid var(--app-line);
+  border-radius: 0.72rem;
+  background: color-mix(in oklch, var(--app-surface) 96%, transparent);
+  color: var(--app-ink);
+  box-shadow: inset 0 1px 0 color-mix(in oklch, white 62%, transparent);
+  padding: 0.75rem 0.95rem;
+  font-size: 0.92rem;
+  font-weight: 750;
+  font-family: inherit;
+  outline: none;
+  transition: border-color 160ms ease, box-shadow 160ms ease, background 160ms ease;
+}
+
+.settings-text-control::placeholder {
+  color: color-mix(in oklch, var(--app-muted) 72%, white);
+  font-weight: 650;
+}
+
+.settings-text-control:focus {
+  border-color: color-mix(in oklch, var(--memelution-orange) 38%, var(--app-line));
+  box-shadow: 0 0 0 3px color-mix(in oklch, var(--memelution-orange) 11%, transparent);
+}
+
+.settings-text-control[aria-invalid="true"] {
+  border-color: oklch(0.62 0.2 25);
+  box-shadow: 0 0 0 3px oklch(0.62 0.2 25 / 0.1);
+}
+
+.settings-input-with-status {
+  position: relative;
+}
+
+.settings-input-with-status .settings-text-control {
+  padding-right: 3rem;
+}
+
+.settings-input-with-status .settings-row-status {
+  flex: 0 0 auto;
+}
+
+.settings-field-check {
+  position: absolute;
+  top: 50%;
+  right: 0.95rem;
+  display: inline-flex;
+  height: 1.35rem;
+  width: 1.35rem;
+  transform: translateY(-50%);
+  align-items: center;
+  justify-content: center;
+  color: oklch(0.63 0.18 145);
+  pointer-events: none;
+}
+
+.settings-panel-footer {
+  margin-top: 1.35rem;
+}
+
+.settings-panel-button {
+  min-height: 2.95rem;
+  min-width: 8.75rem;
+  border: 1px solid var(--app-line);
+  border-radius: 0.86rem;
+  background: var(--app-surface);
+  color: var(--app-ink);
+  padding: 0 1.2rem;
+  font-size: 0.9rem;
+  font-weight: 900;
+  letter-spacing: 0;
+  transition: background 160ms ease, border-color 160ms ease, color 160ms ease, transform 160ms ease, box-shadow 160ms ease;
+}
+
+.settings-panel-button:hover:not(:disabled) {
+  border-color: color-mix(in oklch, var(--memelution-orange) 28%, var(--app-line));
+  background: var(--app-soft-orange);
+  color: var(--memelution-orange);
+}
+
+.settings-panel-button--primary {
+  border-color: transparent;
+  background: linear-gradient(110deg, var(--memelution-orange), oklch(0.7 0.21 36));
+  color: white;
+  box-shadow: 0 14px 26px oklch(0.71 0.2 45.6 / 0.24);
+}
+
+.settings-panel-button--primary:hover:not(:disabled) {
+  background: linear-gradient(110deg, oklch(0.7 0.21 36), var(--memelution-orange));
+  color: white;
+  transform: translateY(-1px);
+}
+
+.settings-panel-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.52;
+}
+
+@media (max-width: 1023px) {
+  .settings-page {
+    max-width: none;
+    padding: 1.3rem 1rem 6.5rem;
+  }
+
+  .settings-workspace {
+    max-width: none;
+  }
+}
+
+@media (max-width: 740px) {
+  .settings-page-header {
+    margin-bottom: 1rem;
+  }
+
+  .settings-page-header h1 {
+    font-size: 1.45rem;
+  }
+
+  .settings-field-row {
+    grid-template-columns: 2.8rem minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 639px) {
+  .settings-page {
+    padding-inline: 0.85rem;
+  }
+
+  .settings-title-icon {
+    height: 2.35rem;
+    width: 2.35rem;
+  }
+
+  .settings-nav-item {
+    min-height: 2.85rem;
+    font-size: 0.84rem;
+  }
+
+  .settings-content {
+    padding: 1rem 1rem 0;
+  }
+
+  .settings-profile-cover {
+    height: 9.8rem;
+  }
+
+  .settings-profile-card .settings-profile-summary {
+    min-height: 5.35rem;
+    padding: 0 1rem 1rem;
+  }
+
+  .settings-profile-name {
+    padding-top: 0.66rem;
+    font-size: 1.2rem;
+  }
+
+  .settings-profile-avatar {
+    height: 5.35rem;
+    width: 5.35rem;
+  }
+
+  .settings-panel-actions {
+    gap: 0.65rem;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .settings-cover,
   .settings-session-tag-dot {
