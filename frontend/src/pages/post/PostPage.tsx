@@ -4,7 +4,7 @@ import { ArrowLeft, ArrowUp, CornerDownRight, MessageCircle, Send, X } from 'luc
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { api } from '../../shared/api/client';
 import type { Comment } from '../../shared/types';
-import { Button, EmptyState, ErrorState, Skeleton, Tabs, Textarea, useToast } from '../../shared/ui';
+import { Button, EmptyState, ErrorState, PageLayout, Skeleton, Tabs, Textarea, useToast } from '../../shared/ui';
 import { PostCard } from '../../features/posts/components/PostCard';
 import { CommentItem } from '../../features/comments/CommentItem';
 import { useAuthStore } from '../../store/authStore';
@@ -128,7 +128,7 @@ export function PostPage() {
   }
 
   return (
-    <div>
+    <PageLayout variant="default">
       <header className="page-header sticky top-0 z-20 px-4 py-5 sm:px-6 sm:py-7">
         <div className="flex items-center gap-3">
           <button onClick={goBack} className="rounded-lg p-2 hover:bg-gray-200 dark:hover:bg-zinc-900" aria-label={t('post_page.back')}>
@@ -137,7 +137,7 @@ export function PostPage() {
           <h1 className="page-title">{t('post_page.title')}</h1>
         </div>
       </header>
-      <div className="space-y-5 p-3 sm:p-5 lg:p-6">
+      <div className="space-y-5">
         <PostCard
           post={postQuery.data.post}
           onChanged={(post) => queryClient.setQueryData(['post', id], (current: typeof postQuery.data | undefined) => (current ? { ...current, post } : current))}
@@ -246,6 +246,6 @@ export function PostPage() {
           </section>
         ) : null}
       </div>
-    </div>
+  </PageLayout>
   );
 }

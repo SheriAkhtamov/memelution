@@ -21,10 +21,11 @@ import {
   Zap,
 } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
-import { ru } from 'date-fns/locale';
+import { ru, enUS, uz } from 'date-fns/locale';
 import { Avatar, Button } from '../../../shared/ui';
 import type { User } from '../../../shared/types';
 import { cn } from '../../../lib/utils';
+import { useTranslation } from '../../../shared/i18n';
 
 
 interface ExtendedUser extends User {
@@ -80,6 +81,7 @@ export function ProfileHeader({
   onShowFollowers,
   onShowFollowing,
 }: ProfileHeaderProps) {
+  const { t, lang } = useTranslation();
   const [showGamification, setShowGamification] = useState(false);
 
   const level = data.user.achievement_level || 1;
@@ -88,7 +90,7 @@ export function ProfileHeader({
   const xpProgress = Math.min(100, Math.round((xpCurrent / xpTarget) * 100));
   const achievements = data.user.achievements || [];
   const joinedAt = data.user.created_at
-    ? new Date(data.user.created_at).toLocaleDateString('ru-RU', { month: 'long', year: 'numeric' })
+    ? new Date(data.user.created_at).toLocaleDateString(lang === 'en' ? 'en-US' : lang === 'uz' ? 'uz-UZ' : 'ru-RU', { month: 'long', year: 'numeric' })
     : null;
 
   const unlockedAchievements = achievements.filter((achievement) => achievement.unlocked).length;
@@ -119,7 +121,7 @@ export function ProfileHeader({
             className="profile-avatar"
           />
           {data.user.is_online ? (
-            <span className="profile-online-dot" aria-label="в сети" />
+            <span className="profile-online-dot" aria-label={t('profile.online')} />
           ) : null}
         </div>
 
@@ -127,12 +129,12 @@ export function ProfileHeader({
           <div className="profile-title-row">
             <h1 id="profile-display-name" className="text-foreground">{data.user.display_name}</h1>
             {data.user.is_verified || data.user.role === 'global_admin' ? (
-              <BadgeCheck size={22} className="profile-verified-icon text-primary" aria-label="Проверен" />
+              <BadgeCheck size={22} className="profile-verified-icon text-primary" aria-label={t('profile.verified')} />
             ) : null}
             {data.user.role === 'global_admin' ? (
               <span className="profile-founder-badge bg-primary/10 text-primary">
                 <Flame size={13} />
-                Основатель
+                {t('profile.founder')}
               </span>
             ) : null}
           </div>
@@ -143,17 +145,17 @@ export function ProfileHeader({
             {data.user.is_online ? (
               <span className="profile-presence profile-presence--online text-emerald-500">
                 <Radio size={12} className="animate-pulse" />
-                в сети
+                {t('profile.online')}
               </span>
             ) : data.user.last_seen ? (
               <span className="profile-presence text-muted-foreground">
                 <Clock size={12} />
-                был(а) {formatDistanceToNow(new Date(data.user.last_seen), { addSuffix: true, locale: ru })}
+                {t('profile.was_online', { time: formatDistanceToNow(new Date(data.user.last_seen), { addSuffix: true, locale: lang === 'en' ? enUS : lang === 'uz' ? uz : ru }) })}
               </span>
             ) : null}
           </div>
 
-          <p className="profile-bio text-foreground">{data.user.bio || 'Пользователь Мемолюции'}</p>
+          <p className="profile-bio text-foreground">{data.user.bio || t('profile.memolution_user')}</p>
 
           <div className="profile-meta-row text-muted-foreground">
             {data.user.location ? (
@@ -171,7 +173,7 @@ export function ProfileHeader({
             {joinedAt ? (
               <span>
                 <CalendarDays size={14} />
-                С нами с {joinedAt}
+                {t('profile.joined_label', { date: joinedAt })}
               </span>
             ) : null}
           </div>
@@ -180,7 +182,7 @@ export function ProfileHeader({
         <div className="profile-actions">
           {own ? (
             <Link to="/settings" className="profile-main-action bg-primary text-primary-foreground hover:brightness-105">
-              Редактировать
+              {t('profile.edit')}
             </Link>
           ) : (
             <>
@@ -189,10 +191,10 @@ export function ProfileHeader({
                 loading={followPending}
                 className="profile-main-action"
               >
-                {data.is_following ? 'Отписаться' : 'Подписаться'}
+                {data.is_following ? t('profile.unfollow') : t('profile.follow')}
               </Button>
               <Button variant="outline" onClick={onSendMessage} loading={chatPending} className="profile-secondary-action">
-                <Mail size={16} /> Сообщение
+                <Mail size={16} /> {t('profile.message')}
               </Button>
             </>
           )}
@@ -200,7 +202,7 @@ export function ProfileHeader({
               onClick={onShare}
               variant="outline"
               className="profile-icon-action border border-border bg-card text-foreground hover:bg-muted p-0 h-auto"
-              aria-label="Скопировать ссылку на профиль"
+              aria-label={t('profile.share')}
             >
               <Share2 size={18} />
             </Button>
@@ -208,7 +210,7 @@ export function ProfileHeader({
               onClick={onShowQR}
               variant="outline"
               className="profile-icon-action border border-border bg-card text-foreground hover:bg-muted p-0 h-auto"
-              aria-label="Показать QR код профиля"
+              aria-label={t('profile.show_qr')}
             >
               <QrCode size={18} />
             </Button>
@@ -216,7 +218,7 @@ export function ProfileHeader({
       </div>
 
       {(data.user.interests || []).length || own ? (
-        <div className="profile-tags-row" aria-label="Интересы профиля">
+        <div className="profile-tags-row" aria-label={t('profile.interests_label')}>
           {(data.user.interests || []).map((interest) => {
             const tagName = interest.replace(/^#/, '').trim();
             if (!tagName) return null;
@@ -227,21 +229,21 @@ export function ProfileHeader({
             );
           })}
           {own ? (
-            <Link to="/settings" className="profile-tag profile-tag--add bg-muted hover:bg-primary/10 hover:text-primary border border-border" aria-label="Редактировать интересы">
+            <Link to="/settings" className="profile-tag profile-tag--add bg-muted hover:bg-primary/10 hover:text-primary border border-border" aria-label={t('profile.edit_interests')}>
               <Plus size={15} />
             </Link>
           ) : null}
         </div>
       ) : null}
 
-      <div className="profile-stats-panel border border-border bg-card" aria-label="Статистика профиля">
+      <div className="profile-stats-panel border border-border bg-card" aria-label={t('profile.stats_label')}>
         <div className="profile-stat">
           <span className="profile-stat-icon text-primary bg-primary/10">
             <FileText size={18} />
           </span>
           <span className="profile-stat-copy">
             <strong className="text-foreground">{data.user.posts_count || 0}</strong>
-            <span className="text-muted-foreground">постов</span>
+            <span className="text-muted-foreground">{t('profile.posts_count', { count: data.user.posts_count || 0 })}</span>
           </span>
         </div>
         <Button
@@ -254,7 +256,7 @@ export function ProfileHeader({
           </span>
           <span className="profile-stat-copy">
             <strong className="text-foreground">{data.user.followers_count || 0}</strong>
-            <span className="text-muted-foreground">подписчиков</span>
+            <span className="text-muted-foreground">{t('profile.followers_count', { count: data.user.followers_count || 0 })}</span>
           </span>
         </Button>
         <Button
@@ -267,7 +269,7 @@ export function ProfileHeader({
           </span>
           <span className="profile-stat-copy">
             <strong className="text-foreground">{data.user.following_count || 0}</strong>
-            <span className="text-muted-foreground">подписок</span>
+            <span className="text-muted-foreground">{t('profile.following_count', { count: data.user.following_count || 0 })}</span>
           </span>
         </Button>
       </div>
@@ -278,13 +280,13 @@ export function ProfileHeader({
         </div>
         <div className="profile-level-copy">
           <p className="text-foreground">
-            <strong>Уровень {level}</strong>
-            <span className="text-muted-foreground"> · {achievementTotal ? `${unlockedAchievements} из ${achievementTotal} достижений` : 'Новичок'}</span>
+            <strong>{t('profile.level_label', { level })}</strong>
+            <span className="text-muted-foreground"> · {achievementTotal ? t('profile.achievements_progress', { unlocked: unlockedAchievements, total: achievementTotal }) : t('profile.noob')}</span>
           </p>
           <div
             className="profile-level-progress bg-muted"
             role="progressbar"
-            aria-label="Опыт профиля"
+            aria-label={t('profile.exp_label')}
             aria-valuemin={0}
             aria-valuemax={100}
             aria-valuenow={xpProgress}
@@ -298,7 +300,7 @@ export function ProfileHeader({
           className="profile-level-action text-primary hover:text-primary-hover h-auto p-0 font-normal"
           aria-expanded={showGamification}
         >
-          Смотреть достижения
+          {t('profile.view_achievements')}
           <ChevronDown size={16} className={cn('transition-transform', showGamification ? 'rotate-180' : '')} />
         </Button>
       </div>
@@ -331,11 +333,11 @@ export function ProfileHeader({
           <div className="profile-activity-row text-muted-foreground">
             <span>
               <Activity size={14} />
-              Активность {data.user.activity_score ?? 0}
+              {t('profile.activity', { n: data.user.activity_score ?? 0 })}
             </span>
             <span>
               <Flame size={14} />
-              Рейтинг {data.user.meme_rating ?? 0}
+              {t('profile.rating', { n: data.user.meme_rating ?? 0 })}
             </span>
           </div>
         </div>
@@ -353,15 +355,15 @@ export function ProfileHeader({
               />
             ))}
           </div>
-          <span>{mutuals.length} взаимных подписок</span>
+          <span>{t('profile.mutual_count', { n: mutuals.length })}</span>
         </div>
       ) : null}
 
       {!own ? (
         <div className="profile-follow-note bg-muted/30 text-muted-foreground">
           {data.is_following
-            ? `Посты @${data.user.username} уже попадают в вашу ленту подписок.`
-            : `Подпишитесь на @${data.user.username}, чтобы чаще видеть его публикации и ответы.`}
+            ? t('profile.follow_note_following', { username: data.user.username })
+            : t('profile.follow_note_not_following', { username: data.user.username })}
         </div>
       ) : null}
     </section>

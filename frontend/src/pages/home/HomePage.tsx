@@ -94,10 +94,10 @@ export function HomePage() {
   }, [query]);
 
   const mainFeedTabs: Array<{ id: FeedTab; label: string }> = [
-    { id: 'for-you', label: 'Для вас' },
-    { id: 'following', label: 'Подписки' },
-    { id: 'popular', label: 'Тренды' },
-    { id: 'new', label: 'Свежее' },
+    { id: 'for-you', label: t('home.tab_for_you') },
+    { id: 'following', label: t('home.tab_following') },
+    { id: 'popular', label: t('home.tab_popular') },
+    { id: 'new', label: t('home.tab_new') },
   ];
   const extraFeedTabs: Array<{ id: FeedTab; label: string }> = [
     { id: 'memes', label: t('home.tab_memes') },
@@ -324,7 +324,7 @@ export function HomePage() {
                   : 'text-muted-foreground hover:bg-muted hover:text-foreground'
               )}
             >
-              Ещё
+              {t('home.tab_more')}
               <ChevronDown size={14} className={`transition-transform ${moreOpen ? 'rotate-180' : ''}`} />
             </Button>
           </div>
@@ -354,7 +354,7 @@ export function HomePage() {
         </div>
       </header>
       <SwipeContainer
-        className="space-y-4 p-3 sm:space-y-5 sm:p-5 lg:p-6"
+        className="space-y-4 sm:space-y-5"
         onSwipeLeft={() => {
           const idx = FEED_IDS.indexOf(feed);
           if (idx < FEED_IDS.length - 1) changeFeed(FEED_IDS[idx + 1]);
@@ -393,10 +393,10 @@ export function HomePage() {
               ) : !query.hasNextPage && posts.length > 5 ? (
                 <div className="flex flex-col items-center gap-3 py-8">
                   <p className="text-center text-sm font-bold text-gray-500 dark:text-zinc-400">
-                    Вы всё посмотрели! 🎉 Время создать что-то своё?
+                    {t('home.end_of_feed')}
                   </p>
                   <Button onClick={focusComposer}>
-                    <Plus size={16} /> Создать пост
+                    <Plus size={16} /> {t('nav.create_post')}
                   </Button>
                 </div>
               ) : null}
@@ -411,7 +411,7 @@ export function HomePage() {
             icon={<Flame size={36} />}
             action={
               <div className="flex flex-wrap justify-center gap-2">
-                <Button className="h-12 rounded-xl px-6 shadow-[0_12px_24px_rgba(255,107,0,0.24)]" loading={isRefreshing} onClick={focusComposer}><Plus size={16} /> Опубликовать мем</Button>
+                <Button className="h-12 rounded-xl px-6 shadow-[0_12px_24px_rgba(255,107,0,0.24)]" loading={isRefreshing} onClick={focusComposer}><Plus size={16} /> {t('home.create_post')}</Button>
                 <Button className="h-12 rounded-xl px-6" variant="outline" loading={isRefreshing} onClick={() => query.refetch()}><RefreshCw size={16} /> {t('home.refresh_feed')}</Button>
               </div>
             }

@@ -112,12 +112,15 @@ export function Layout({ children }: { children: ReactNode }) {
     <div className="app-shell-root dark:text-zinc-100">
       <a href="#main-content" className="skip-link">{t('layout.skip_to_content')}</a>
       <div className="flex w-full min-w-0">
-        <aside className="app-sidebar t-resize sticky top-0 hidden h-screen w-[92px] shrink-0 flex-col border-r border-border backdrop-blur sm:flex xl:w-[288px]">
-          <Link to="/" className="flex items-center gap-3 px-5 py-7 xl:px-7" aria-label={t('common.site_name')}>
+        <aside
+          className="app-sidebar t-resize sticky top-0 hidden h-dvh shrink-0 flex-col border-r border-border backdrop-blur sm:flex"
+          style={{ width: 'var(--ui-shell-sidebar-w)' }}
+        >
+          <Link to="/" className="flex items-center gap-3 px-5 py-7 lg:px-7" aria-label={t('common.site_name')}>
             <span className="app-logo-mark flex h-11 w-11 items-center justify-center rounded-xl text-xl font-black text-white">М</span>
-            <span className="hidden font-black uppercase tracking-[-0.045em] text-primary xl:block" style={{ fontSize: '1.45rem', letterSpacing: '-0.045em' }}>{t('common.site_name')}</span>
+            <span className="hidden font-black uppercase tracking-[-0.045em] text-primary lg:block" style={{ fontSize: '1.45rem', letterSpacing: '-0.045em' }}>{t('common.site_name')}</span>
           </Link>
-          <nav className="flex-1 space-y-1.5 overflow-y-auto px-3 xl:px-4" aria-label={t('layout.main_nav')}>
+          <nav className="flex-1 space-y-1.5 overflow-y-auto px-3 lg:px-4" aria-label={t('layout.main_nav')}>
             {navItems.map((item) => (
               <NavItem
                 key={item.to}
@@ -140,16 +143,16 @@ export function Layout({ children }: { children: ReactNode }) {
                 <span className="relative">
                   <Shield size={21} />
                 </span>
-                <span className="hidden xl:block">{t('nav.admin')}</span>
-                <ExternalLink size={14} className="hidden opacity-50 xl:block" />
+                <span className="hidden lg:block">{t('nav.admin')}</span>
+                <ExternalLink size={14} className="hidden opacity-50 lg:block" />
               </Link>
             ) : null}
           </nav>
-          <div className="p-3 xl:p-4">
+          <div className="p-3 lg:p-4">
             {user ? (
               <Link to={`/user/${user.username}`} className="app-user-card flex items-center gap-3 rounded-2xl p-2.5 transition-colors hover:bg-muted">
                 <Avatar src={user.avatar_url} name={user.display_name} className="h-11 w-11 rounded-xl" />
-                <span className="hidden min-w-0 xl:block">
+                <span className="hidden min-w-0 lg:block">
                   <span className="block truncate text-sm font-black text-foreground">{user.display_name}</span>
                   <span className="block truncate text-xs font-semibold text-muted-foreground">@{user.username}</span>
                 </span>
@@ -188,14 +191,17 @@ export function Layout({ children }: { children: ReactNode }) {
             )}
           </header>
 
-          <main id="main-content" className="min-h-screen min-w-0 overflow-x-clip pb-24 sm:pb-0" tabIndex={-1}>
+          <main id="main-content" className="min-h-dvh min-w-0 overflow-x-clip pb-[calc(6rem+env(safe-area-inset-bottom))] sm:pb-0" tabIndex={-1}>
             <div key={location.pathname} className="motion-route-enter">
               {children}
             </div>
           </main>
         </div>
 
-        <aside className="app-right-rail t-resize sticky top-0 hidden h-screen w-[368px] shrink-0 flex-col border-l border-border backdrop-blur lg:flex">
+        <aside
+          className="app-right-rail t-resize sticky top-0 hidden h-dvh shrink-0 flex-col border-l border-border backdrop-blur xl:flex"
+          style={{ width: 'var(--ui-shell-rail-w)' }}
+        >
           {/* Notification Bell — outside scroll area so dropdown isn't clipped */}
           <div className="relative z-[60] flex h-20 items-center justify-end border-b border-border px-6">
             {user ? (
@@ -483,7 +489,6 @@ function NavItem({ to, label, icon: Icon, badge }: { to: string; label: string; 
       }`}
       style={{ fontSize: '0.94rem' }}
     >
-      {active ? <span className="absolute -left-3 h-8 w-1 rounded-r-full bg-primary" aria-hidden="true" /> : null}
       <span className="relative">
         <Icon size={22} strokeWidth={active ? 2.25 : 1.9} />
         <span className="t-badge !-right-1.5 !-top-1.5" data-open={Boolean(badge)} aria-hidden="true">
@@ -492,7 +497,7 @@ function NavItem({ to, label, icon: Icon, badge }: { to: string; label: string; 
           </span>
         </span>
       </span>
-      <span className="hidden xl:block">{label}</span>
+      <span className="hidden lg:block">{label}</span>
     </Link>
   );
 }

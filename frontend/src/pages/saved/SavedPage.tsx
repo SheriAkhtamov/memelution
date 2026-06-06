@@ -200,7 +200,7 @@ export function SavedPage() {
 
   return (
     <PageLayout variant="default" className="saved-page">
-      <header className="page-header sticky top-16 z-20 px-4 pb-4 pt-5 sm:top-0 sm:px-6 sm:pb-5 sm:pt-7">
+      <header className="page-header sticky top-16 z-20 pb-4 pt-5 sm:top-0 sm:pb-5 sm:pt-7">
         <PageHeader
           icon={Bookmark}
           title={t('saved.title')}
@@ -238,7 +238,7 @@ export function SavedPage() {
         </div>
       </header>
 
-      <div className="space-y-6 p-3 sm:p-5 lg:p-6">
+      <div className="space-y-6">
         <section className="saved-section" aria-labelledby="saved-collections-title">
           <div className="saved-section-header">
             <h2 id="saved-collections-title">{t('saved.collections_title')}</h2>

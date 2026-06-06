@@ -27,6 +27,7 @@ import { PostComposer } from '../../features/posts/components/PostComposer';
 import { useAuthStore } from '../../store/authStore';
 import type { Post, User } from '../../shared/types';
 import { trackEvent } from '../../shared/lib/analytics';
+import { useTranslation } from '../../shared/i18n';
 import { ProfileHeader } from './components/ProfileHeader';
 
 type ProfileTab = 'posts' | 'reposts' | 'media' | 'likes' | 'communities' | 'collections';
@@ -74,11 +75,12 @@ function useParallax(ref: React.RefObject<HTMLDivElement | null>, rate = 0.2) {
 
 
 function ProfileQRCard({ user, open, onClose }: { user: ExtendedUser; open: boolean; onClose: () => void }) {
+  const { t } = useTranslation();
   if (!open) return null;
   const url = `${window.location.origin}/user/${user.username}`;
   const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=240x240&data=${encodeURIComponent(url)}`;
   return (
-    <Modal open={open} onClose={onClose} title="Карточка профиля">
+    <Modal open={open} onClose={onClose} title={t('profile.qr_title')}>
       <div className="flex flex-col items-center gap-4">
         <div className="flex w-full items-center gap-3 rounded-xl bg-gray-50 p-4 dark:bg-zinc-900">
           <Avatar src={user.avatar_url} name={user.display_name} className="h-14 w-14 rounded-xl" />
@@ -88,9 +90,9 @@ function ProfileQRCard({ user, open, onClose }: { user: ExtendedUser; open: bool
           </div>
         </div>
         <div className="rounded-xl bg-white p-3 shadow-sm ring-1 ring-gray-100 dark:bg-zinc-950 dark:ring-zinc-800">
-          <img src={qrUrl} alt="QR код профиля" className="h-48 w-48 rounded-xl" />
+          <img src={qrUrl} alt={t('profile.qr_alt')} className="h-48 w-48 rounded-xl" />
         </div>
-        <p className="text-center text-xs font-bold text-gray-400">Отсканируйте, чтобы открыть профиль</p>
+        <p className="text-center text-xs font-bold text-gray-400">{t('profile.qr_scan_hint')}</p>
       </div>
     </Modal>
   );
@@ -98,6 +100,7 @@ function ProfileQRCard({ user, open, onClose }: { user: ExtendedUser; open: bool
 
 export function ProfilePage() {
   const { username = '' } = useParams();
+  const { t } = useTranslation();
   const { user } = useAuthStore();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -147,15 +150,15 @@ export function ProfilePage() {
 
   if (query.isLoading)
     return (
-      <div className="min-h-screen bg-background p-3 dark:bg-zinc-950 sm:p-4">
+      <div className="min-h-dvh bg-background p-3 dark:bg-zinc-950 sm:p-4">
         <Skeleton className="h-96" />
       </div>
     );
   if (query.isError || !query.data)
     return (
-      <div className="min-h-screen bg-background p-3 dark:bg-zinc-950 sm:p-4">
+      <div className="min-h-dvh bg-background p-3 dark:bg-zinc-950 sm:p-4">
         <ErrorState
-          description={query.error instanceof Error ? query.error.message : 'Профиль не найден'}
+          description={query.error instanceof Error ? query.error.message : t('profile.not_found')}
           onRetry={() => query.refetch()}
         />
       </div>
@@ -184,7 +187,7 @@ export function ProfilePage() {
   const own = user?.id === data.user.id;
   const shareProfile = async () => {
     await navigator.clipboard.writeText(`${window.location.origin}/user/${data.user.username}`);
-    toast.show({ title: 'Ссылка на профиль скопирована', tone: 'success' });
+    toast.show({ title: t('profile.link_copied'), tone: 'success' });
   };
 
   return (
@@ -205,10 +208,10 @@ export function ProfilePage() {
         />
 
         {pinnedPost ? (
-          <section className="profile-pinned-block" aria-label="Закреплённый пост">
+          <section className="profile-pinned-block" aria-label={t('profile.pinned_post')}>
             <div className="profile-section-label">
               <Pin size={14} />
-              Закреплено
+              {t('profile.pinned')}
             </div>
             <PostCard post={pinnedPost as Post} compact />
           </section>
@@ -222,19 +225,19 @@ export function ProfilePage() {
               else setTab(value as ProfileTab);
             }}
             items={[
-              { id: 'posts', label: 'Посты' },
-              { id: 'media', label: 'Медиа' },
-              { id: 'likes', label: 'Лайки' },
-              { id: 'more', label: 'Ещё' },
+              { id: 'posts', label: t('profile.tab_posts') },
+              { id: 'media', label: t('profile.tab_media') },
+              { id: 'likes', label: t('profile.tab_likes') },
+              { id: 'more', label: t('profile.tab_more') },
             ]}
           />
           {(['reposts', 'communities', 'collections'] as string[]).includes(tab) ? (
-            <div className="profile-more-tabs" aria-label="Дополнительные вкладки профиля">
+            <div className="profile-more-tabs" aria-label={t('profile.extra_tabs_label')}>
               {(
                 [
-                  { id: 'reposts', label: `Репосты ${tabCounts.reposts ? `(${tabCounts.reposts})` : ''}` },
-                  { id: 'communities', label: `Сообщества ${tabCounts.communities ? `(${tabCounts.communities})` : ''}` },
-                  { id: 'collections', label: `Коллекции ${tabCounts.collections ? `(${tabCounts.collections})` : ''}` },
+                  { id: 'reposts', label: `${t('profile.tab_reposts')} ${tabCounts.reposts ? `(${tabCounts.reposts})` : ''}` },
+                  { id: 'communities', label: `${t('profile.tab_communities')} ${tabCounts.communities ? `(${tabCounts.communities})` : ''}` },
+                  { id: 'collections', label: `${t('profile.tab_collections')} ${tabCounts.collections ? `(${tabCounts.collections})` : ''}` },
                 ] as Array<{ id: ProfileTab; label: string }>
               ).map((sub) => (
                 <Button
@@ -273,8 +276,8 @@ export function ProfilePage() {
           ) : (
             <div className="profile-empty-wrap">
               <EmptyState
-                title="Сообществ пока нет"
-                description="Пользователь пока не вступил ни в одно сообщество."
+                title={t('profile.no_communities_title')}
+                description={t('profile.no_communities_desc')}
                 icon={<Users size={40} />}
               />
             </div>
@@ -289,8 +292,8 @@ export function ProfilePage() {
           ) : (
             <div className="profile-empty-wrap">
               <EmptyState
-                title="Лайки скрыты"
-                description="Пользователь решил сохранить свои лайки в тайне."
+                title={t('profile.likes_hidden_title')}
+                description={t('profile.likes_hidden_desc')}
                 icon={<Heart size={40} />}
               />
             </div>
@@ -305,8 +308,8 @@ export function ProfilePage() {
           ) : (
             <div className="profile-empty-wrap">
               <EmptyState
-                title="Репостов пока нет"
-                description="Пользователь пока ничего не репостнул."
+                title={t('profile.no_reposts_title')}
+                description={t('profile.no_reposts_desc')}
                 icon={<Repeat size={40} />}
               />
             </div>
@@ -321,7 +324,7 @@ export function ProfilePage() {
                   </span>
                   <span>
                     <strong>{collection.name}</strong>
-                    <span>{collection.posts_count} постов</span>
+                    <span>{t('profile.posts_count', { count: collection.posts_count })}</span>
                   </span>
                 </Link>
               ))}
@@ -329,8 +332,8 @@ export function ProfilePage() {
           ) : (
             <div className="profile-empty-wrap">
               <EmptyState
-                title="Публичных коллекций нет"
-                description="Пользователь ещё не создал коллекций."
+                title={t('profile.no_collections_title')}
+                description={t('profile.no_collections_desc')}
                 icon={<FolderOpen size={40} />}
               />
             </div>
@@ -344,8 +347,8 @@ export function ProfilePage() {
         ) : (
           <div className="profile-empty-wrap">
             <EmptyState
-              title="Постов пока нет"
-              description={own ? 'Опубликуйте первый пост, чтобы он появился в профиле.' : 'Пользователь ещё ничего не публиковал.'}
+              title={t('profile.no_posts_title')}
+              description={own ? t('profile.no_posts_own_desc') : t('profile.no_posts_user_desc')}
               icon={<Wind size={40} />}
             />
           </div>
@@ -355,9 +358,9 @@ export function ProfilePage() {
       <ConfirmDialog
         open={unfollowConfirm}
         onClose={() => setUnfollowConfirm(false)}
-        title="Отписаться?"
-        description={`Вы больше не будете видеть посты @${data.user.username} в ленте подписок.`}
-        confirmText="Отписаться"
+        title={t('profile.unfollow_title')}
+        description={t('profile.unfollow_desc', { username: data.user.username })}
+        confirmText={t('profile.unfollow_confirm')}
         onConfirm={() => {
           follow.mutate();
           setUnfollowConfirm(false);
@@ -365,14 +368,14 @@ export function ProfilePage() {
       />
       <UserListModal
         open={followersOpen}
-        title="Подписчики"
+        title={t('profile.followers_title')}
         users={followersQuery.data || []}
         isLoading={followersQuery.isLoading}
         onClose={() => setFollowersOpen(false)}
       />
       <UserListModal
         open={followingOpen}
-        title="Подписки"
+        title={t('profile.following_title')}
         users={followingQuery.data || []}
         isLoading={followingQuery.isLoading}
         onClose={() => setFollowingOpen(false)}
@@ -395,6 +398,7 @@ function UserListModal({
   isLoading?: boolean;
   onClose: () => void;
 }) {
+  const { t } = useTranslation();
   return (
     <Modal open={open} title={title} onClose={onClose}>
       <div className="space-y-2">
@@ -426,7 +430,7 @@ function UserListModal({
             </Link>
           ))
         ) : (
-          <EmptyState title="Список пуст" />
+          <EmptyState title={t('profile.empty_list')} />
         )}
       </div>
     </Modal>

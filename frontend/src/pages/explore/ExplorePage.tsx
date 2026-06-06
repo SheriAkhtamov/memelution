@@ -61,7 +61,7 @@ export function ExplorePage() {
           }
         />
       </header>
-      <div className="space-y-5 p-3 sm:p-5 lg:p-6">
+      <div className="space-y-5">
         {query.isLoading ? (
           <Skeleton className="h-[32rem] rounded-3xl" />
         ) : query.isError ? (

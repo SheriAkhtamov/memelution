@@ -135,7 +135,7 @@ export function AdminLayout({ children }: { children: ReactNode }) {
   };
 
   return (
-    <div className="admin-shell-root min-h-screen bg-background text-foreground">
+    <div className="admin-shell-root min-h-dvh bg-background text-foreground">
       <div className="flex">
         {/* Mobile hamburger */}
         <IconButton
@@ -154,7 +154,7 @@ export function AdminLayout({ children }: { children: ReactNode }) {
         {/* Sidebar */}
         <aside
           className={`
-            t-resize fixed inset-y-0 left-0 z-[70] flex h-screen flex-col border-r border-gray-200/60 bg-white/95 backdrop-blur-xl transition-transform duration-300 ease-in-out dark:border-zinc-800/60 dark:bg-zinc-950/95
+            t-resize fixed inset-y-0 left-0 z-[70] flex h-dvh flex-col border-r border-gray-200/60 bg-white/95 backdrop-blur-xl transition-transform duration-300 ease-in-out dark:border-zinc-800/60 dark:bg-zinc-950/95
             ${mobileOpen ? 'translate-x-0' : '-translate-x-full'}
             sm:sticky sm:top-0 sm:translate-x-0
             ${collapsed ? 'sm:w-[68px]' : 'sm:w-[244px]'}
@@ -343,7 +343,7 @@ export function AdminLayout({ children }: { children: ReactNode }) {
         </aside>
 
         {/* Main content */}
-        <main className="min-h-screen min-w-0 flex-1 pt-14 sm:pt-0">
+        <main className="min-h-dvh min-w-0 flex-1 overflow-x-clip pt-14 sm:pt-0">
           <div className="motion-route-enter" key={location.pathname}>
             <div className="mx-auto w-full max-w-7xl space-y-4 p-3 sm:p-4 lg:p-5">
               <div className="hidden items-center gap-2 text-xs font-bold text-muted-foreground sm:flex">

@@ -32,7 +32,7 @@ import {
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { api } from '../../shared/api/client';
 import type { Community, Post } from '../../shared/types';
-import { Avatar, Button, ConfirmDialog, EmptyState, ErrorState, Input, Skeleton, Tabs, Textarea, useToast } from '../../shared/ui';
+import { Avatar, Button, ConfirmDialog, EmptyState, ErrorState, Input, PageLayout, Skeleton, Tabs, Textarea, useToast } from '../../shared/ui';
 import { PostCard } from '../../features/posts/components/PostCard';
 import { PostComposer } from '../../features/posts/components/PostComposer';
 import { useAuthStore } from '../../store/authStore';
@@ -114,7 +114,7 @@ export function CommunitiesPage() {
   const hasSearchContext = Boolean(q.trim() || activeFilterCount);
 
   return (
-    <div>
+    <PageLayout variant="default">
       <header className="page-header sticky top-16 z-20 px-4 py-5 sm:top-0 sm:px-6 sm:py-7">
         <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
           <div className="flex items-center gap-3">
@@ -201,7 +201,7 @@ export function CommunitiesPage() {
         </div>
       </nav>
 
-      <div className="space-y-5 p-3 sm:p-5 lg:p-6">
+      <div className="space-y-5">
         {query.isLoading ? (
           <CommunitiesDiscoverySkeleton />
         ) : query.isError ? (
@@ -274,7 +274,7 @@ export function CommunitiesPage() {
       </div>
 
       <CreateCommunityModal open={createModalOpen} onClose={() => setCreateModalOpen(false)} />
-    </div>
+  </PageLayout>
   );
 }
 

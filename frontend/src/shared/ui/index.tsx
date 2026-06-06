@@ -50,6 +50,9 @@ export type { LoadingStateProps } from './LoadingState';
 export { PageLayout, pageLayoutVariants } from './PageLayout';
 export type { PageLayoutProps } from './PageLayout';
 
+export { MainContent, mainContentVariants } from './MainContent';
+export type { MainContentProps, MainContentVariant } from './MainContent';
+
 export { PageHeader } from './PageHeader';
 export type { PageHeaderProps } from './PageHeader';
 

@@ -45,10 +45,37 @@ A semantic panel wrapper that unifies shadows, borders, backgrounds, and hover e
 * **Variants**: `surface`, `outline`, `ghost`, `hoverable`.
 * **Paddings**: `none`, `sm`, `md`, `lg`.
 
-### 3. `PageLayout` & `PageHeader`
+### 3. `PageLayout`, `MainContent` & `PageHeader`
 Unified structural layouts that handle responsive page rails, sticky headers, and back-to-top buttons.
-* **PageLayout Variants**: `default`, `feed`, `profile`, `full`, `admin`.
+* **PageLayout Variants**: `compact` (576px), `feed` (672px), `default` (896px), `profile` (896px), `full` (100%), `admin` (1280px). All driven by `--ui-page-max-w-*` tokens — never hardcode widths.
+* **MainContent** is the canonical wrapper for the UX Main Content Area. Use it instead of `<div className="max-w-...">` inside the `<main id="main-content">` column.
 * **PageHeader Accent Tones**: `orange`, `blue`, `emerald`, `amber`, `red`, `purple`, `cyan`, `violet`.
+
+### App Shell Width Tokens (UX Main Content Area)
+The app uses a 3-column shell (sidebar / main / right rail). Widths are typed via CSS custom properties — change them in `index.css` and the whole UI follows:
+
+| Token | Value | Used by |
+| --- | --- | --- |
+| `--ui-shell-sidebar-w` | 4.5rem (72px) | collapsed left nav (sm / md) |
+| `--ui-shell-sidebar-w-lg` | 18rem (288px) | expanded left nav (lg+) |
+| `--ui-shell-rail-w` | 20rem (320px) | right trends/people rail (xl+) |
+| `--ui-feed-sidebar-w` | 18.75rem (300px) | in-page sidebar inside `FeedLayout` |
+
+### Main Content Max-Width Tokens
+| Token | Value | PageLayout variant |
+| --- | --- | --- |
+| `--ui-page-max-w-compact` | 36rem (576px) | `compact` |
+| `--ui-page-max-w-feed` | 42rem (672px) | `feed` |
+| `--ui-page-max-w-default` | 56rem (896px) | `default` |
+| `--ui-page-max-w-profile` | 56rem (896px) | `profile` |
+| `--ui-page-max-w-admin` | 80rem (1280px) | `admin` |
+| `--ui-page-max-w-full` | 100% | `full` |
+
+### Responsive Breakpoints (the rules)
+* `< 640px` (mobile) — only the bottom nav and the main column are visible. The column is edge-to-edge with 12px padding.
+* `640–1023px` (sm / md) — collapsed icon sidebar (72px) + main column.
+* `1024–1279px` (lg) — expanded sidebar (288px) + main column. The right rail is **hidden** to keep the main column comfortable.
+* `≥ 1280px` (xl) — expanded sidebar (288px) + main column + right rail (320px).
 
 ### 4. `Typography`
 The `Typography` (or `Text`) component prevents arbitrary font sizing and standardizes reading layouts.

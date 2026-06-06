@@ -1,6 +1,6 @@
 import { Link, useSearchParams } from 'react-router-dom';
 import { Bell, CheckCircle2, BellOff } from 'lucide-react';
-import { AnimatedNumber, Button, EmptyState, ErrorState, Skeleton, Tabs } from '../../shared/ui';
+import { AnimatedNumber, Button, EmptyState, ErrorState, PageLayout, Skeleton, Tabs } from '../../shared/ui';
 import { useAuthStore } from '../../store/authStore';
 import { useNotifications } from '../../features/notifications/useNotifications';
 import { useTranslation } from '../../shared/i18n';
@@ -61,7 +61,7 @@ export function NotificationsPage() {
   }, []);
 
   return (
-    <div>
+    <PageLayout variant="default">
       <header className="page-header sticky top-0 z-20 px-4 py-5 sm:px-6 sm:py-7">
         <div className="mb-4 flex items-center justify-between gap-3">
           <h1 className="page-title flex items-center gap-2"><Bell className="text-[#FF6B00]" size={22} /> {t('notifications.title')}</h1>
@@ -103,12 +103,12 @@ export function NotificationsPage() {
           <p className="mt-1 text-xs text-gray-400">{t('notifications.xp_hint')}</p>
         </div>
       )}
-      <div className="space-y-5 p-3 sm:p-5 lg:p-6">
+      <div className="space-y-5">
         {query.isLoading ? <Skeleton className="h-64" /> : query.isError ? <ErrorState description={t('notifications.load_error')} onRetry={() => query.refetch()} /> : items.length ? (
           <>
             {newItems.length ? (
               <NotificationSection
-                label="Новые"
+                label={t('notifications.new_label')}
                 items={newItems}
                 locale={lang === 'en' ? 'en-US' : 'ru-RU'}
                 readPending={read.isPending}
@@ -134,7 +134,7 @@ export function NotificationsPage() {
           </>
         ) : <EmptyState title={t('notifications.empty_title')} description={t('notifications.empty_desc')} icon={<BellOff size={36} />} />}
       </div>
-    </div>
+  </PageLayout>
   );
 }
 
@@ -221,16 +221,16 @@ function notificationTitle(type: string, t: (key: string) => string) {
   return titles[type] || type;
 }
 
-function notificationText(item: { type: string; data: Record<string, unknown> }, t: (key: string) => string) {
+function notificationText(item: { type: string; data: Record<string, unknown> }, t: (key: string, values?: Record<string, string | number>) => string) {
   const reason = item.data?.reason;
   const actor = item.data?.actor;
   const actorName = typeof actor === 'string' ? actor : null;
   if (typeof reason === 'string') return reason;
-  if (actorName && item.type === 'post_liked') return `${actorName} поставил(а) лайк вашему мему`;
-  if (actorName && item.type === 'comment') return `${actorName} оставил(а) комментарий или ответ`;
-  if (actorName && item.type === 'follow') return `${actorName} подписался(ась) на вас`;
-  if (actorName && item.type === 'post_reposted') return `${actorName} поделился(ась) вашим мемом`;
-  if (actorName && item.type === 'message') return `${actorName} написал(а) вам`;
+  if (actorName && item.type === 'post_liked') return t('notifications.text_liked', { name: actorName });
+  if (actorName && item.type === 'comment') return t('notifications.text_comment', { name: actorName });
+  if (actorName && item.type === 'follow') return t('notifications.text_follow', { name: actorName });
+  if (actorName && item.type === 'post_reposted') return t('notifications.text_repost', { name: actorName });
+  if (actorName && item.type === 'message') return t('notifications.text_message', { name: actorName });
   if (actorName) return actorName;
   return t('notifications.click_to_view');
 }

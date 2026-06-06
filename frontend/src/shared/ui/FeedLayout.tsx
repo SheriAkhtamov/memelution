@@ -14,7 +14,7 @@ export function FeedLayout({ children, header, sidebar, className, ...props }: F
         {children}
       </div>
       {sidebar && (
-        <aside className="hidden lg:block w-[300px] shrink-0 space-y-5">
+        <aside className="hidden lg:block w-full max-w-[var(--ui-feed-sidebar-w)] shrink-0 space-y-5">
           {sidebar}
         </aside>
       )}

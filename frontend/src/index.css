@@ -228,12 +228,18 @@
     border-color: var(--app-line);
   }
 
-  .app-main-column {
-    min-width: 0;
-    background:
-      radial-gradient(circle at 50% -12%, oklch(1 0 0 / 0.9), transparent 35rem),
-      var(--app-canvas);
+.app-main-column {
+  min-width: 0;
+  background:
+    radial-gradient(circle at 50% -12%, oklch(1 0 0 / 0.9), transparent 35rem),
+    var(--app-canvas);
+}
+
+@media (min-width: 1024px) {
+  .app-sidebar {
+    width: var(--ui-shell-sidebar-w-lg) !important;
   }
+}
 
   .app-logo-mark {
     background: linear-gradient(145deg, oklch(0.77 0.18 56), var(--memelution-orange));
@@ -1349,26 +1355,6 @@
     margin-top: -4.6rem;
   }
 
-  .settings-avatar-edit {
-    position: absolute;
-    right: -0.28rem;
-    bottom: -0.18rem;
-    display: grid;
-    height: 2.25rem;
-    width: 2.25rem;
-    place-items: center;
-    border: 1px solid var(--app-line);
-    border-radius: 999px;
-    background: var(--app-surface);
-    color: var(--app-muted);
-    box-shadow: 0 10px 24px oklch(0.25 0.03 256.8 / 0.12);
-    transition: color 160ms ease, transform 160ms ease;
-  }
-
-  .settings-avatar-uploader:hover .settings-avatar-edit {
-    color: var(--memelution-orange);
-    transform: translateY(-1px);
-  }
 
   .settings-avatar-overlay {
     position: absolute;
@@ -2177,7 +2163,7 @@
   }
 }
 
-@media (max-width: 639px) {
+@media (max-width: 640px) {
   .product-empty-state {
     min-height: 23rem;
     border-radius: 1.15rem;
@@ -2273,7 +2259,7 @@
   }
 }
 
-@media (max-width: 639px) {
+@media (max-width: 640px) {
   .settings-page {
     padding-top: 1rem;
   }
@@ -2390,7 +2376,7 @@
   }
 }
 
-@media (max-width: 639px) {
+@media (max-width: 640px) {
   .messages-page {
     padding-top: 1rem;
   }
@@ -2505,7 +2491,7 @@
   background:
     radial-gradient(circle at 0% 0%, color-mix(in oklch, var(--memelution-orange) 7%, transparent), transparent 32rem),
     radial-gradient(circle at 100% 0%, color-mix(in oklch, var(--memelution-purple) 8%, transparent), transparent 32rem),
-    var(--app-bg);
+    var(--app-canvas);
   --memelution-purple: oklch(0.62 0.18 293);
 }
 
@@ -3058,7 +3044,7 @@
   box-shadow: 0 12px 24px -16px rgba(15,23,42,0.5);
 }
 
-.csp-preview-avatar img { object-fit: cover; }
+.csp-preview-avatar img { width: 100%; height: 100%; object-fit: cover; }
 
 .csp-preview-meta { display: flex; flex-direction: column; gap: 0.3rem; }
 
@@ -4722,7 +4708,7 @@
   backdrop-filter: blur(20px) saturate(1.4);
   border-top: 1px solid var(--app-line);
   box-shadow: 0 -16px 36px oklch(0.15 0.03 256.8 / 0.1);
-  padding: 0.85rem 1rem;
+  padding: 0.85rem 1rem calc(0.85rem + env(safe-area-inset-bottom));
   animation: save-bar-in 280ms var(--motion-enter, cubic-bezier(0.22, 1, 0.36, 1));
 }
 
@@ -6030,6 +6016,8 @@
 }
 
 .settings-profile-stack {
+  display: flex;
+  flex-direction: column;
   gap: 1.15rem;
 }
 
@@ -6226,7 +6214,7 @@
   }
 }
 
-@media (max-width: 639px) {
+@media (max-width: 640px) {
   .settings-page {
     padding-inline: 0.85rem;
   }
@@ -6278,23 +6266,6 @@
   .settings-save-toast,
   .chip {
     animation: none;
-  }
-}
-
-/* Compact app scale pass */
-html {
-  font-size: 15px;
-}
-
-@media (min-width: 1440px) {
-  html {
-    font-size: 14.75px;
-  }
-}
-
-@media (max-width: 640px) {
-  html {
-    font-size: 14.5px;
   }
 }
 
@@ -6776,7 +6747,7 @@ html {
   }
 }
 
-@media (max-width: 639px) {
+@media (max-width: 640px) {
   .settings-page {
     padding-inline: 0.7rem;
   }
@@ -6850,6 +6821,26 @@ html {
   --ui-radius-card: 0.82rem;
   --ui-radius-panel: 0.95rem;
   --ui-feed-media-max-h: 27.5rem;
+
+  /* App shell widths — single source of truth for sidebar / rail / main column. */
+  --ui-shell-sidebar-w: 4.5rem;        /* 72px — collapsed icon rail (sm / md) */
+  --ui-shell-sidebar-w-lg: 18rem;      /* 288px — expanded nav (lg+) */
+  --ui-shell-rail-w: 20rem;            /* 320px — right trends/people rail (xl+) */
+  --ui-shell-rail-w-legacy: 23rem;     /* 368px — kept for back-compat refs only */
+  --ui-feed-sidebar-w: 18.75rem;       /* 300px — in-page right sidebar (FeedLayout) */
+
+  /* Main content (UX Main Content Area) max widths, per PageLayout variant. */
+  --ui-page-max-w-compact: 36rem;      /* 576px — auth / narrow forms */
+  --ui-page-max-w-feed: 42rem;         /* 672px — twitter-like feed column */
+  --ui-page-max-w-default: 56rem;      /* 896px — generic content pages */
+  --ui-page-max-w-profile: 56rem;      /* 896px — profile pages */
+  --ui-page-max-w-admin: 80rem;        /* 1280px — admin / data tables */
+  --ui-page-max-w-full: 100%;          /* edge-to-edge (memes, editor, etc.) */
+
+  /* Main content area responsive padding (gutters inside the column). */
+  --ui-page-pad-mobile: 0.75rem;       /* 12px */
+  --ui-page-pad-tablet: 1.25rem;       /* 20px */
+  --ui-page-pad-desktop: 1.5rem;       /* 24px */
 }
 
 html {
@@ -6900,7 +6891,7 @@ html {
 }
 
 .app-right-rail {
-  width: 18.5rem !important;
+  max-width: calc(100vw - 5rem);
 }
 
 .app-rail-card,

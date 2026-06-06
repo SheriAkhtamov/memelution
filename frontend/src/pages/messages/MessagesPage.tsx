@@ -1,7 +1,7 @@
 import { type FormEvent, useEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { ArrowLeft, ImagePlus, Info, LogOut, MessageSquare, MoreVertical, Plus, Search, Send, SlidersHorizontal, X } from 'lucide-react';
-import { AnimatedNumber, Avatar, Button, ConfirmDialog, ErrorState, Input, Modal, Skeleton, Tabs, useToast } from '../../shared/ui';
+import { AnimatedNumber, Avatar, Button, ConfirmDialog, ErrorState, Input, Modal, PageLayout, Skeleton, Tabs, useToast } from '../../shared/ui';
 import { ProductEmptyState } from '../../shared/ui/ProductEmptyState';
 import { MessageBubble, MessageRepliedPreview } from '../../features/messages/MessageBubble';
 import { useAuthStore } from '../../store/authStore';
@@ -180,14 +180,16 @@ export function MessagesPage() {
 
   if (!user) {
     return (
-      <div className="messages-page p-3 sm:p-6">
-        <ProductEmptyState
-          title={t('common.required')}
-          description={t('messages.login_required')}
-          icon={<MessageSquare size={34} />}
-          tone="flame"
-        />
-      </div>
+      <PageLayout variant="default">
+        <div className="messages-page">
+          <ProductEmptyState
+            title={t('common.required')}
+            description={t('messages.login_required')}
+            icon={<MessageSquare size={34} />}
+            tone="flame"
+          />
+        </div>
+      </PageLayout>
     );
   }
 
@@ -201,7 +203,8 @@ export function MessagesPage() {
   const noMatchingMessages = Boolean(messageSearch.trim() && allMessages.length && !visibleMessages.length);
 
   return (
-    <div className="messages-page px-3 py-5 sm:px-6 lg:py-7">
+    <PageLayout variant="default">
+      <div className="messages-page py-5 lg:py-7">
       <header className="mb-5 flex items-center justify-between gap-4">
         <div className="flex min-w-0 items-center gap-3">
           <span className="page-icon-tile">
@@ -565,7 +568,8 @@ export function MessagesPage() {
           },
         })}
       />
-    </div>
+      </div>
+    </PageLayout>
   );
 }
 

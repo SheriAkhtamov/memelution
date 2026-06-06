@@ -3,7 +3,7 @@ import { Link, useSearchParams } from 'react-router-dom';
 import { Hash, Search, SearchX, TrendingUp } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { api } from '../../shared/api/client';
-import { Avatar, Button, ErrorState, Skeleton, Tabs } from '../../shared/ui';
+import { Avatar, Button, ErrorState, PageLayout, Skeleton, Tabs } from '../../shared/ui';
 import { useDebouncedValue } from '../../shared/lib/useDebouncedValue';
 import { PostCard } from '../../features/posts/components/PostCard';
 import { useTranslation } from '../../shared/i18n';
@@ -98,7 +98,7 @@ export function SearchPage() {
   const hasResults = Boolean(query.data && ((query.data.posts?.length || 0) + (query.data.people?.length || 0) + (query.data.communities?.length || 0) + (query.data.hashtags?.length || 0) > 0));
 
   return (
-    <div>
+    <PageLayout variant="default">
       <header className="page-header sticky top-16 z-20 px-4 py-5 sm:top-0 sm:px-6 sm:py-7">
         <div className="mb-5 flex items-center gap-3">
           <Search className="text-[#FF6B00]" size={22} strokeWidth={2.2} />
@@ -155,7 +155,7 @@ export function SearchPage() {
           />
         </div>
       </header>
-      <div className="space-y-5 p-3 sm:p-5 lg:p-6">
+      <div className="space-y-5">
         {!debounced ? (
           <SearchDiscovery
             title={t('search.empty_query')}
@@ -250,7 +250,7 @@ export function SearchPage() {
           </div>
         )}
       </div>
-    </div>
+  </PageLayout>
   );
 }
 

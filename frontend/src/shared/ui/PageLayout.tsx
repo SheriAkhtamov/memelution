@@ -7,11 +7,12 @@ export const pageLayoutVariants = cva(
   {
     variants: {
       variant: {
-        default: 'max-w-4xl p-3 sm:p-5 lg:p-6',
-        feed: 'max-w-2xl p-3 sm:p-5 lg:p-6',
-        profile: 'max-w-4xl p-0 pb-6 sm:p-4 sm:pb-6',
+        compact: 'max-w-[var(--ui-page-max-w-compact)] p-3 sm:p-5 lg:p-6',
+        feed: 'max-w-[var(--ui-page-max-w-feed)] p-3 sm:p-5 lg:p-6',
+        default: 'max-w-[var(--ui-page-max-w-default)] p-3 sm:p-5 lg:p-6',
+        profile: 'max-w-[var(--ui-page-max-w-profile)] px-3 pb-6 sm:p-4 sm:pb-6',
         full: 'max-w-full p-3 sm:p-5 lg:p-6',
-        admin: 'max-w-7xl p-4 sm:p-6 lg:p-8',
+        admin: 'max-w-[var(--ui-page-max-w-admin)] p-4 sm:p-6 lg:p-8',
       },
     },
     defaultVariants: {

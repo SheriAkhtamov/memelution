@@ -3,7 +3,7 @@ import { Link, useParams } from 'react-router-dom';
 import { Hash } from 'lucide-react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { api } from '../../shared/api/client';
-import { Button, EmptyState, ErrorState, Skeleton, Tabs } from '../../shared/ui';
+import { Button, EmptyState, ErrorState, PageLayout, Skeleton, Tabs } from '../../shared/ui';
 import { PostCard } from '../../features/posts/components/PostCard';
 import { useAuthStore } from '../../store/authStore';
 import { redirectToLogin } from '../../utils/authRedirect';
@@ -31,7 +31,7 @@ export function HashtagPage() {
   if (query.isLoading) return <div className="p-3 sm:p-4"><Skeleton className="h-72" /></div>;
   if (query.isError || !query.data) return <div className="p-3 sm:p-4"><ErrorState description={t('hashtag.not_found')} onRetry={() => query.refetch()} /></div>;
   return (
-    <div>
+    <PageLayout variant="default">
       <header className="sticky top-0 z-20 border-b border-gray-200 bg-[#F3F4F6]/90 px-3 py-4 backdrop-blur dark:border-zinc-800 dark:bg-zinc-950/90 sm:px-4">
         <div className="mb-4 flex items-center justify-between gap-3">
           <div>
@@ -51,7 +51,7 @@ export function HashtagPage() {
           ]}
         />
       </header>
-      <div className="space-y-5 p-3 sm:p-4">
+      <div className="space-y-5">
         {query.data.related.length ? (
           <div className="flex flex-wrap gap-2">
             {query.data.related.map((tag) => <Link key={tag.id} to={`/hashtag/${tag.name}`} className="rounded-xl bg-white px-3 py-2 text-sm font-black text-[#FF6B00] dark:bg-zinc-950">#{tag.name}</Link>)}
@@ -59,6 +59,6 @@ export function HashtagPage() {
         ) : null}
         {query.data.posts.length ? query.data.posts.map((post) => <PostCard key={post.id} post={post} />) : <EmptyState title={t('hashtag.empty')} />}
       </div>
-    </div>
+  </PageLayout>
   );
 }

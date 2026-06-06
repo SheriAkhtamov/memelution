@@ -64,7 +64,7 @@ export function Modal({ open, title, children, onClose, className }: ModalProps)
       <section
         ref={modalRef}
         className={cn(
-          't-modal relative max-h-[92vh] w-full overflow-y-auto rounded-t-xl bg-card border border-border shadow-2xl transition-all sm:max-w-2xl sm:rounded-xl',
+          't-modal relative max-h-[92dvh] w-full overflow-y-auto rounded-t-xl bg-card border border-border shadow-2xl transition-all sm:max-w-2xl sm:rounded-xl',
           presence.state === 'open' && 'is-open',
           presence.state === 'closing' && 'is-closing',
           className

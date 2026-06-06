@@ -90,8 +90,8 @@ function formatLastSeen(value: unknown, t: (key: string, values?: Record<string,
   const now = Date.now();
   const diffSec = Math.max(0, Math.floor((now - date.getTime()) / 1000));
   if (diffSec < 60) return t('settings.sessions_active_now');
-  if (diffSec < 60 * 60) return t('settings.sessions_last_seen', { when: `${Math.floor(diffSec / 60)} мин назад` });
-  if (diffSec < 60 * 60 * 24) return t('settings.sessions_last_seen', { when: `${Math.floor(diffSec / 3600)} ч назад` });
+  if (diffSec < 60 * 60) return t('settings.sessions_min_ago', { n: Math.floor(diffSec / 60) });
+  if (diffSec < 60 * 60 * 24) return t('settings.sessions_hour_ago', { n: Math.floor(diffSec / 3600) });
   return t('settings.sessions_last_seen', { when: date.toLocaleDateString() });
 }
 
@@ -208,7 +208,7 @@ export function SettingsPage({ theme, setTheme }: { theme: string; setTheme: (th
 
   if (!user) {
     return (
-      <div className="settings-page p-3 sm:p-6">
+      <div className="settings-page max-w-4xl mx-auto w-full p-3 sm:p-6">
         <ProductEmptyState
           className="sm:min-h-[34rem]"
           title={t('common.required')}
@@ -463,7 +463,7 @@ export function SettingsPage({ theme, setTheme }: { theme: string; setTheme: (th
   ];
 
   return (
-    <div className="settings-page">
+    <div className="settings-page max-w-4xl mx-auto w-full">
       <header className="settings-page-header">
         <span className="settings-title-icon" aria-hidden="true">
           <SettingsIcon size={30} />
