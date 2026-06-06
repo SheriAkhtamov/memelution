@@ -15,6 +15,7 @@ import {
   Monitor,
   PenLine,
   Plus,
+  Rocket,
   Search,
   Settings,
   Shield,
@@ -39,6 +40,13 @@ import { useCommunity } from '../../features/communities/useCommunity';
 import { useTranslation } from '../../shared/i18n';
 import { ProductEmptyState } from '../../shared/ui/ProductEmptyState';
 import { authRedirectUrl } from '../../utils/authRedirect';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '../../components/ui/dialog';
 
 type CommunityCategory = 'all' | 'memes' | 'it' | 'games' | 'cinema' | 'humor' | 'education';
 type CommunityTypeFilter = 'all' | 'public' | 'closed' | 'private' | 'joined';
@@ -68,6 +76,7 @@ export function CommunitiesPage() {
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [showAllPopular, setShowAllPopular] = useState(false);
   const [showAllNew, setShowAllNew] = useState(false);
+  const [createModalOpen, setCreateModalOpen] = useState(false);
   const categoryRailRef = useRef<HTMLDivElement>(null);
   const query = useQuery({ queryKey: ['communities', q], queryFn: () => api.communities(q), staleTime: 30_000 });
 
@@ -115,22 +124,23 @@ export function CommunitiesPage() {
               <p className="page-subtitle mt-1.5">{t('community.subtitle')}</p>
             </div>
           </div>
-          <Link
-            to="/communities/new"
+          <button
+            type="button"
+            onClick={() => setCreateModalOpen(true)}
             className="motion-control inline-flex h-12 items-center justify-center gap-2 rounded-xl bg-[linear-gradient(135deg,#FF7A1A,#FF5A00)] px-5 text-sm font-black text-white shadow-[0_12px_24px_rgba(255,107,0,0.24)] hover:brightness-105"
           >
             <Plus size={18} /> {t('common.create')}
-          </Link>
+          </button>
         </div>
         <div className="mt-5 grid gap-3 md:grid-cols-[minmax(0,1fr)_10rem]">
           <label className="relative block min-w-0">
             <span className="sr-only">{t('community.search')}</span>
-            <Search size={24} className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
+            <Search size={18} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
             <input
               value={q}
               onChange={(event) => setQ(event.target.value)}
               placeholder={t('community.search')}
-              className="h-14 w-full rounded-2xl border border-[var(--app-line)] bg-white pl-14 pr-4 text-base font-semibold text-gray-900 shadow-sm outline-none placeholder:text-gray-400 focus:border-orange-300 focus:ring-4 focus:ring-orange-100 dark:bg-zinc-950 dark:text-zinc-100 dark:focus:ring-orange-950"
+              className="h-10 w-full rounded-xl border border-[var(--app-line)] bg-white pl-10 pr-4 text-sm font-semibold text-gray-900 shadow-sm outline-none placeholder:text-gray-400 focus:border-orange-300 focus:ring-4 focus:ring-orange-100 dark:bg-zinc-950 dark:text-zinc-100 dark:focus:ring-orange-950"
             />
           </label>
           <button
@@ -138,7 +148,7 @@ export function CommunitiesPage() {
             aria-expanded={filtersOpen}
             aria-controls="community-extra-filters"
             onClick={() => setFiltersOpen((value) => !value)}
-            className="motion-control inline-flex h-14 items-center justify-center gap-2 rounded-2xl border border-[var(--app-line)] bg-white px-5 text-sm font-black text-gray-700 shadow-sm hover:bg-gray-50 dark:bg-zinc-950 dark:text-zinc-100 dark:hover:bg-zinc-900"
+            className="motion-control inline-flex h-10 items-center justify-center gap-2 rounded-xl border border-[var(--app-line)] bg-white px-4 text-sm font-black text-gray-700 shadow-sm hover:bg-gray-50 dark:bg-zinc-950 dark:text-zinc-100 dark:hover:bg-zinc-900"
           >
             <SlidersHorizontal size={19} />
             {t('community.filters')}
@@ -147,7 +157,7 @@ export function CommunitiesPage() {
         </div>
 
         {filtersOpen ? (
-          <div id="community-extra-filters" className="mt-3 flex flex-wrap gap-2 rounded-2xl border border-[var(--app-line)] bg-white p-2 shadow-sm dark:bg-zinc-950">
+          <div id="community-extra-filters" className="mt-3 flex flex-wrap gap-2 rounded-xl border border-[var(--app-line)] bg-white p-2 shadow-sm dark:bg-zinc-950">
             {(['all', 'public', 'closed', 'private', 'joined'] as CommunityTypeFilter[]).map((filter) => (
               <button
                 key={filter}
@@ -250,17 +260,20 @@ export function CommunitiesPage() {
                     {t('community.reset_filters')}
                   </button>
                 ) : null}
-                <Link
-                  to="/communities/new"
+                <button
+                  type="button"
+                  onClick={() => setCreateModalOpen(true)}
                   className="motion-control inline-flex h-12 items-center justify-center gap-2 rounded-xl bg-[linear-gradient(135deg,#FF7A1A,#FF5A00)] px-5 text-sm font-black text-white shadow-[0_12px_24px_rgba(255,107,0,0.24)] hover:brightness-105"
                 >
                   <Plus size={17} /> {t('common.create')}
-                </Link>
+                </button>
               </div>
             }
           />
         )}
       </div>
+
+      <CreateCommunityModal open={createModalOpen} onClose={() => setCreateModalOpen(false)} />
     </div>
   );
 }
@@ -323,77 +336,241 @@ function CommunitiesDiscoverySkeleton() {
   );
 }
 
-export function CreateCommunityPage() {
+function CreateCommunityModal({ open, onClose }: { open: boolean; onClose: () => void }) {
   const { user } = useAuthStore();
   const { t } = useTranslation();
   const navigate = useNavigate();
   const toast = useToast();
+  const [step, setStep] = useState(0);
   const [name, setName] = useState('');
   const [slug, setSlug] = useState('');
   const [description, setDescription] = useState('');
-  const [rules, setRules] = useState(t('community.rules_hint'));
+  const [rules, setRules] = useState('');
   const [type, setType] = useState('public');
   const mutation = useMutation({
     mutationFn: () => api.createCommunity({ name, slug: slug || undefined, description, rules, type, settings: { premoderation: false, allow_polls: true } }),
     onSuccess: (community) => {
       toast.show({ title: t('community.created'), tone: 'success' });
+      onClose();
       navigate(`/communities/${community.slug}`);
     },
     onError: (event) => toast.show({ title: event instanceof Error ? event.message : t('community.create_error'), tone: 'error' }),
   });
-  if (!user) return <NeedAuthBlock />;
+
+  const resetAndClose = () => {
+    setStep(0);
+    setName('');
+    setSlug('');
+    setDescription('');
+    setRules('');
+    setType('public');
+    mutation.reset();
+    onClose();
+  };
+
+  const canProceed = name.trim().length >= 2;
+
   const TYPE_OPTIONS = [
-    { value: 'public', label: t('community.type_public'), desc: t('community.type_public_desc'), icon: Globe },
-    { value: 'closed', label: t('community.type_closed'), desc: t('community.type_closed_desc'), icon: UserCheck },
-    { value: 'private', label: t('community.type_private'), desc: t('community.type_private_desc'), icon: Lock },
+    { value: 'public', label: t('community.type_public'), desc: t('community.type_public_desc'), icon: Globe, color: 'from-emerald-500 to-teal-600', ring: 'ring-emerald-500/30', bg: 'bg-emerald-50 dark:bg-emerald-950/20', text: 'text-emerald-600 dark:text-emerald-400' },
+    { value: 'closed', label: t('community.type_closed'), desc: t('community.type_closed_desc'), icon: UserCheck, color: 'from-amber-500 to-orange-600', ring: 'ring-amber-500/30', bg: 'bg-amber-50 dark:bg-amber-950/20', text: 'text-amber-600 dark:text-amber-400' },
+    { value: 'private', label: t('community.type_private'), desc: t('community.type_private_desc'), icon: Lock, color: 'from-purple-500 to-indigo-600', ring: 'ring-purple-500/30', bg: 'bg-purple-50 dark:bg-purple-950/20', text: 'text-purple-600 dark:text-purple-400' },
   ];
+
   return (
-    <div>
-      <header className="sticky top-0 z-20 border-b border-gray-200/60 bg-white/90 px-3 py-5 backdrop-blur-xl dark:border-zinc-800/60 dark:bg-zinc-950/90 sm:px-4">
-        <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 text-white shadow-md">
-            <Plus size={18} />
-          </div>
-          <h1 className="text-2xl font-black tracking-tight">{t('community.create_title')}</h1>
-        </div>
-      </header>
-      <div className="p-3 sm:p-4">
-        <section className="space-y-6 rounded-2xl border border-gray-200/60 bg-white p-6 shadow-sm dark:border-zinc-800/60 dark:bg-zinc-900/50">
-          <div>
-            <label className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-gray-500">{t('community.name')}</label>
-            <Input value={name} onChange={(event) => setName(event.target.value)} placeholder={t('community.name_placeholder')} />
-          </div>
-          <div>
-            <label className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-gray-500">{t('community.slug')}</label>
-            <Input value={slug} onChange={(event) => setSlug(event.target.value)} placeholder="memes-and-humor" />
-            <p className="mt-1 text-xs text-gray-400">{t('community.slug_auto')}</p>
-          </div>
-          <div>
-            <label className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-gray-500">{t('community.description')}</label>
-            <Textarea value={description} onChange={(event) => setDescription(event.target.value)} placeholder={t('community.desc_placeholder')} />
-          </div>
-          <div>
-            <label className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-gray-500">{t('community.rules')}</label>
-            <Textarea value={rules} onChange={(event) => setRules(event.target.value)} placeholder={t('community.rules_placeholder')} />
-          </div>
-          <div>
-            <label className="mb-2 block text-xs font-bold uppercase tracking-wider text-gray-500">{t('community.type')}</label>
-            <div className="grid gap-2 sm:grid-cols-3">
-              {TYPE_OPTIONS.map((opt) => (
-                <button key={opt.value} onClick={() => setType(opt.value)} className={`rounded-xl border p-3 text-left transition-all ${
-                  type === opt.value ? 'border-[#FF6B00] bg-orange-50 ring-1 ring-[#FF6B00]/30 dark:bg-orange-950/20' : 'border-gray-200 hover:border-gray-300 dark:border-zinc-800 dark:hover:border-zinc-700'
-                }`}>
-                  <opt.icon size={18} className={type === opt.value ? 'text-[#FF6B00]' : 'text-gray-400'} />
-                  <p className="mt-1.5 text-sm font-black">{opt.label}</p>
-                  <p className="text-xs text-gray-400">{opt.desc}</p>
-                </button>
-              ))}
+    <Dialog open={open} onOpenChange={(isOpen) => { if (!isOpen) resetAndClose(); }}>
+      <DialogContent
+        showCloseButton={false}
+        className="sm:max-w-lg max-h-[90vh] overflow-hidden p-0 gap-0 rounded-xl"
+      >
+        <div className="relative overflow-hidden">
+          <div className="absolute inset-0 h-32 bg-gradient-to-br from-[#FF6B00]/20 via-[#FF8C38]/10 to-[#7C3AED]/20" />
+          <div className="relative px-6 pt-6 pb-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-[linear-gradient(135deg,#FF7A1A,#FF5A00)] text-white shadow-lg shadow-orange-500/25">
+                  <Plus size={20} />
+                </div>
+                <div>
+                  <DialogTitle className="text-lg font-black tracking-tight text-[var(--app-ink)]">
+                    {t('community.create_title')}
+                  </DialogTitle>
+                  <DialogDescription className="text-xs text-gray-500 dark:text-zinc-400">
+                    {step === 0 ? t('community.create_step1_desc') : t('community.create_step2_desc')}
+                  </DialogDescription>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={resetAndClose}
+                className="flex h-9 w-9 items-center justify-center rounded-xl text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-zinc-800 dark:hover:text-zinc-300"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <div className="mt-4 flex items-center gap-2">
+              <div className={`h-1.5 flex-1 rounded-full transition-all duration-500 ${step >= 0 ? 'bg-[linear-gradient(135deg,#FF7A1A,#FF5A00)]' : 'bg-gray-200 dark:bg-zinc-800'}`} />
+              <div className={`h-1.5 flex-1 rounded-full transition-all duration-500 ${step >= 1 ? 'bg-[linear-gradient(135deg,#FF7A1A,#FF5A00)]' : 'bg-gray-200 dark:bg-zinc-800'}`} />
             </div>
           </div>
-          <Button onClick={() => mutation.mutate()} loading={mutation.isPending} className="w-full">{t('common.create')}</Button>
-        </section>
-      </div>
-    </div>
+        </div>
+
+        {!user ? (
+          <div className="px-6 py-12 text-center">
+            <div className="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-xl bg-orange-50 dark:bg-orange-950/20">
+              <Lock size={24} className="text-[#FF6B00]" />
+            </div>
+            <p className="font-black text-[var(--app-ink)]">{t('common.required')}</p>
+            <p className="mt-1 text-sm text-gray-500 dark:text-zinc-400">{t('community.login_required')}</p>
+            <Link to={authRedirectUrl('/communities')} onClick={resetAndClose} className="mt-4 inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-[linear-gradient(135deg,#FF7A1A,#FF5A00)] px-5 text-sm font-black text-white shadow-md">
+              {t('nav.login')}
+            </Link>
+          </div>
+        ) : (
+          <div className="overflow-y-auto px-6 pb-6" style={{ maxHeight: 'calc(90vh - 10rem)' }}>
+            {step === 0 ? (
+              <div className="space-y-5">
+                <div>
+                  <label className="mb-2 block text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-zinc-400">
+                    {t('community.name')} <span className="text-[#FF6B00]">*</span>
+                  </label>
+                  <Input
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    placeholder={t('community.name_placeholder')}
+                    className="h-12 rounded-xl text-base"
+                    autoFocus
+                  />
+                </div>
+                <div>
+                  <label className="mb-2 block text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-zinc-400">
+                    {t('community.slug')}
+                  </label>
+                  <div className="relative">
+                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-sm text-gray-400 dark:text-zinc-500">m/</span>
+                    <Input
+                      value={slug}
+                      onChange={(e) => setSlug(e.target.value.replace(/[^a-zA-Z0-9-_]/g, ''))}
+                      placeholder="memes-and-humor"
+                      className="h-12 rounded-xl pl-9 text-base"
+                    />
+                  </div>
+                  <p className="mt-1.5 text-xs text-gray-400 dark:text-zinc-500">{t('community.slug_auto')}</p>
+                </div>
+                <div>
+                  <label className="mb-2 block text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-zinc-400">
+                    {t('community.description')}
+                  </label>
+                  <Textarea
+                    value={description}
+                    onChange={(e) => setDescription(e.target.value)}
+                    placeholder={t('community.desc_placeholder')}
+                    className="min-h-[5.5rem] rounded-xl text-base"
+                  />
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-5">
+                <div>
+                  <label className="mb-2.5 block text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-zinc-400">
+                    {t('community.type')}
+                  </label>
+                  <div className="grid gap-2.5 sm:grid-cols-3">
+                    {TYPE_OPTIONS.map((opt) => {
+                      const Icon = opt.icon;
+                      const active = type === opt.value;
+                      return (
+                        <button
+                          key={opt.value}
+                          type="button"
+                          onClick={() => setType(opt.value)}
+                          className={`group relative overflow-hidden rounded-xl border p-4 text-left transition-all duration-200 ${
+                            active
+                              ? `ring-2 ${opt.ring} ${opt.bg} border-transparent`
+                              : 'border-gray-200 hover:border-gray-300 dark:border-zinc-800 dark:hover:border-zinc-700'
+                          }`}
+                        >
+                          {active && (
+                            <div className={`absolute inset-0 bg-gradient-to-br ${opt.color} opacity-[0.04]`} />
+                          )}
+                          <div className="relative">
+                            <div className={`mb-2 flex h-9 w-9 items-center justify-center rounded-xl ${active ? `bg-gradient-to-br ${opt.color} text-white shadow-sm` : 'bg-gray-100 text-gray-400 dark:bg-zinc-800'}`}>
+                              <Icon size={17} />
+                            </div>
+                            <p className={`text-sm font-black ${active ? opt.text : 'text-[var(--app-ink)]'}`}>{opt.label}</p>
+                            <p className="mt-0.5 text-[11px] leading-snug text-gray-400 dark:text-zinc-500">{opt.desc}</p>
+                          </div>
+                          {active && (
+                            <div className={`absolute top-2.5 right-2.5 flex h-5 w-5 items-center justify-center rounded-full bg-gradient-to-br ${opt.color} text-white`}>
+                              <Check size={11} />
+                            </div>
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+                <div>
+                  <label className="mb-2 block text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-zinc-400">
+                    {t('community.rules')}
+                  </label>
+                  <Textarea
+                    value={rules}
+                    onChange={(e) => setRules(e.target.value)}
+                    placeholder={t('community.rules_placeholder')}
+                    className="min-h-[5.5rem] rounded-xl text-base"
+                  />
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {user && (
+          <div className="border-t border-gray-100 px-6 py-4 dark:border-zinc-800/60">
+            {step === 0 ? (
+              <button
+                type="button"
+                disabled={!canProceed}
+                onClick={() => setStep(1)}
+                className="motion-control flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-[linear-gradient(135deg,#FF7A1A,#FF5A00)] text-sm font-black text-white shadow-[0_8px_20px_rgba(255,107,0,0.2)] transition-all hover:brightness-105 disabled:opacity-40 disabled:shadow-none"
+              >
+                {t('community.create_next')}
+                <ChevronRight size={17} />
+              </button>
+            ) : (
+              <div className="flex gap-3">
+                <button
+                  type="button"
+                  onClick={() => setStep(0)}
+                  className="motion-control flex h-12 flex-1 items-center justify-center gap-2 rounded-xl border border-[var(--app-line)] bg-white text-sm font-black text-gray-700 shadow-sm transition-all hover:bg-gray-50 dark:bg-zinc-900 dark:text-zinc-200 dark:hover:bg-zinc-800"
+                >
+                  {t('common.back')}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => mutation.mutate()}
+                  disabled={mutation.isPending || !canProceed}
+                  className="motion-control flex h-12 flex-[2] items-center justify-center gap-2 rounded-xl bg-[linear-gradient(135deg,#FF7A1A,#FF5A00)] text-sm font-black text-white shadow-[0_8px_20px_rgba(255,107,0,0.2)] transition-all hover:brightness-105 disabled:opacity-60 disabled:shadow-none"
+                >
+                  {mutation.isPending ? (
+                    <span className="flex items-center gap-2">
+                      <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />
+                      {t('community.creating')}
+                    </span>
+                  ) : (
+                    <>
+                      <Rocket size={17} />
+                      {t('common.create')}
+                    </>
+                  )}
+                </button>
+              </div>
+            )}
+          </div>
+        )}
+      </DialogContent>
+    </Dialog>
   );
 }
 
@@ -419,14 +596,14 @@ export function CommunityPage() {
   return (
     <div>
       <div className="space-y-5 p-3 sm:p-4">
-        <section className="rounded-2xl border border-gray-200/60 bg-white shadow-sm dark:border-zinc-800/60 dark:bg-zinc-900/50">
-          <div className="relative h-44 overflow-hidden rounded-t-2xl bg-gradient-to-br from-[#FF6B00]/80 via-[#FF8C38]/60 to-[#7C3AED]/80 sm:h-52">
+        <section className="rounded-xl border border-gray-200/60 bg-white shadow-sm dark:border-zinc-800/60 dark:bg-zinc-900/50">
+          <div className="relative h-44 overflow-hidden rounded-t-xl bg-gradient-to-br from-[#FF6B00]/80 via-[#FF8C38]/60 to-[#7C3AED]/80 sm:h-52">
             {community.cover_url ? <img src={community.cover_url} alt="" className="h-full w-full object-cover" /> : null}
             <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent" />
           </div>
           <div className="relative z-10 px-5 pb-5">
             <div className="-mt-12 flex flex-wrap items-end justify-between gap-4">
-              <Avatar src={community.avatar_url} name={community.name} className="h-24 w-24 rounded-2xl border-4 border-white shadow-lg dark:border-zinc-900" />
+              <Avatar src={community.avatar_url} name={community.name} className="h-24 w-24 rounded-xl border-4 border-white shadow-lg dark:border-zinc-900" />
               <div className="flex gap-2">
                 {canManage ? <Link to={`/communities/${community.slug}/settings`}><Button variant="outline"><Settings size={16} /> {t('community.manage')}</Button></Link> : null}
                 <Button onClick={() => {
@@ -463,7 +640,7 @@ export function CommunityPage() {
           ]}
         />
         {tab === 'rules' ? (
-          <section className="rounded-2xl border border-gray-200/60 bg-white p-6 shadow-sm whitespace-pre-wrap dark:border-zinc-800/60 dark:bg-zinc-900/50">
+          <section className="rounded-xl border border-gray-200/60 bg-white p-6 shadow-sm whitespace-pre-wrap dark:border-zinc-800/60 dark:bg-zinc-900/50">
             <div className="mb-3 flex items-center gap-2"><FileText size={18} className="text-purple-500" /><h2 className="font-black">{t('community.rules_title')}</h2></div>
             <p className="text-gray-600 leading-relaxed dark:text-zinc-300">{community.rules || t('community.rules_empty')}</p>
           </section>
@@ -472,7 +649,7 @@ export function CommunityPage() {
             {(membersQuery.data || []).map((member) => {
               const ROLE_COLORS: Record<string, string> = { creator: 'text-amber-600 bg-amber-100 dark:bg-amber-900/30 dark:text-amber-400', admin: 'text-purple-600 bg-purple-100 dark:bg-purple-900/30 dark:text-purple-400', moderator: 'text-blue-600 bg-blue-100 dark:bg-blue-900/30 dark:text-blue-400' };
               return (
-                <Link key={member.user.id} to={`/user/${member.user.username}`} className="flex items-center gap-3 rounded-2xl border border-gray-200/60 bg-white p-4 shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md dark:border-zinc-800/60 dark:bg-zinc-900/50">
+                <Link key={member.user.id} to={`/user/${member.user.username}`} className="flex items-center gap-3 rounded-xl border border-gray-200/60 bg-white p-4 shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md dark:border-zinc-800/60 dark:bg-zinc-900/50">
                   <div className="relative">
                     <Avatar src={member.user.avatar_url} name={member.user.display_name} className="h-11 w-11 rounded-xl" />
                     {member.role === 'creator' && <Crown size={10} className="absolute -bottom-0.5 -right-0.5 rounded-full bg-amber-500 p-0.5 text-white ring-2 ring-white dark:ring-zinc-900" />}
@@ -526,7 +703,7 @@ function CommunityManagement({ slug, requests }: { slug: string; requests: Array
         <Metric label={t('community.moderation')} value={t('community.moderation_on')} icon={Shield} color="text-emerald-500" />
         <Metric label={t('community.analytics')} value={t('community.analytics_basic')} icon={PenLine} color="text-purple-500" />
       </div>
-      <div className="rounded-2xl border border-gray-200/60 bg-white p-5 shadow-sm dark:border-zinc-800/60 dark:bg-zinc-900/50">
+      <div className="rounded-xl border border-gray-200/60 bg-white p-5 shadow-sm dark:border-zinc-800/60 dark:bg-zinc-900/50">
         <div className="mb-4 flex items-center gap-2">
           <UserPlus size={18} className="text-blue-500" />
           <h2 className="text-lg font-black">{t('community.join_requests')}</h2>

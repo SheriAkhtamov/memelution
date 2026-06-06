@@ -4,82 +4,25 @@ import path from 'path';
 import {defineConfig} from 'vite';
 
 function serviceWorkerPlugin() {
-  const version = Date.now().toString(36);
-  const swSource = `const CACHE_NAME = 'memolution-pwa-${version}';
-const API_CACHE = 'memolution-api-${version}';
-const APP_SHELL = ['/', '/manifest.webmanifest', '/icons/icon.svg'];
-
-self.addEventListener('install', (event) => {
-  event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => cache.addAll(APP_SHELL)),
-  );
+  const swSource = `self.addEventListener('install', (event) => {
   self.skipWaiting();
 });
 
 self.addEventListener('activate', (event) => {
   event.waitUntil(
-    caches
-      .keys()
-      .then((keys) =>
-        Promise.all(
-          keys
-            .filter((key) => key !== CACHE_NAME && key !== API_CACHE)
-            .map((key) => caches.delete(key)),
-        ),
-      ),
-  );
-  self.clients.claim();
-});
-
-self.addEventListener('fetch', (event) => {
-  if (event.request.method !== 'GET') return;
-
-  const url = new URL(event.request.url);
-
-  // API requests: stale-while-revalidate (show cached, update in background)
-  if (url.pathname.startsWith('/api/')) {
-    event.respondWith(
-      caches.open(API_CACHE).then((cache) =>
-        cache.match(event.request).then((cached) => {
-          const fetchPromise = fetch(event.request)
-            .then((response) => {
-              if (response.ok) cache.put(event.request, response.clone());
-              return response;
-            })
-            .catch(() => cached);
-          return cached || fetchPromise;
-        }),
-      ),
-    );
-    return;
-  }
-
-  // Navigation: network-first with offline fallback
-  if (event.request.mode === 'navigate') {
-    event.respondWith(
-      fetch(event.request)
-        .then((response) => {
-          const clone = response.clone();
-          caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
-          return response;
-        })
-        .catch(() => caches.match('/') || caches.match(event.request)),
-    );
-    return;
-  }
-
-  // Static assets: cache-first
-  event.respondWith(
-    caches.match(event.request).then((cached) => {
-      if (cached) return cached;
-      return fetch(event.request).then((response) => {
-        if (response.ok && (url.pathname.match(/\\.(js|css|woff2?|svg|png|webp|jpg)$/) || url.pathname.startsWith('/assets/'))) {
-          const clone = response.clone();
-          caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
+    caches.keys().then((keys) => {
+      return Promise.all(keys.map((key) => caches.delete(key)));
+    }).then(() => {
+      return self.registration.unregister();
+    }).then(() => {
+      return self.clients.matchAll();
+    }).then((clients) => {
+      clients.forEach((client) => {
+        if (client.navigate) {
+          client.navigate(client.url);
         }
-        return response;
       });
-    }),
+    })
   );
 });
 `;
@@ -89,6 +32,16 @@ self.addEventListener('fetch', (event) => {
       this.emitFile({type: 'asset', fileName: 'sw.js', source: swSource});
     },
   };
+}
+
+function packageNameFromModuleId(id: string) {
+  const normalizedId = id.replaceAll(path.sep, '/');
+  const nodeModulesIndex = normalizedId.lastIndexOf('/node_modules/');
+  if (nodeModulesIndex === -1) return undefined;
+
+  const parts = normalizedId.slice(nodeModulesIndex + '/node_modules/'.length).split('/');
+  if (parts[0]?.startsWith('@')) return `${parts[0]}/${parts[1]}`;
+  return parts[0];
 }
 
 export default defineConfig(() => {
@@ -111,10 +64,14 @@ export default defineConfig(() => {
         output: {
           manualChunks(id) {
             if (!id.includes('node_modules')) return undefined;
-            if (id.includes('/react') || id.includes('/react-dom')) return 'vendor-react';
-            if (id.includes('/react-router')) return 'vendor-router';
-            if (id.includes('/@tanstack/')) return 'vendor-query';
-            if (id.includes('/lucide-react/')) return 'vendor-icons';
+
+            const packageName = packageNameFromModuleId(id);
+            if (packageName === 'react' || packageName === 'react-dom' || packageName === 'scheduler') {
+              return 'vendor-react';
+            }
+            if (packageName === 'react-router' || packageName === 'react-router-dom') return 'vendor-router';
+            if (packageName === '@tanstack/query-core' || packageName === '@tanstack/react-query') return 'vendor-query';
+            if (packageName === 'lucide-react') return 'vendor-icons';
             return 'vendor';
           },
         },

@@ -91,6 +91,7 @@ class Community(Base, TimestampMixin):
     members_count: Mapped[int] = mapped_column(Integer, default=0)
     posts_count: Mapped[int] = mapped_column(Integer, default=0)
     is_banned: Mapped[bool] = mapped_column(Boolean, default=False, index=True)
+    is_featured: Mapped[bool] = mapped_column(Boolean, default=False, index=True)
 
 
 class CommunityMember(Base):

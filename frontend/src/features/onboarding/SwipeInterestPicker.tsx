@@ -98,7 +98,7 @@ export function SwipeInterestPicker({
       <div className="relative h-48 w-64">
         {/* Background card (next) */}
         {remaining[1] && (
-          <div className="absolute inset-0 flex flex-col items-center justify-center rounded-2xl border border-gray-200 bg-white shadow-sm dark:border-zinc-800 dark:bg-zinc-950" style={{ transform: 'scale(0.95)', opacity: 0.5 }}>
+          <div className="absolute inset-0 flex flex-col items-center justify-center rounded-xl border border-gray-200 bg-white shadow-sm dark:border-zinc-800 dark:bg-zinc-950" style={{ transform: 'scale(0.95)', opacity: 0.5 }}>
             <span className="text-4xl">{INTEREST_EMOJIS[remaining[1]] || '✨'}</span>
             <span className="mt-2 text-lg font-black capitalize">{remaining[1]}</span>
           </div>
@@ -106,7 +106,7 @@ export function SwipeInterestPicker({
 
         {/* Active card */}
         <div
-          className="absolute inset-0 flex cursor-grab flex-col items-center justify-center rounded-2xl border-2 bg-white shadow-lg transition-shadow active:cursor-grabbing active:shadow-xl dark:bg-zinc-950"
+          className="absolute inset-0 flex cursor-grab flex-col items-center justify-center rounded-xl border-2 bg-white shadow-lg transition-shadow active:cursor-grabbing active:shadow-xl dark:bg-zinc-950"
           style={{
             transform: exiting ? exitTransform : `translateX(${dragX}px) rotate(${rotation}deg)`,
             transition: exiting || !dragging.current ? 'transform 250ms ease-out, opacity 250ms' : 'none',

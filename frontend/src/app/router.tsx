@@ -12,7 +12,6 @@ const PostPage = lazy(() => import('../pages/post/PostPage').then((module) => ({
 const ProfilePage = lazy(() => import('../pages/profile/ProfilePage').then((module) => ({ default: module.ProfilePage })));
 const CommunitiesPage = lazy(() => import('../pages/communities/CommunitiesPage').then((module) => ({ default: module.CommunitiesPage })));
 const CommunityPage = lazy(() => import('../pages/communities/CommunitiesPage').then((module) => ({ default: module.CommunityPage })));
-const CreateCommunityPage = lazy(() => import('../pages/communities/CommunitiesPage').then((module) => ({ default: module.CreateCommunityPage })));
 const CommunitySettingsPage = lazy(() => import('../pages/communities/CommunitySettingsPage').then((module) => ({ default: module.CommunitySettingsPage })));
 const SearchPage = lazy(() => import('../pages/search/SearchPage').then((module) => ({ default: module.SearchPage })));
 const HashtagPage = lazy(() => import('../pages/hashtag/HashtagPage').then((module) => ({ default: module.HashtagPage })));
@@ -25,6 +24,13 @@ const AdminDashboardPage = lazy(() => import('../pages/admin/AdminDashboardPage'
 const AdminUsersPage = lazy(() => import('../pages/admin/AdminUsersPage').then((module) => ({ default: module.AdminUsersPage })));
 const AdminReportsPage = lazy(() => import('../pages/admin/AdminReportsPage').then((module) => ({ default: module.AdminReportsPage })));
 const AdminLogsPage = lazy(() => import('../pages/admin/AdminLogsPage').then((module) => ({ default: module.AdminLogsPage })));
+const AdminPostsPage = lazy(() => import('../pages/admin/AdminPostsPage').then((module) => ({ default: module.AdminPostsPage })));
+const AdminCommentsPage = lazy(() => import('../pages/admin/AdminCommentsPage').then((module) => ({ default: module.AdminCommentsPage })));
+const AdminCommunitiesPage = lazy(() => import('../pages/admin/AdminCommunitiesPage').then((module) => ({ default: module.AdminCommunitiesPage })));
+const AdminHashtagsPage = lazy(() => import('../pages/admin/AdminHashtagsPage').then((module) => ({ default: module.AdminHashtagsPage })));
+const AdminAnalyticsPage = lazy(() => import('../pages/admin/AdminAnalyticsPage').then((module) => ({ default: module.AdminAnalyticsPage })));
+const AdminSessionsPage = lazy(() => import('../pages/admin/AdminSessionsPage').then((module) => ({ default: module.AdminSessionsPage })));
+const AdminSystemPage = lazy(() => import('../pages/admin/AdminSystemPage').then((module) => ({ default: module.AdminSystemPage })));
 const AdminLoginPage = lazy(() => import('../pages/auth/AuthPages').then((module) => ({ default: module.AdminLoginPage })));
 const AuthCallbackPage = lazy(() => import('../pages/auth/AuthPages').then((module) => ({ default: module.AuthCallbackPage })));
 const LoginPage = lazy(() => import('../pages/auth/AuthPages').then((module) => ({ default: module.LoginPage })));
@@ -50,7 +56,7 @@ export function AppRouter({ theme, setTheme }: { theme: string; setTheme: (theme
   // Only force onboarding on pages that require full registration.
   // Allow browsing feed, explore, search, posts, and profiles freely (lazy registration).
   const onboardingRequired = user && !user.onboarding_completed
-    && ['/messages', '/notifications', '/saved', '/settings', '/communities/new'].some(
+    && ['/messages', '/notifications', '/saved', '/settings'].some(
       (path) => location.pathname === path || location.pathname.startsWith(path + '/'),
     );
   if (onboardingRequired) return <RouteLoader><OnboardingPage /></RouteLoader>;
@@ -64,6 +70,13 @@ export function AppRouter({ theme, setTheme }: { theme: string; setTheme: (theme
           <Route path="/admin/users" element={<RouteLoader><AdminUsersPage /></RouteLoader>} />
           <Route path="/admin/reports" element={<RouteLoader><AdminReportsPage /></RouteLoader>} />
           <Route path="/admin/logs" element={<RouteLoader><AdminLogsPage /></RouteLoader>} />
+          <Route path="/admin/posts" element={<RouteLoader><AdminPostsPage /></RouteLoader>} />
+          <Route path="/admin/comments" element={<RouteLoader><AdminCommentsPage /></RouteLoader>} />
+          <Route path="/admin/communities" element={<RouteLoader><AdminCommunitiesPage /></RouteLoader>} />
+          <Route path="/admin/hashtags" element={<RouteLoader><AdminHashtagsPage /></RouteLoader>} />
+          <Route path="/admin/analytics" element={<RouteLoader><AdminAnalyticsPage /></RouteLoader>} />
+          <Route path="/admin/sessions" element={<RouteLoader><AdminSessionsPage /></RouteLoader>} />
+          <Route path="/admin/system" element={<RouteLoader><AdminSystemPage /></RouteLoader>} />
           <Route path="*" element={<NotFoundPage />} />
         </Routes>
       </AdminLayout>
@@ -78,7 +91,6 @@ export function AppRouter({ theme, setTheme }: { theme: string; setTheme: (theme
         <Route path="/post/:id" element={<RouteLoader><PostPage /></RouteLoader>} />
         <Route path="/user/:username" element={<RouteLoader><ProfilePage /></RouteLoader>} />
         <Route path="/communities" element={<RouteLoader><CommunitiesPage /></RouteLoader>} />
-        <Route path="/communities/new" element={<RouteLoader><CreateCommunityPage /></RouteLoader>} />
         <Route path="/communities/:slug/settings" element={<RouteLoader><CommunitySettingsPage /></RouteLoader>} />
         <Route path="/communities/:slug" element={<RouteLoader><CommunityPage /></RouteLoader>} />
         <Route path="/search" element={<RouteLoader><SearchPage /></RouteLoader>} />

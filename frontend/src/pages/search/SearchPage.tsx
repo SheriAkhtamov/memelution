@@ -101,7 +101,7 @@ export function SearchPage() {
     <div>
       <header className="page-header sticky top-16 z-20 px-4 py-5 sm:top-0 sm:px-6 sm:py-7">
         <div className="mb-5 flex items-center gap-3">
-          <Search className="text-[#FF6B00]" size={32} strokeWidth={2.2} />
+          <Search className="text-[#FF6B00]" size={22} strokeWidth={2.2} />
           <h1 className="page-title">{t('search.title')}</h1>
         </div>
         <div className="search-hero-field">
@@ -140,14 +140,14 @@ export function SearchPage() {
         {suggestions.length ? (
           <div className="mt-2 flex flex-wrap gap-2">
             {suggestions.map((item) => (
-              <button key={item} onClick={() => setQ(item)} className="rounded-lg bg-white px-3 py-1 text-xs font-black text-gray-500 dark:bg-zinc-900">
+              <button key={item} onClick={() => setQ(item)} className="rounded-xl bg-white px-3 py-1 text-xs font-black text-gray-500 dark:bg-zinc-900">
                 {highlight(item, q)}
               </button>
             ))}
             {history.length ? <Button variant="ghost" className="h-7 px-2 text-xs" onClick={() => { localStorage.removeItem(SEARCH_HISTORY_KEY); setHistory([]); }}>{t('search.clear_history')}</Button> : null}
           </div>
         ) : null}
-        <div className="surface-card mt-4 overflow-x-auto rounded-2xl p-1.5 [&_.t-tab]:flex-1 [&_.t-tabs]:flex [&_.t-tabs]:w-full [&_.t-tabs]:bg-transparent">
+        <div className="surface-card mt-4 overflow-x-auto rounded-xl p-1.5 [&_.t-tab]:flex-1 [&_.t-tabs]:flex [&_.t-tabs]:w-full [&_.t-tabs]:bg-transparent">
           <Tabs
             value={type}
             onChange={(value) => setType(value as SearchTab)}
@@ -175,11 +175,11 @@ export function SearchPage() {
         ) : hasResults ? (
           <>
             {query.data?.people?.length ? (
-              <section className="rounded-lg border border-gray-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-950">
+              <section className="rounded-xl border border-gray-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-950">
                 <h2 className="mb-3 font-black">{t('search.section_people')}</h2>
                 <div className="space-y-1">
                   {query.data.people.map((person) => (
-                    <Link key={person.id} to={`/user/${person.username}`} className="flex items-center gap-3 rounded-lg p-2.5 transition-colors hover:bg-gray-50 dark:hover:bg-zinc-900">
+                    <Link key={person.id} to={`/user/${person.username}`} className="flex items-center gap-3 rounded-xl p-2.5 transition-colors hover:bg-gray-50 dark:hover:bg-zinc-900">
                       <Avatar src={person.avatar_url} name={person.display_name} className="h-11 w-11" />
                       <div className="min-w-0 flex-1">
                         <p className="truncate font-black">{highlight(person.display_name, debounced)}</p>
@@ -194,8 +194,8 @@ export function SearchPage() {
             {query.data?.communities?.length ? (
               <section className="grid gap-3 sm:grid-cols-2">
                 {query.data.communities.map((community) => (
-                  <Link key={community.id} to={`/communities/${community.slug}`} className="flex gap-3 rounded-lg border border-gray-200 bg-white p-4 transition-colors hover:bg-gray-50 dark:border-zinc-800 dark:bg-zinc-950 dark:hover:bg-zinc-900">
-                    <Avatar src={community.avatar_url} name={community.name} />
+                    <Link key={community.id} to={`/communities/${community.slug}`} className="flex gap-3 rounded-xl border border-gray-200 bg-white p-4 transition-colors hover:bg-gray-50 dark:border-zinc-800 dark:bg-zinc-950 dark:hover:bg-zinc-900">
+                    <Avatar src={community.avatar_url} name={community.name} className="h-11 w-11 rounded-xl" />
                     <div className="min-w-0">
                       <p className="truncate font-black">{highlight(community.name, debounced)}</p>
                       <p className="line-clamp-2 text-sm text-gray-500">{highlight(community.description || '', debounced)}</p>
@@ -206,11 +206,11 @@ export function SearchPage() {
               </section>
             ) : null}
             {query.data?.hashtags?.length ? (
-              <section className="rounded-lg border border-gray-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-950">
+              <section className="rounded-xl border border-gray-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-950">
                 <h2 className="mb-3 font-black">{t('search.section_tags')}</h2>
                 <div className="flex flex-wrap gap-2">
                   {query.data.hashtags.map((tag) => (
-                    <Link key={tag.id} to={`/hashtag/${tag.name}`} className="rounded-lg bg-orange-50 px-3 py-2 text-sm font-black text-[#FF6B00] transition-colors hover:bg-orange-100 dark:bg-orange-950/30 dark:hover:bg-orange-950/50">
+                    <Link key={tag.id} to={`/hashtag/${tag.name}`} className="rounded-xl bg-orange-50 px-3 py-2 text-sm font-black text-[#FF6B00] transition-colors hover:bg-orange-100 dark:bg-orange-950/30 dark:hover:bg-orange-950/50">
                       #{highlight(tag.name, debounced)} · {tag.posts_count}
                     </Link>
                   ))}
@@ -239,7 +239,7 @@ export function SearchPage() {
                     <button
                       key={tag}
                       onClick={() => setQ(`#${tag}`)}
-                      className="inline-flex items-center gap-1 rounded-lg bg-orange-50 px-3 py-2 text-sm font-black text-[#FF6B00] transition-colors hover:bg-orange-100 dark:bg-orange-950/30 dark:hover:bg-orange-950/50"
+                      className="inline-flex items-center gap-1 rounded-xl bg-orange-50 px-3 py-2 text-sm font-black text-[#FF6B00] transition-colors hover:bg-orange-100 dark:bg-orange-950/30 dark:hover:bg-orange-950/50"
                     >
                       <Hash size={14} /> {tag}
                     </button>
@@ -274,7 +274,7 @@ function SearchDiscovery({
     <div className="space-y-4">
       <ProductEmptyState className="sm:min-h-[25rem]" title={title} description={description} tone="search" icon={<Search size={38} />} />
       {popularTags.length ? (
-      <section className="surface-card rounded-2xl p-4 sm:p-5">
+      <section className="surface-card rounded-xl p-4 sm:p-5">
         <div className="mb-3 flex items-center gap-2">
           <TrendingUp size={18} className="text-[#FF6B00]" />
           <h2 className="font-black">{t('search.popular_queries')}</h2>
@@ -293,7 +293,7 @@ function SearchDiscovery({
       </section>
       ) : null}
       {history.length ? (
-        <section className="surface-card rounded-2xl p-4 sm:p-5">
+        <section className="surface-card rounded-xl p-4 sm:p-5">
           <div className="mb-3 flex items-center justify-between gap-3">
             <h2 className="font-black">{t('search.recent_searches')}</h2>
             <Button variant="ghost" className="h-8 px-2 text-xs" onClick={onClearHistory}>{t('search.clear_recent')}</Button>
@@ -303,7 +303,7 @@ function SearchDiscovery({
               <button
                 key={item}
                 onClick={() => onPick(item)}
-                className="rounded-lg border border-gray-200 px-3 py-2 text-sm font-black text-gray-500 hover:bg-gray-50 dark:border-zinc-800 dark:hover:bg-zinc-900"
+                className="rounded-xl border border-gray-200 px-3 py-2 text-sm font-black text-gray-500 hover:bg-gray-50 dark:border-zinc-800 dark:hover:bg-zinc-900"
               >
                 {item}
               </button>

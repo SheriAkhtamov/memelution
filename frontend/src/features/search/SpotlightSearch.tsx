@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { Search, X, User, Users, FileText, Hash } from 'lucide-react';
@@ -118,11 +119,11 @@ export function SpotlightSearch() {
 
   if (!presence.mounted) return null;
 
-  return (
+  return createPortal(
     <div className="motion-overlay fixed inset-0 z-[110] flex items-start justify-center bg-black/50 pt-[15vh] backdrop-blur-[2px]" data-state={presence.state} onClick={() => { setOpen(false); setQuery(''); }}>
       <div
         className={cn(
-          't-modal w-full max-w-lg overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-2xl dark:border-zinc-800 dark:bg-zinc-950',
+          't-modal w-full max-w-lg overflow-hidden rounded-xl border border-gray-200 bg-white shadow-2xl dark:border-zinc-800 dark:bg-zinc-950',
           presence.state === 'open' && 'is-open',
           presence.state === 'closing' && 'is-closing',
         )}
@@ -189,6 +190,7 @@ export function SpotlightSearch() {
           <span className="rounded border border-gray-200 px-1 py-0.5 dark:border-zinc-700">Ctrl+K</span>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }

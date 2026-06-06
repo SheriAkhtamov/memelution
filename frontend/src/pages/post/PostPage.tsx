@@ -113,7 +113,7 @@ export function PostPage() {
 
   if (postQuery.isLoading) {
     return (
-      <div className="p-3 sm:p-4">
+      <div className="p-3 sm:p-5 lg:p-6">
         <Skeleton className="h-96" />
       </div>
     );
@@ -121,7 +121,7 @@ export function PostPage() {
 
   if (postQuery.isError || !postQuery.data?.post) {
     return (
-      <div className="p-3 sm:p-4">
+      <div className="p-3 sm:p-5 lg:p-6">
         <ErrorState description={postQuery.error instanceof Error ? postQuery.error.message : t('post_page.not_found')} onRetry={() => postQuery.refetch()} />
       </div>
     );
@@ -129,13 +129,15 @@ export function PostPage() {
 
   return (
     <div>
-      <header className="sticky top-0 z-20 flex items-center gap-3 border-b border-gray-200 bg-[#F3F4F6]/90 px-3 py-3 backdrop-blur dark:border-zinc-800 dark:bg-zinc-950/90">
-        <button onClick={goBack} className="rounded-lg p-2 hover:bg-gray-200 dark:hover:bg-zinc-900" aria-label={t('post_page.back')}>
-          <ArrowLeft size={20} />
-        </button>
-        <h1 className="text-xl font-black">{t('post_page.title')}</h1>
+      <header className="page-header sticky top-0 z-20 px-4 py-5 sm:px-6 sm:py-7">
+        <div className="flex items-center gap-3">
+          <button onClick={goBack} className="rounded-lg p-2 hover:bg-gray-200 dark:hover:bg-zinc-900" aria-label={t('post_page.back')}>
+            <ArrowLeft size={20} />
+          </button>
+          <h1 className="page-title">{t('post_page.title')}</h1>
+        </div>
       </header>
-      <div className="space-y-6 p-3 sm:p-4">
+      <div className="space-y-5 p-3 sm:p-5 lg:p-6">
         <PostCard
           post={postQuery.data.post}
           onChanged={(post) => queryClient.setQueryData(['post', id], (current: typeof postQuery.data | undefined) => (current ? { ...current, post } : current))}

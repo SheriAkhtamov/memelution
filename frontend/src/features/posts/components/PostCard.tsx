@@ -1,11 +1,12 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { Link, useNavigate } from 'react-router-dom';
-import { Bookmark, BarChart3, Copy, EyeOff, Flag, Heart, Loader2, MessageSquare, MoreHorizontal, Pencil, Pin, Repeat2, Send, Share2, ThumbsDown, Trash2 } from 'lucide-react';
+import { Bookmark, BarChart3, Copy, EyeOff, Flag, Heart, Loader2, MoreHorizontal, Pencil, Pin, Send, Share2, ThumbsDown, Trash2 } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { api } from '../../../shared/api/client';
 import type { Post, ReactionItem } from '../../../shared/types';
-import { AnimatedNumber, Avatar, Badge, Button, ConfirmDialog, ErrorBoundary, IconButton, Input, MediaViewer, Modal, ReportDialog, Select, Textarea, useToast } from '../../../shared/ui';
+import { AnimatedNumber, Avatar, Badge, Button, ConfirmDialog, ErrorBoundary, IconButton, Input, MediaViewer, Modal, ReportDialog, Select, Textarea, useToast, Card, Typography } from '../../../shared/ui';
 import { Dropdown, DropdownItem } from '../../../shared/ui';
 import { useAuthStore } from '../../../store/authStore';
 import { ReactionPicker } from './ReactionPicker';
@@ -13,6 +14,8 @@ import { redirectToLogin } from '../../../utils/authRedirect';
 import { hapticTap } from '../../../utils/haptic';
 import { useTranslation } from '../../../shared/i18n';
 import { trackEvent } from '../../../shared/lib/analytics';
+import { PostActions } from './PostActions';
+import { cn } from '../../../lib/utils';
 
 function hashtagParts(text: string) {
   return text.split(/(#[\wа-яА-ЯёЁ_]{2,80})/g);
@@ -80,13 +83,13 @@ export function PostCard({
     onChanged?.(next);
   };
 
-  const requireAuth = () => {
+  const requireAuth = useCallback(() => {
     if (!user) {
       redirectToLogin();
       return false;
     }
     return true;
-  };
+  }, [user]);
 
   const invalidate = () => {
     queryClient.invalidateQueries({ queryKey: ['feed'] });
@@ -349,7 +352,7 @@ export function PostCard({
       channel: 'copy_link',
     });
     toast.show({ title: t('common.copied'), tone: 'success' });
-  }, [localPost.id, localPost.text, localPost.author_id, localPost.community_id, t]);
+  }, [localPost.id, localPost.text, localPost.author_id, localPost.community_id, t, toast]);
 
   const startPostLongPress = useCallback(() => {
     postLongPressTimerRef.current = setTimeout(() => {
@@ -407,7 +410,7 @@ export function PostCard({
       setHeartAnim(true);
       setTimeout(() => setHeartAnim(false), 800);
     }
-  }, [localPost.liked, like]);
+  }, [localPost.liked, like, requireAuth]);
 
   useEffect(() => {
     const node = contentRef.current;
@@ -437,28 +440,30 @@ export function PostCard({
   }, []);
 
   const contentText = localPost.text ? (
-    <p className="whitespace-pre-wrap text-[15px] font-medium leading-relaxed text-gray-900 dark:text-zinc-100">
+    <Typography variant="body" className="whitespace-pre-wrap">
       {hashtagParts(localPost.text).map((part, index) =>
         part.startsWith('#') ? (
-          <Link key={`${part}-${index}`} to={`/hashtag/${encodeURIComponent(part.slice(1))}`} className="font-black text-[#FF6B00] hover:underline">
+          <Link key={`${part}-${index}`} to={`/hashtag/${encodeURIComponent(part.slice(1))}`} className="font-black text-primary hover:underline">
             {part}
           </Link>
         ) : (
           part
         ),
       )}
-    </p>
+    </Typography>
   ) : null;
 
   return (
     <ErrorBoundary level="feed-item">
-      <article
-        className="motion-feed-card rounded-lg border border-gray-200/80 bg-white/95 shadow-[0_1px_2px_rgba(15,23,42,0.04),0_12px_32px_rgba(15,23,42,0.04)] backdrop-blur transition-[border-color,box-shadow,translate] duration-200 hover:-translate-y-0.5 hover:border-gray-300 hover:shadow-[0_1px_2px_rgba(15,23,42,0.06),0_18px_40px_rgba(15,23,42,0.08)] dark:border-zinc-800 dark:bg-zinc-950/90 dark:hover:border-zinc-700"
-      onTouchStart={handlePostTouchStart}
-      onTouchMove={handlePostTouchMove}
-      onTouchEnd={handlePostTouchEnd}
-      onContextMenu={handlePostContextMenu}
-    >
+      <Card
+        variant="hoverable"
+        padding="none"
+        className="motion-feed-card"
+        onTouchStart={handlePostTouchStart}
+        onTouchMove={handlePostTouchMove}
+        onTouchEnd={handlePostTouchEnd}
+        onContextMenu={handlePostContextMenu}
+      >
       <div className={compact ? 'p-4' : 'p-5'}>
         <div className="flex gap-3">
           <Link to={`/user/${localPost.author?.username}`} className="shrink-0">
@@ -468,16 +473,16 @@ export function PostCard({
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0">
                 <div className="flex flex-wrap items-center gap-2">
-                  <Link to={`/user/${localPost.author?.username}`} className="font-black hover:text-[#FF6B00]">
+                  <Link to={`/user/${localPost.author?.username}`} className="font-black text-foreground hover:text-primary">
                     {localPost.author?.display_name}
                   </Link>
-                  <span className="text-xs font-bold text-gray-400">@{localPost.author?.username}</span>
-                  <span className="text-xs text-gray-400">· {timeAgo}</span>
-                  {isEdited ? <span className="text-xs font-bold text-gray-400">· {t('post.edited')}</span> : null}
+                  <span className="text-xs font-bold text-muted-foreground">@{localPost.author?.username}</span>
+                  <span className="text-xs text-muted-foreground">· {timeAgo}</span>
+                  {isEdited ? <span className="text-xs font-bold text-muted-foreground">· {t('post.edited')}</span> : null}
                   {localPost.is_pinned ? <Badge>{t('post.pinned_label')}</Badge> : null}
                 </div>
                 {localPost.community ? (
-                  <Link to={`/communities/${localPost.community.slug}`} className="mt-1 block text-xs font-black text-[#7C3AED] hover:underline">
+                  <Link to={`/communities/${localPost.community.slug}`} className="mt-1 block text-xs font-black text-secondary hover:underline">
                     /{localPost.community.name}
                   </Link>
                 ) : null}
@@ -580,50 +585,52 @@ export function PostCard({
                   const selected = localPost.poll_voted_option_id === option.id;
                   const hasVoted = Boolean(localPost.poll_voted_option_id);
                   return (
-                    <button
+                    <Button
                       key={option.id}
                       disabled={vote.isPending}
                       onClick={() => requireAuth() && vote.mutate(option.id)}
-                      className={`relative w-full overflow-hidden rounded-lg border p-3 text-left transition-all ${
+                      variant="ghost"
+                      className={cn(
+                        "relative w-full overflow-hidden rounded-xl border p-3 text-left transition-all justify-start h-auto block font-bold normal-case",
                         selected
-                          ? 'border-[#7C3AED] bg-purple-50/50 dark:bg-purple-950/20'
+                          ? 'border-secondary bg-secondary/10 hover:bg-secondary/15'
                           : hasVoted
-                            ? 'border-gray-200/60 dark:border-zinc-800'
-                            : 'border-purple-100 hover:border-purple-300 hover:bg-purple-50/30 dark:border-purple-900 dark:hover:border-purple-700'
-                      } ${vote.isPending ? 'opacity-70' : ''}`}
+                            ? 'border-border'
+                            : 'border-secondary/20 hover:border-secondary/50 hover:bg-secondary/5'
+                      )}
                     >
-                      {localPost.poll_results_visible ? <span className={`absolute inset-y-0 left-0 transition-all duration-500 ${selected ? 'bg-purple-200/60 dark:bg-purple-900/40' : 'bg-gray-100 dark:bg-zinc-800/40'}`} style={{ width: `${percent}%` }} /> : null}
+                      {localPost.poll_results_visible ? <span className={`absolute inset-y-0 left-0 transition-all duration-500 ${selected ? 'bg-secondary/20' : 'bg-muted/40'}`} style={{ width: `${percent}%` }} /> : null}
                       <span className="relative flex items-center justify-between gap-3 text-sm font-black">
-                        <span className="flex items-center gap-2">
-                          {selected ? <span className="flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-[#7C3AED] text-[10px] text-white">✓</span> : null}
+                        <span className="flex items-center gap-2 text-foreground">
+                          {selected ? <span className="flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-secondary text-white" style={{ fontSize: '10px' }}>✓</span> : null}
                           {option.text}
                         </span>
-                        {localPost.poll_results_visible ? <span className="tabular-nums text-gray-500">{percent}%</span> : null}
+                        {localPost.poll_results_visible ? <span className="tabular-nums text-muted-foreground">{percent}%</span> : null}
                       </span>
-                    </button>
+                    </Button>
                   );
                 })}
                 <p className="text-xs font-bold text-gray-400">{localPost.poll_total_votes || 0} {t('post.votes')}</p>
               </div>
             ) : null}
 
-            <div className="mt-4 flex flex-wrap items-center gap-1 border-t border-gray-100/80 pt-3 text-gray-500 dark:border-zinc-800/80">
-              <Button variant="ghost" className="h-9 px-2.5" onClick={() => navigate(`/post/${localPost.id}`)} aria-label={t('post_page.open_comments')}>
-                <MessageSquare size={17} /> <AnimatedNumber value={localPost.comments_count || 0} className="tabular-nums" /><span className="hidden sm:inline">{t('post.comm_short')}</span>
-              </Button>
-              <Button variant="ghost" className={`h-9 px-2.5 transition-transform ${localPost.liked ? 'text-red-500' : ''} ${likePulse ? 'scale-125' : ''}`} onClick={() => { requireAuth() && like.mutate(); hapticTap(); pulseFeedback(setLikePulse); }} aria-label={localPost.liked ? t('post.remove_like') : t('post.add_like')}>
-                <Heart size={17} fill={localPost.liked ? 'currentColor' : 'none'} /> <AnimatedNumber value={localPost.likes_count || 0} className="tabular-nums" /><span className="hidden sm:inline">{t('post.like')}</span>
-              </Button>
-              <Button variant="ghost" className={`h-9 px-2.5 transition-transform ${localPost.reposted ? 'text-green-600' : ''} ${repostPulse ? 'scale-125' : ''}`} onClick={() => { if (!requireAuth()) return; if (localPost.reposted) { setConfirmUnrepost(true); } else { setRepostOpen(true); pulseFeedback(setRepostPulse); } }} aria-label={localPost.reposted ? t('post.remove_repost') : t('post.add_repost')}>
-                <Repeat2 size={17} /> <AnimatedNumber value={localPost.reposts_count || 0} className="tabular-nums" /><span className="hidden sm:inline">{t('post.repost')}</span>
-              </Button>
-              <Button variant="ghost" className={`h-9 px-2.5 transition-transform ${localPost.saved ? 'text-blue-600' : ''} ${savePulse ? 'scale-125' : ''}`} onClick={() => { requireAuth() && (localPost.saved ? save.mutate(undefined) : setSaveOpen(true)); if (!localPost.saved) pulseFeedback(setSavePulse); }} aria-label={localPost.saved ? t('post.menu_unsave') : t('post.save')}>
-                <Bookmark size={17} fill={localPost.saved ? 'currentColor' : 'none'} /> <AnimatedNumber value={localPost.saves_count || 0} className="tabular-nums" /><span className="hidden sm:inline">{t('post.saved_short')}</span>
-              </Button>
-              <Button variant="ghost" className="ml-auto h-9 px-2.5" onClick={handleShare} aria-label={t('post.share')}>
-                <Share2 size={17} /> <span className="hidden sm:inline">{t('common.share')}</span>
-              </Button>
-            </div>
+            <PostActions
+              likesCount={localPost.likes_count || 0}
+              commentsCount={localPost.comments_count || 0}
+              repostsCount={localPost.reposts_count || 0}
+              savesCount={localPost.saves_count || 0}
+              liked={Boolean(localPost.liked)}
+              reposted={Boolean(localPost.reposted)}
+              saved={Boolean(localPost.saved)}
+              likePulse={likePulse}
+              repostPulse={repostPulse}
+              savePulse={savePulse}
+              onLike={() => { if (requireAuth()) { like.mutate(); hapticTap(); pulseFeedback(setLikePulse); } }}
+              onComment={() => navigate(`/post/${localPost.id}`)}
+              onRepost={() => { if (!requireAuth()) return; if (localPost.reposted) { setConfirmUnrepost(true); } else { setRepostOpen(true); pulseFeedback(setRepostPulse); } }}
+              onSave={() => { if (requireAuth()) { if (localPost.saved) { save.mutate(undefined); } else { setSaveOpen(true); pulseFeedback(setSavePulse); } } }}
+              onShare={handleShare}
+            />
             {/* Reactions row */}
             <div className="px-1">
               <ReactionPicker
@@ -679,7 +686,7 @@ export function PostCard({
       />
       <Modal open={repostOpen} onClose={() => setRepostOpen(false)} title={t('post.repost_title')}>
         <div className="space-y-3">
-          <div className="rounded-lg border border-gray-100 p-3 text-sm text-gray-500 dark:border-zinc-800">
+          <div className="rounded-xl border border-gray-100 p-3 text-sm text-gray-500 dark:border-zinc-800">
             <p className="font-black text-gray-900 dark:text-zinc-100">{localPost.author?.display_name}</p>
             <p className="line-clamp-3">{localPost.text || t('post.type_media')}</p>
           </div>
@@ -707,23 +714,24 @@ export function PostCard({
         <div className="relative space-y-3">
           <Input value={sendUsername} onChange={(event) => setSendUsername(event.target.value)} placeholder="@username" autoComplete="off" />
           {sendOpen && sendUsername.trim().length > 1 && userSearchQuery.isLoading ? (
-            <div className="absolute z-50 mt-1 w-full rounded-lg border border-gray-200 bg-white p-3 shadow-xl dark:border-zinc-800 dark:bg-zinc-950">
+            <div className="absolute z-50 mt-1 w-full rounded-xl border border-gray-200 bg-white p-3 shadow-xl dark:border-zinc-800 dark:bg-zinc-950">
               <div className="flex items-center gap-2 text-xs text-gray-400"><Loader2 size={14} className="animate-spin" /> {t('common.loading')}</div>
             </div>
           ) : userSuggestions.length > 0 ? (
-            <div className="absolute z-50 mt-1 max-h-60 w-full overflow-y-auto rounded-lg border border-gray-200 bg-white shadow-xl dark:border-zinc-800 dark:bg-zinc-950">
+            <div className="absolute z-50 mt-1 max-h-60 w-full overflow-y-auto rounded-xl border border-gray-200 bg-white shadow-xl dark:border-zinc-800 dark:bg-zinc-950">
               {userSuggestions.map((u) => (
-                <button
+                <Button
                   key={u.id}
                   onClick={() => { setSendUsername(u.username); }}
-                  className="flex w-full items-center gap-3 px-3 py-2.5 text-left hover:bg-gray-50 dark:hover:bg-zinc-900"
+                  variant="ghost"
+                  className="flex w-full items-center gap-3 px-3 py-2.5 text-left hover:bg-muted justify-start h-auto rounded-none"
                 >
                   <Avatar src={u.avatar_url} name={u.display_name} className="h-8 w-8" />
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-sm font-black">{u.display_name}</p>
                     <p className="truncate text-xs text-gray-400">@{u.username}</p>
                   </div>
-                </button>
+                </Button>
               ))}
             </div>
           ) : null}
@@ -785,51 +793,58 @@ export function PostCard({
         </div>
       </Modal>
 
-      {postContextMenuOpen && (
+      {postContextMenuOpen && createPortal(
         <div className="motion-overlay fixed inset-0 z-50 flex items-end justify-center bg-black/45 p-0 sm:items-center sm:p-4" data-state="open" onClick={() => setPostContextMenuOpen(false)}>
-          <div className="t-modal is-open w-full max-w-sm rounded-t-2xl bg-white p-4 shadow-2xl dark:bg-zinc-950 sm:rounded-lg" onClick={(e) => e.stopPropagation()}>
+          <div className="t-modal is-open w-full max-w-sm rounded-t-2xl bg-white p-4 shadow-2xl dark:bg-zinc-950 sm:rounded-xl" onClick={(e) => e.stopPropagation()}>
             <div className="space-y-1">
-              <button
-                className="motion-control flex w-full items-center gap-3 rounded-lg px-3 py-3 text-left text-sm font-bold hover:bg-gray-50 dark:hover:bg-zinc-900"
-                onClick={() => { localPost.saved ? save.mutate(undefined) : setSaveOpen(true); setPostContextMenuOpen(false); }}
+              <Button
+                variant="ghost"
+                className="flex w-full items-center gap-3 rounded-lg px-3 py-3 text-left text-sm font-bold hover:bg-muted justify-start h-auto"
+                onClick={() => { if (localPost.saved) { save.mutate(undefined); } else { setSaveOpen(true); } setPostContextMenuOpen(false); }}
               >
                 <Bookmark size={16} /> {localPost.saved ? t('post.menu_unsave') : t('post.menu_save')}
-              </button>
-              <button
-                className="motion-control flex w-full items-center gap-3 rounded-lg px-3 py-3 text-left text-sm font-bold hover:bg-gray-50 dark:hover:bg-zinc-900"
+              </Button>
+              <Button
+                variant="ghost"
+                className="flex w-full items-center gap-3 rounded-lg px-3 py-3 text-left text-sm font-bold hover:bg-muted justify-start h-auto"
                 onClick={() => { setConfirmHide(true); setPostContextMenuOpen(false); }}
               >
                 <EyeOff size={16} /> {t('post.menu_hide')}
-              </button>
-              <button
-                className="motion-control flex w-full items-center gap-3 rounded-lg px-3 py-3 text-left text-sm font-bold hover:bg-gray-50 dark:hover:bg-zinc-900"
+              </Button>
+              <Button
+                variant="ghost"
+                className="flex w-full items-center gap-3 rounded-lg px-3 py-3 text-left text-sm font-bold hover:bg-muted justify-start h-auto"
                 onClick={() => { handleShare(); setPostContextMenuOpen(false); }}
               >
                 <Share2 size={16} /> {t('common.share')}
-              </button>
-              <button
-                className="flex w-full items-center gap-3 rounded-lg px-3 py-3 text-left text-sm font-bold hover:bg-gray-50 dark:hover:bg-zinc-900"
+              </Button>
+              <Button
+                variant="ghost"
+                className="flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left text-sm font-bold hover:bg-muted justify-start h-auto"
                 onClick={() => { copyLink(); setPostContextMenuOpen(false); }}
               >
                 <Copy size={16} /> {t('post.menu_copy')}
-              </button>
-              <button
-                className="flex w-full items-center gap-3 rounded-lg px-3 py-3 text-left text-sm font-bold text-red-600 hover:bg-red-50 dark:hover:bg-red-950/20"
+              </Button>
+              <Button
+                variant="ghost"
+                className="flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left text-sm font-bold text-destructive hover:bg-destructive/10 justify-start h-auto"
                 onClick={() => { setReportOpen(true); setPostContextMenuOpen(false); }}
               >
                 <Flag size={16} /> {t('post.menu_report')}
-              </button>
+              </Button>
             </div>
-            <button
-              className="mt-3 w-full rounded-lg bg-gray-100 py-3 text-sm font-bold dark:bg-zinc-800"
+            <Button
+              variant="outline"
+              className="mt-3 w-full py-3 text-sm font-bold"
               onClick={() => setPostContextMenuOpen(false)}
             >
               {t('common.cancel')}
-            </button>
+            </Button>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
-    </article>
+    </Card>
     </ErrorBoundary>
   );
 }

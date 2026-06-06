@@ -56,10 +56,10 @@ export function CommunitySettingsPage() {
   if (communityQuery.isLoading) {
     return (
       <div className="csp-skeleton">
-        <Skeleton className="h-20 w-full rounded-2xl" />
+        <Skeleton className="h-20 w-full rounded-xl" />
         <div className="csp-skeleton-grid">
-          <Skeleton className="h-[420px] rounded-2xl" />
-          <Skeleton className="h-[420px] rounded-2xl" />
+          <Skeleton className="h-[420px] rounded-xl" />
+          <Skeleton className="h-[420px] rounded-xl" />
         </div>
       </div>
     );
@@ -906,7 +906,7 @@ function MembersSection({
         {settings.members.isLoading ? (
           <div className="csp-members">
             {Array.from({ length: 4 }).map((_, index) => (
-              <Skeleton key={index} className="h-16 rounded-2xl" />
+              <Skeleton key={index} className="h-16 rounded-xl" />
             ))}
           </div>
         ) : members.length === 0 ? (
@@ -1048,7 +1048,7 @@ function BannedSection({
       {settings.banList.isLoading ? (
         <div className="csp-members">
           {Array.from({ length: 3 }).map((_, index) => (
-            <Skeleton key={index} className="h-14 rounded-2xl" />
+            <Skeleton key={index} className="h-14 rounded-xl" />
           ))}
         </div>
       ) : banned.length === 0 ? (

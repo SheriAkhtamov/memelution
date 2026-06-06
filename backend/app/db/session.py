@@ -85,3 +85,9 @@ def ensure_schema_columns(sync_conn) -> None:
         for name, definition in columns.items():
             if name not in existing:
                 sync_conn.exec_driver_sql(f"ALTER TABLE messages ADD COLUMN {name} {definition}")
+
+    if inspector.has_table("communities"):
+        existing = {column["name"] for column in inspector.get_columns("communities")}
+        if "is_featured" not in existing:
+            sync_conn.exec_driver_sql("ALTER TABLE communities ADD COLUMN is_featured BOOLEAN NOT NULL DEFAULT FALSE")
+            sync_conn.exec_driver_sql("CREATE INDEX IF NOT EXISTS ix_communities_is_featured ON communities (is_featured)")

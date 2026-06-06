@@ -1,9 +1,11 @@
-import { AlertTriangle, Check, Eye, EyeOff, Flag, MessageSquare, X } from 'lucide-react';
+import { AlertTriangle, Check, Eye, EyeOff, ExternalLink, Flag, MessageSquare, Search, X } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { Link } from 'react-router-dom';
 import { api } from '../../shared/api/client';
 import { useTranslation } from '../../shared/i18n';
-import { Button, ConfirmDialog, EmptyState, ErrorState, Skeleton, useToast } from '../../shared/ui';
+import { Button, ConfirmDialog, EmptyState, ErrorState, Input, PageHeader, SegmentedControl, Skeleton, useToast } from '../../shared/ui';
+import { useDebouncedValue } from '../../shared/lib/useDebouncedValue';
 import { useAuthStore } from '../../store/authStore';
 
 const STATUS_STYLES: Record<string, { label: string; className: string; icon: typeof Check }> = {
@@ -22,6 +24,7 @@ const TARGET_ICONS: Record<string, typeof MessageSquare> = {
 };
 
 type TargetFilter = 'all' | 'post' | 'comment' | 'user' | 'community';
+type StatusFilter = 'pending' | 'all' | 'resolved';
 
 const TARGET_FILTERS: Array<{ id: TargetFilter; label: string; icon: typeof MessageSquare }> = [
   { id: 'all', label: 'admin.reports_filter_all', icon: Flag },
@@ -31,15 +34,31 @@ const TARGET_FILTERS: Array<{ id: TargetFilter; label: string; icon: typeof Mess
   { id: 'community', label: 'admin.reports_filter_community', icon: Flag },
 ];
 
+const STATUS_FILTERS: Array<{ id: StatusFilter; label: string }> = [
+  { id: 'pending', label: 'admin.reports_tab_pending' },
+  { id: 'all', label: 'admin.reports_filter_all' },
+  { id: 'resolved', label: 'admin.reports_tab_resolved' },
+];
+
 export function AdminReportsPage() {
   const { user } = useAuthStore();
   const { t } = useTranslation();
   const queryClient = useQueryClient();
   const toast = useToast();
   const isAdmin = user?.role === 'global_admin' || user?.role === 'admin';
+
   const [target, setTarget] = useState<TargetFilter>('all');
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>('pending');
+  const [q, setQ] = useState('');
+  const debouncedQ = useDebouncedValue(q, 300);
   const [confirmDismissAll, setConfirmDismissAll] = useState(false);
-  const reportsQuery = useQuery({ queryKey: ['admin-reports'], queryFn: () => api.adminReports(), enabled: Boolean(isAdmin) });
+
+  const reportsQuery = useQuery({
+    queryKey: ['admin-reports'],
+    queryFn: () => api.adminReports(),
+    enabled: Boolean(isAdmin),
+  });
+
   const resolveReport = useMutation({
     mutationFn: ({ id, action, status = 'resolved' }: { id: string; action?: string; status?: string }) => api.resolveReport(id, status, action),
     onSuccess: () => {
@@ -58,32 +77,78 @@ export function AdminReportsPage() {
   });
 
   const reports = reportsQuery.data || [];
-  const byTarget = useMemo(
-    () => (target === 'all' ? reports : reports.filter((r) => String(r.target_type) === target)),
-    [reports, target],
+
+  const filtered = useMemo(() => {
+    const ql = debouncedQ.toLowerCase();
+    return reports.filter((r) => {
+      if (target !== 'all' && String(r.target_type) !== target) return false;
+      if (statusFilter === 'pending' && !OPEN_REPORT_STATUSES.has(String(r.status))) return false;
+      if (statusFilter === 'resolved' && OPEN_REPORT_STATUSES.has(String(r.status))) return false;
+      if (ql) {
+        const text = JSON.stringify(r).toLowerCase();
+        if (!text.includes(ql)) return false;
+      }
+      return true;
+    });
+  }, [reports, target, statusFilter, debouncedQ]);
+
+  const pending = useMemo(
+    () => reports.filter((r) => OPEN_REPORT_STATUSES.has(String(r.status))),
+    [reports],
   );
-  const pending = useMemo(() => byTarget.filter((r) => OPEN_REPORT_STATUSES.has(String(r.status))), [byTarget]);
-  const resolved = useMemo(() => byTarget.filter((r) => !OPEN_REPORT_STATUSES.has(String(r.status))), [byTarget]);
+
   const availableTargets = useMemo(() => {
     const seen = new Set(reports.map((r) => String(r.target_type)));
     return TARGET_FILTERS.filter((f) => f.id === 'all' || seen.has(f.id));
   }, [reports]);
 
-  if (!user) return <div className="p-6"><EmptyState title={t('admin.login_required')} /></div>;
-  if (!isAdmin) return <div className="p-6"><EmptyState title={t('admin.no_access')} /></div>;
+  if (!user) return <EmptyState title={t('admin.login_required')} />;
+  if (!isAdmin) return <EmptyState title={t('admin.no_access')} />;
 
   return (
-    <div className="space-y-6 p-6 lg:p-8">
-      {/* Page header */}
-      <div className="flex items-center gap-3">
-        <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-amber-500 to-orange-500 text-white shadow-lg shadow-amber-200/50 dark:shadow-amber-900/30">
-          <Flag size={22} />
-        </div>
-        <div>
-          <h1 className="text-2xl font-black tracking-tight">{t('admin.reports_title')}</h1>
-          <p className="text-sm font-medium text-gray-500 dark:text-zinc-400">
-            {reportsQuery.isLoading ? '...' : `${reports.length} ${t('admin.reports_total')} · ${pending.length} ${t('admin.reports_pending')}`}
-          </p>
+    <div className="space-y-6">
+      <PageHeader
+        icon={Flag}
+        title={t('admin.reports_title')}
+        subtitle={
+          reportsQuery.isLoading
+            ? '…'
+            : `${reports.length} ${t('admin.reports_total')} · ${pending.length} ${t('admin.reports_pending')}`
+        }
+        tone="amber"
+        actions={
+          pending.length > 1 ? (
+            <Button variant="outline" loading={dismissAll.isPending} onClick={() => setConfirmDismissAll(true)}>
+              <X size={14} />
+              {t('admin.reports_dismiss_all')} ({pending.length})
+            </Button>
+          ) : null
+        }
+      />
+
+      <div className="rounded-2xl border border-gray-200/60 bg-white p-4 shadow-sm dark:border-zinc-800/60 dark:bg-zinc-900/50">
+        <div className="grid gap-3 lg:grid-cols-[1fr_auto_auto]">
+          <div className="relative">
+            <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+            <Input
+              value={q}
+              onChange={(e) => setQ(e.target.value)}
+              placeholder={t('admin.reports_search_placeholder')}
+              className="pl-10"
+            />
+          </div>
+          <SegmentedControl<StatusFilter>
+            value={statusFilter}
+            options={STATUS_FILTERS.map((o) => ({ id: o.id, label: t(o.label) }))}
+            onChange={setStatusFilter}
+            size="sm"
+          />
+          <SegmentedControl<TargetFilter>
+            value={target}
+            options={availableTargets.map((f) => ({ id: f.id, label: t(f.label) }))}
+            onChange={setTarget}
+            size="sm"
+          />
         </div>
       </div>
 
@@ -104,81 +169,13 @@ export function AdminReportsPage() {
           <p className="text-lg font-black text-emerald-700 dark:text-emerald-400">{t('admin.reports_clean')}</p>
           <p className="mt-1 text-sm text-gray-400">{t('admin.reports_clean_desc')}</p>
         </div>
+      ) : filtered.length === 0 ? (
+        <EmptyState title={t('admin.reports_empty_filtered')} />
       ) : (
-        <div className="space-y-6">
-          {/* Target type filters */}
-          {availableTargets.length > 1 ? (
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <div className="flex flex-wrap gap-2">
-                {availableTargets.map((f) => {
-                  const Icon = f.icon;
-                  const active = target === f.id;
-                  return (
-                    <button
-                      key={f.id}
-                      onClick={() => setTarget(f.id)}
-                      aria-pressed={active}
-                      className={`inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-bold transition-colors ${
-                        active
-                          ? 'border-amber-300 bg-amber-50 text-amber-700 dark:border-amber-700 dark:bg-amber-950/30 dark:text-amber-300'
-                          : 'border-gray-200 bg-white text-gray-600 hover:bg-gray-50 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300 dark:hover:bg-zinc-800'
-                      }`}
-                    >
-                      <Icon size={12} aria-hidden="true" />
-                      {t(f.label)}
-                    </button>
-                  );
-                })}
-              </div>
-              {pending.length > 1 ? (
-                <Button
-                  variant="outline"
-                  loading={dismissAll.isPending}
-                  onClick={() => setConfirmDismissAll(true)}
-                >
-                  <X size={14} />
-                  {t('admin.reports_dismiss_all')} ({pending.length})
-                </Button>
-              ) : null}
-            </div>
-          ) : null}
-          {/* Pending reports */}
-          {pending.length > 0 && (
-            <section>
-              <div className="mb-3 flex items-center gap-2">
-                <span className="flex h-6 w-6 items-center justify-center rounded-full bg-amber-100 text-amber-600 dark:bg-amber-900/30 dark:text-amber-400">
-                  <AlertTriangle size={12} />
-                </span>
-                <h2 className="text-sm font-black uppercase tracking-wider text-gray-500">
-                  {t('admin.reports_tab_pending')} ({pending.length})
-                </h2>
-              </div>
-              <div className="space-y-3">
-                {pending.map((report) => (
-                  <ReportCard key={String(report.id)} report={report} onResolve={resolveReport} />
-                ))}
-              </div>
-            </section>
-          )}
-
-          {/* Resolved reports */}
-          {resolved.length > 0 && (
-            <section>
-              <div className="mb-3 flex items-center gap-2">
-                <span className="flex h-6 w-6 items-center justify-center rounded-full bg-gray-100 text-gray-500 dark:bg-zinc-800 dark:text-zinc-400">
-                  <Check size={12} />
-                </span>
-                <h2 className="text-sm font-black uppercase tracking-wider text-gray-400">
-                  {t('admin.reports_tab_resolved')} ({resolved.length})
-                </h2>
-              </div>
-              <div className="space-y-3">
-                {resolved.map((report) => (
-                  <ReportCard key={String(report.id)} report={report} onResolve={resolveReport} resolved />
-                ))}
-              </div>
-            </section>
-          )}
+        <div className="space-y-3">
+          {filtered.map((report) => (
+            <ReportCard key={String(report.id)} report={report} onResolve={resolveReport} />
+          ))}
         </div>
       )}
 
@@ -201,27 +198,38 @@ export function AdminReportsPage() {
 function ReportCard({
   report,
   onResolve,
-  resolved,
 }: {
   report: any;
   onResolve: any;
-  resolved?: boolean;
 }) {
   const { t } = useTranslation();
   const statusMeta = STATUS_STYLES[String(report.status)] || STATUS_STYLES.pending;
   const StatusIcon = statusMeta.icon;
   const TargetIcon = TARGET_ICONS[String(report.target_type)] || Flag;
-  const contextText = report.context && typeof report.context === 'object'
-    ? String((report.context as { name?: string; text?: string }).text || (report.context as { name?: string }).name || '')
-    : '';
+  const contextText =
+    report.context && typeof report.context === 'object'
+      ? String((report.context as { name?: string; text?: string }).text || (report.context as { name?: string }).name || '')
+      : '';
   const action = actionForTarget(String(report.target_type));
+  const resolved = !OPEN_REPORT_STATUSES.has(String(report.status));
+  const targetId = report.target_id ? String(report.target_id) : null;
+  const targetHref =
+    targetId && report.target_type === 'post'
+      ? `/post/${targetId}`
+      : targetId && report.target_type === 'community'
+      ? `/c/${report.context?.slug || targetId}`
+      : targetId && report.target_type === 'user'
+      ? `/u/${targetId}`
+      : null;
 
   return (
-    <div className={`rounded-2xl border p-5 transition-all duration-300 ${
-      resolved
-        ? 'border-gray-200/40 bg-white/60 opacity-70 dark:border-zinc-800/40 dark:bg-zinc-900/30'
-        : 'border-gray-200/60 bg-white shadow-sm hover:shadow-md dark:border-zinc-800/60 dark:bg-zinc-900/50'
-    }`}>
+    <div
+      className={`rounded-2xl border p-5 transition-all duration-300 ${
+        resolved
+          ? 'border-gray-200/40 bg-white/60 opacity-70 dark:border-zinc-800/40 dark:bg-zinc-900/30'
+          : 'border-gray-200/60 bg-white shadow-sm hover:shadow-md dark:border-zinc-800/60 dark:bg-zinc-900/50'
+      }`}
+    >
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div className="flex items-start gap-3">
           <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gray-100 text-gray-500 dark:bg-zinc-800 dark:text-zinc-400">
@@ -237,33 +245,48 @@ function ReportCard({
             </div>
             <p className="mt-0.5 text-sm text-gray-500 dark:text-zinc-400">
               {t('admin.reports_type')} <span className="font-bold">{String(report.target_type)}</span>
+              {targetId ? <span> · #{targetId}</span> : null}
+              {report.reporter_id ? <span> · {String(report.reporter_id)}</span> : null}
             </p>
-            {contextText && (
+            {contextText ? (
               <p className="mt-2 max-w-lg rounded-lg bg-gray-50 px-3 py-2 text-sm text-gray-600 dark:bg-zinc-800/40 dark:text-zinc-300">
-                {contextText}
+                {contextText.slice(0, 240)}
+                {contextText.length > 240 ? '…' : ''}
               </p>
-            )}
+            ) : null}
           </div>
         </div>
 
-        {!resolved && (
-          <div className="flex shrink-0 gap-2">
-            <button
-              onClick={() => onResolve.mutate({ id: String(report.id), action: 'reject_report', status: 'rejected' })}
-              className="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs font-bold text-gray-600 transition-all hover:bg-gray-50 hover:shadow-sm active:scale-95 dark:border-zinc-700 dark:bg-zinc-800/50 dark:text-zinc-300 dark:hover:bg-zinc-800"
+        <div className="flex shrink-0 flex-wrap items-center gap-2">
+          {targetHref ? (
+            <Link
+              to={targetHref}
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs font-bold text-gray-600 transition-all hover:bg-gray-50 dark:border-zinc-700 dark:bg-zinc-800/50 dark:text-zinc-300 dark:hover:bg-zinc-800"
             >
-              <EyeOff size={14} />
-              {t('admin.reports_dismiss')}
-            </button>
-            <button
-              onClick={() => onResolve.mutate({ id: String(report.id), action: action.value })}
-              className="inline-flex items-center gap-1.5 rounded-lg border border-red-200 bg-red-50 px-3 py-1.5 text-xs font-bold text-red-700 transition-all hover:bg-red-100 hover:shadow-sm active:scale-95 dark:border-red-900/40 dark:bg-red-950/20 dark:text-red-400 dark:hover:bg-red-950/40"
-            >
-              <Eye size={14} />
-              {t(action.label)}
-            </button>
-          </div>
-        )}
+              <ExternalLink size={12} /> {t('admin.posts_action_view')}
+            </Link>
+          ) : null}
+          {!resolved ? (
+            <>
+              <button
+                onClick={() => onResolve.mutate({ id: String(report.id), action: 'reject_report', status: 'rejected' })}
+                className="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs font-bold text-gray-600 transition-all hover:bg-gray-50 hover:shadow-sm active:scale-95 dark:border-zinc-700 dark:bg-zinc-800/50 dark:text-zinc-300 dark:hover:bg-zinc-800"
+              >
+                <EyeOff size={14} />
+                {t('admin.reports_dismiss')}
+              </button>
+              <button
+                onClick={() => onResolve.mutate({ id: String(report.id), action: action.value, status: 'resolved' })}
+                className="inline-flex items-center gap-1.5 rounded-lg border border-red-200 bg-red-50 px-3 py-1.5 text-xs font-bold text-red-700 transition-all hover:bg-red-100 hover:shadow-sm active:scale-95 dark:border-red-900/40 dark:bg-red-950/20 dark:text-red-400 dark:hover:bg-red-950/40"
+              >
+                <Eye size={14} />
+                {t(action.label)}
+              </button>
+            </>
+          ) : null}
+        </div>
       </div>
     </div>
   );

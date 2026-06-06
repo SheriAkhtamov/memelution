@@ -1,104 +1,80 @@
-import React, { createContext, useCallback, useContext, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
-import { AlertTriangle, Check, Loader2, Upload, X } from 'lucide-react';
+import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
+import { createPortal } from 'react-dom';
+import { AlertTriangle, Check, Upload, X } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { useViewportVideo } from '../lib/useViewportVideo';
 import { useAnimatedPresence } from '../lib/useAnimatedPresence';
 import { useTranslation } from '../i18n';
+import { Button } from './Button';
+import { Modal } from './Modal';
+import { Textarea } from './Textarea';
 
-type ButtonVariant = 'primary' | 'secondary' | 'outline' | 'ghost' | 'danger';
 
-export function Button({
-  variant = 'primary',
-  loading,
-  className,
-  children,
-  disabled,
-  ...props
-}: React.ButtonHTMLAttributes<HTMLButtonElement> & { variant?: ButtonVariant; loading?: boolean }) {
-  return (
-    <button
-      {...props}
-      disabled={disabled || loading}
-      aria-busy={loading || undefined}
-      data-loading={loading || undefined}
-      className={cn(
-        'motion-control inline-flex h-10 items-center justify-center gap-2 rounded-lg px-4 text-sm font-black focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-500 disabled:pointer-events-none disabled:opacity-55',
-        variant === 'primary' && 'bg-[#FF6B00] text-white hover:bg-[#e66000]',
-        variant === 'secondary' && 'bg-[#7C3AED] text-white hover:bg-[#6D28D9]',
-        variant === 'outline' && 'border border-gray-200 bg-white text-gray-700 hover:bg-gray-50 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-100 dark:hover:bg-zinc-900',
-        variant === 'ghost' && 'text-gray-500 hover:bg-gray-100 hover:text-gray-900 dark:hover:bg-zinc-900 dark:hover:text-zinc-100',
-        variant === 'danger' && 'bg-red-600 text-white hover:bg-red-700',
-        className,
-      )}
-    >
-      {loading ? <Loader2 size={16} className="animate-spin" /> : null}
-      {children}
-    </button>
-  );
-}
+// Re-exports from separate design system components
+export { Button, buttonVariants, IconButton } from './Button';
+export type { ButtonProps, IconButtonProps } from './Button';
 
-export const IconButton = React.forwardRef<HTMLButtonElement, React.ButtonHTMLAttributes<HTMLButtonElement> & { label: string }>(
-  function IconButton({ label, className, children, ...props }, ref) {
-    return (
-      <button
-        ref={ref}
-        {...props}
-        aria-label={label}
-        title={label}
-        className={cn(
-          'motion-control inline-flex h-10 w-10 items-center justify-center rounded-lg text-gray-500 hover:bg-gray-100 hover:text-gray-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-500 disabled:pointer-events-none disabled:opacity-55 dark:hover:bg-zinc-900 dark:hover:text-zinc-100',
-          className,
-        )}
-      >
-        {children}
-      </button>
-    );
-  },
-);
+export { Input } from './Input';
+export type { InputProps } from './Input';
 
-export function Input({ error, className, ...props }: React.InputHTMLAttributes<HTMLInputElement> & { error?: string }) {
-  return (
-    <label className={cn('t-input-wrap block', error && 'is-error')}>
-      <input
-        {...props}
-        aria-invalid={error ? true : props['aria-invalid']}
-        className={cn(
-          't-input h-10 w-full rounded-lg border border-gray-200 bg-white px-3 text-sm font-bold text-gray-900 outline-none placeholder:text-gray-400 focus:border-orange-400 focus:ring-2 focus:ring-orange-100 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-100 dark:focus:ring-orange-950',
-          error && 'is-error is-shaking border-red-400 focus:border-red-400 focus:ring-red-100',
-          className,
-        )}
-      />
-      <span className="t-error-msg mt-1 block text-xs font-bold text-red-500" aria-live="polite">{error || ''}</span>
-    </label>
-  );
-}
+export { Textarea } from './Textarea';
+export type { TextareaProps } from './Textarea';
 
-export const Textarea = React.forwardRef<HTMLTextAreaElement, React.TextareaHTMLAttributes<HTMLTextAreaElement> & { error?: string }>(
-  function Textarea({ error, className, ...props }, ref) {
-  return (
-    <label className={cn('t-input-wrap block', error && 'is-error')}>
-      <textarea
-        {...props}
-        ref={ref}
-        aria-invalid={error ? true : props['aria-invalid']}
-        className={cn(
-          't-input min-h-24 w-full resize-y rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm font-medium text-gray-900 outline-none placeholder:text-gray-400 focus:border-orange-400 focus:ring-2 focus:ring-orange-100 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-100 dark:focus:ring-orange-950',
-          error && 'is-error is-shaking border-red-400 focus:border-red-400 focus:ring-red-100',
-          className,
-        )}
-      />
-      <span className="t-error-msg mt-1 block text-xs font-bold text-red-500" aria-live="polite">{error || ''}</span>
-    </label>
-  );
-  },
-);
+export { Card, cardVariants } from './Card';
+export type { CardProps } from './Card';
 
+export { Modal, Drawer, BottomSheet } from './Modal';
+export type { ModalProps } from './Modal';
+
+export { Tabs } from './Tabs';
+export type { TabsProps } from './Tabs';
+
+export { Avatar, avatarVariants } from './Avatar';
+export type { AvatarProps } from './Avatar';
+
+export { Badge, badgeVariants } from './Badge';
+export type { BadgeProps } from './Badge';
+
+export { Skeleton } from './Skeleton';
+export type { SkeletonProps } from './Skeleton';
+
+export { EmptyState } from './EmptyState';
+export type { EmptyStateProps } from './EmptyState';
+
+export { ErrorState } from './ErrorState';
+export type { ErrorStateProps } from './ErrorState';
+
+export { LoadingState } from './LoadingState';
+export type { LoadingStateProps } from './LoadingState';
+
+export { PageLayout, pageLayoutVariants } from './PageLayout';
+export type { PageLayoutProps } from './PageLayout';
+
+export { PageHeader } from './PageHeader';
+export type { PageHeaderProps } from './PageHeader';
+
+export { Typography, Text, typographyVariants } from './Typography';
+export type { TypographyProps } from './Typography';
+
+export { UserCard } from './UserCard';
+export type { UserCardProps } from './UserCard';
+
+export { CommunityCard } from './CommunityCard';
+export type { CommunityCardProps } from './CommunityCard';
+
+export { FeedLayout } from './FeedLayout';
+export type { FeedLayoutProps } from './FeedLayout';
+
+export { SidebarBlock } from './SidebarBlock';
+export type { SidebarBlockProps } from './SidebarBlock';
+
+// Inline simple controls that do not have separate files
 export function Select({ className, children, ...props }: React.SelectHTMLAttributes<HTMLSelectElement>) {
   return (
     <select
       {...props}
       className={cn(
-        'motion-control h-10 w-full rounded-lg border border-gray-200 bg-white px-3 text-sm font-bold text-gray-900 outline-none focus:border-orange-400 focus:ring-2 focus:ring-orange-100 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-100',
+        'motion-control h-9 w-full rounded-md border border-border bg-background px-2.5 text-[0.84rem] font-bold text-foreground outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-100',
         className,
       )}
     >
@@ -109,8 +85,8 @@ export function Select({ className, children, ...props }: React.SelectHTMLAttrib
 
 export function Checkbox({ label, className, ...props }: React.InputHTMLAttributes<HTMLInputElement> & { label?: string }) {
   return (
-    <label className={cn('inline-flex items-center gap-2 text-sm font-bold text-gray-600 dark:text-zinc-300', className)}>
-      <input type="checkbox" {...props} className="h-4 w-4 rounded border-gray-300 text-[#FF6B00] focus:ring-[#FF6B00]" />
+    <label className={cn('inline-flex items-center gap-1.5 text-[0.84rem] font-bold text-muted-foreground', className)}>
+      <input type="checkbox" {...props} className="h-3.5 w-3.5 rounded border-border text-primary focus:ring-primary" />
       {label ? <span>{label}</span> : null}
     </label>
   );
@@ -124,18 +100,14 @@ export function Switch({ checked, onChange, label, ariaLabel }: { checked: boole
       aria-checked={checked}
       aria-label={ariaLabel || label}
       onClick={() => onChange(!checked)}
-      className="motion-control inline-flex items-center gap-2 rounded-lg text-sm font-bold"
+      className="motion-control inline-flex items-center gap-1.5 rounded-md text-[0.84rem] font-bold"
     >
-      <span aria-hidden className={cn('relative inline-flex h-6 w-11 shrink-0 rounded-full transition-colors', checked ? 'bg-[#FF6B00]' : 'bg-gray-300 dark:bg-zinc-700')}>
-        <span className={cn('absolute top-1 h-4 w-4 rounded-full bg-white transition-transform', checked ? 'translate-x-6' : 'translate-x-1')} />
+      <span aria-hidden className={cn('relative inline-flex h-5 w-9 shrink-0 rounded-full transition-colors', checked ? 'bg-primary' : 'bg-muted border border-border')}>
+        <span className={cn('absolute top-0.5 h-4 w-4 rounded-full bg-white transition-transform', checked ? 'translate-x-4' : 'translate-x-0.5')} />
       </span>
-      {label ? <span>{label}</span> : null}
+      {label ? <span className="text-foreground">{label}</span> : null}
     </button>
   );
-}
-
-export function Badge({ children, className }: { children: React.ReactNode; className?: string }) {
-  return <span className={cn('motion-control inline-flex rounded-md bg-gray-100 px-2 py-1 text-xs font-black text-gray-600 dark:bg-zinc-900 dark:text-zinc-300', className)}>{children}</span>;
 }
 
 export function AnimatedNumber({ value, className }: { value: number | string; className?: string }) {
@@ -154,67 +126,6 @@ export function AnimatedNumber({ value, className }: { value: number | string; c
         ))}
       </span>
     </span>
-  );
-}
-
-export function Avatar({ src, name, className }: { src?: string; name?: string; className?: string }) {
-  const [errored, setErrored] = useState(false);
-  const showImage = src && !errored;
-  return (
-    <div className={cn('flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-orange-100 font-black text-[#FF6B00]', className)}>
-      {showImage ? <img src={src} alt="" loading="lazy" decoding="async" className="h-full w-full object-cover" onError={() => setErrored(true)} /> : (name || '?').charAt(0)}
-    </div>
-  );
-}
-
-export function Tabs<T extends string>({ value, items, onChange }: { value: T; items: Array<{ id: T; label: string }>; onChange: (value: T) => void }) {
-  const listRef = useRef<HTMLDivElement>(null);
-  const pillRef = useRef<HTMLSpanElement>(null);
-  const movePill = useCallback((animate: boolean) => {
-    const list = listRef.current;
-    const pill = pillRef.current;
-    if (!list || !pill) return;
-    const active = Array.from(list.querySelectorAll<HTMLButtonElement>('[data-motion-tab]'))
-      .find((tab) => tab.dataset.motionTab === value);
-    if (!active) return;
-    if (!animate) pill.style.transition = 'none';
-    pill.style.transform = `translateX(${active.offsetLeft}px)`;
-    pill.style.width = `${active.offsetWidth}px`;
-    if (!animate) {
-      void pill.offsetWidth;
-      pill.style.transition = '';
-    }
-  }, [value]);
-
-  useLayoutEffect(() => {
-    movePill(false);
-  }, [movePill]);
-
-  useEffect(() => {
-    const list = listRef.current;
-    if (!list) return;
-    const observer = new ResizeObserver(() => movePill(false));
-    observer.observe(list);
-    return () => observer.disconnect();
-  }, [movePill]);
-
-  return (
-    <div ref={listRef} className="t-tabs" role="tablist">
-      <span ref={pillRef} className="t-tabs-pill" aria-hidden="true" />
-      {items.map((item) => (
-        <button
-          key={item.id}
-          type="button"
-          onClick={() => onChange(item.id)}
-          role="tab"
-          aria-selected={value === item.id}
-          data-motion-tab={item.id}
-          className="t-tab shrink-0 text-sm font-black"
-        >
-          {item.label}
-        </button>
-      ))}
-    </div>
   );
 }
 
@@ -244,7 +155,7 @@ export function Dropdown({ trigger, children }: { trigger: React.ReactNode; chil
               role="menu"
               data-origin="top-right"
               className={cn(
-                't-dropdown absolute right-0 top-full z-40 mt-2 min-w-56 overflow-hidden rounded-lg border border-gray-200 bg-white shadow-xl dark:border-zinc-800 dark:bg-zinc-950',
+                't-dropdown absolute right-0 top-full z-40 mt-2 min-w-52 overflow-hidden rounded-lg border border-border bg-card shadow-xl',
                 presence.state === 'open' && 'is-open',
                 presence.state === 'closing' && 'is-closing',
               )}
@@ -267,119 +178,13 @@ export function DropdownItem({ children, danger, disabled, onClick }: { children
       aria-disabled={disabled || undefined}
       onClick={() => { if (!disabled) { onClick(); close?.(); } }}
       className={cn(
-        'motion-control flex w-full items-center gap-2 px-3 py-2 text-left text-sm font-bold hover:bg-gray-50 dark:hover:bg-zinc-900',
-        danger ? 'text-red-600' : 'text-gray-700 dark:text-zinc-100',
+        'motion-control flex w-full items-center gap-1.5 px-2.5 py-1.5 text-left text-[0.82rem] font-bold hover:bg-muted',
+        danger ? 'text-destructive' : 'text-foreground',
         disabled && 'cursor-not-allowed opacity-50 hover:bg-transparent dark:hover:bg-transparent',
       )}
     >
       {children}
     </button>
-  );
-}
-
-export function Modal({
-  open,
-  title,
-  children,
-  onClose,
-}: {
-  open: boolean;
-  title?: string;
-  children: React.ReactNode;
-  onClose: () => void;
-}) {
-  const { t } = useTranslation();
-  const modalRef = useRef<HTMLDivElement>(null);
-  const presence = useAnimatedPresence(open, 170);
-
-  useEffect(() => {
-    if (!open) return;
-    const listener = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') onClose();
-      if (event.key === 'Tab' && modalRef.current) {
-        const focusable = modalRef.current.querySelectorAll<HTMLElement>('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])');
-        if (!focusable.length) return;
-        const first = focusable[0];
-        const last = focusable[focusable.length - 1];
-        if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus(); }
-        else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
-      }
-    };
-    window.addEventListener('keydown', listener);
-    const prev = document.activeElement as HTMLElement;
-    window.setTimeout(() => modalRef.current?.querySelector<HTMLElement>('button, [href], input, select, textarea')?.focus(), 50);
-    document.body.style.overflow = 'hidden';
-    return () => {
-      window.removeEventListener('keydown', listener);
-      document.body.style.overflow = '';
-      prev?.focus();
-    };
-  }, [onClose, open]);
-
-  if (!presence.mounted) return null;
-  return (
-    <div
-      className="motion-overlay fixed inset-0 z-[80] flex items-end justify-center bg-black/45 p-0 backdrop-blur-[2px] sm:items-center sm:p-4"
-      data-state={presence.state}
-      role="dialog"
-      aria-modal="true"
-      aria-label={title}
-    >
-      <button className="absolute inset-0 cursor-default" aria-label={t('common.close')} onClick={onClose} />
-      <section
-        ref={modalRef}
-        className={cn(
-          't-modal relative max-h-[92vh] w-full overflow-y-auto rounded-t-2xl bg-white shadow-2xl dark:bg-zinc-950 sm:max-w-2xl sm:rounded-lg',
-          presence.state === 'open' && 'is-open',
-          presence.state === 'closing' && 'is-closing',
-        )}
-      >
-        <header className="sticky top-0 z-10 flex items-center justify-between border-b border-gray-100 bg-white px-4 py-3 dark:border-zinc-800 dark:bg-zinc-950">
-          <h2 className="text-lg font-black">{title}</h2>
-          <IconButton label={t('common.close')} onClick={onClose}>
-            <X size={18} />
-          </IconButton>
-        </header>
-        <div className="p-4">{children}</div>
-      </section>
-    </div>
-  );
-}
-
-export const Drawer = Modal;
-export const BottomSheet = Modal;
-
-export function Skeleton({ className }: { className?: string }) {
-  return <div className={cn('motion-skeleton rounded-lg bg-gray-200 dark:bg-zinc-800', className)} />;
-}
-
-export function EmptyState({ title, description, action, icon, emoji }: { title: string; description?: string; action?: React.ReactNode; icon?: React.ReactNode; emoji?: string }) {
-  return (
-    <div className="t-stagger is-shown flex flex-col items-center rounded-xl border border-dashed border-gray-200 bg-gradient-to-b from-white to-gray-50/50 p-10 text-center dark:border-zinc-800 dark:from-zinc-950 dark:to-zinc-900/50">
-      {emoji ? (
-        <span className="t-stagger-line t-stagger-line--1 mb-3 text-4xl">{emoji}</span>
-      ) : icon ? (
-        <div className="t-stagger-line t-stagger-line--1 mb-3 text-gray-300 dark:text-zinc-600">{icon}</div>
-      ) : (
-        <span className="t-stagger-line t-stagger-line--1 mb-3 text-4xl">🤷</span>
-      )}
-      <p className="t-stagger-line t-stagger-line--2 text-lg font-black text-gray-900 dark:text-zinc-100">{title}</p>
-      {description ? <p className="t-stagger-line t-stagger-line--3 mt-1.5 max-w-xs text-sm text-gray-500 dark:text-zinc-400">{description}</p> : null}
-      {action ? <div className="t-stagger-line t-stagger-line--4 mt-5 flex justify-center">{action}</div> : null}
-    </div>
-  );
-}
-
-export function ErrorState({ title: _title, description, onRetry }: { title?: string; description?: string; onRetry?: () => void }) {
-  const { t } = useTranslation();
-  const title = _title ?? t('error.state_title');
-  return (
-    <div className="t-input is-shaking rounded-lg border border-red-100 bg-red-50 p-6 text-center text-red-700 dark:border-red-900 dark:bg-red-950/25">
-      <AlertTriangle className="mx-auto mb-2" />
-      <p className="font-black">{title}</p>
-      {description ? <p className="mt-1 text-sm">{description}</p> : null}
-      {onRetry ? <Button variant="outline" className="mt-4" onClick={onRetry}>{t('common.retry')}</Button> : null}
-    </div>
   );
 }
 
@@ -417,8 +222,8 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
             onClick={() => dismiss(item.id)}
             data-leaving={item.leaving || undefined}
             className={cn(
-              'motion-toast flex cursor-pointer items-center gap-2 rounded-lg border bg-white px-4 py-3 text-sm font-bold shadow-xl dark:bg-zinc-950',
-              item.tone === 'error' ? 'border-red-200 text-red-700' : 'border-gray-200 text-gray-800 dark:border-zinc-800 dark:text-zinc-100',
+              'motion-toast flex cursor-pointer items-center gap-2 rounded-lg border bg-card px-3 py-2.5 text-[0.82rem] font-bold shadow-xl',
+              item.tone === 'error' ? 'border-destructive/20 text-destructive' : 'border-border text-foreground',
             )}
           >
             {item.tone === 'success' ? <span className="t-success-check text-green-600" data-state="in"><Check size={16} /></span> : null}
@@ -426,7 +231,7 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
             {item.action ? (
               <button
                 onClick={(e) => { e.stopPropagation(); item.action!.onClick(); dismiss(item.id); }}
-                className="ml-auto shrink-0 rounded-md px-2 py-1 text-xs font-bold text-[#FF6B00] hover:bg-orange-50 dark:hover:bg-orange-950/30"
+                className="ml-auto shrink-0 rounded-md px-2 py-1 text-xs font-bold text-primary hover:bg-primary/10"
               >
                 {item.action.label}
               </button>
@@ -467,7 +272,7 @@ export function ConfirmDialog({
   const confirmText = _confirmText ?? t('common.confirm');
   return (
     <Modal open={open} onClose={onClose} title={title}>
-      {description ? <p className="text-sm text-gray-500 dark:text-zinc-400">{description}</p> : null}
+      {description ? <p className="text-sm text-muted-foreground">{description}</p> : null}
       <div className="mt-5 flex justify-end gap-2">
         <Button variant="outline" onClick={onClose} disabled={loading}>{t('common.cancel')}</Button>
         <Button variant={tone === 'danger' ? 'danger' : 'primary'} onClick={onConfirm} loading={loading}>{confirmText}</Button>
@@ -521,8 +326,8 @@ export function FileUploader({
 }) {
   const { t } = useTranslation();
   return (
-    <label className="motion-control block cursor-pointer rounded-lg border border-dashed border-gray-300 bg-gray-50 p-4 text-center text-sm font-bold text-gray-500 hover:border-orange-300 hover:bg-orange-50 dark:border-zinc-800 dark:bg-zinc-900/50 dark:hover:bg-orange-950/20">
-      <Upload className="mx-auto mb-2" size={20} />
+    <label className="motion-control block cursor-pointer rounded-lg border border-dashed border-border bg-muted/30 p-3 text-center text-[0.82rem] font-bold text-muted-foreground hover:border-primary/55 hover:bg-primary/5">
+      <Upload className="mx-auto mb-1.5" size={18} />
       {file ? file.name : t('ui.add_media')}
       <input
         type="file"
@@ -530,47 +335,8 @@ export function FileUploader({
         accept={accept}
         onChange={(event) => onFile(event.target.files?.[0] || null)}
       />
-      {error ? <span className="mt-2 block text-xs text-red-500">{error}</span> : null}
+      {error ? <span className="mt-2 block text-xs text-destructive">{error}</span> : null}
     </label>
-  );
-}
-
-export function UserCard({ user, action }: { user: { username: string; display_name: string; avatar_url?: string; bio?: string }; action?: React.ReactNode }) {
-  return (
-    <div className="motion-control flex items-center justify-between gap-3 rounded-lg border border-gray-200 bg-white p-4 hover:-translate-y-0.5 hover:shadow-md dark:border-zinc-800 dark:bg-zinc-950">
-      <div className="flex min-w-0 items-center gap-3">
-        <Avatar src={user.avatar_url} name={user.display_name} />
-        <span className="min-w-0">
-          <span className="block truncate font-black">{user.display_name}</span>
-          <span className="block truncate text-sm font-bold text-gray-400">@{user.username}</span>
-          {user.bio ? <span className="mt-1 line-clamp-2 block text-sm text-gray-500">{user.bio}</span> : null}
-        </span>
-      </div>
-      {action}
-    </div>
-  );
-}
-
-export function CommunityCard({
-  community,
-  action,
-}: {
-  community: { name: string; slug: string; avatar_url?: string; description?: string; members_count?: number };
-  action?: React.ReactNode;
-}) {
-  const { t } = useTranslation();
-  return (
-    <div className="motion-control flex items-center justify-between gap-3 rounded-lg border border-gray-200 bg-white p-4 hover:-translate-y-0.5 hover:shadow-md dark:border-zinc-800 dark:bg-zinc-950">
-      <div className="flex min-w-0 items-center gap-3">
-        <Avatar src={community.avatar_url} name={community.name} />
-        <span className="min-w-0">
-          <span className="block truncate font-black">{community.name}</span>
-          {community.description ? <span className="line-clamp-2 block text-sm text-gray-500">{community.description}</span> : null}
-          <span className="text-xs font-bold text-gray-400">{community.members_count || 0} {t('layout.members')}</span>
-        </span>
-      </div>
-      {action}
-    </div>
   );
 }
 
@@ -598,28 +364,28 @@ export function MediaViewer({ url, type, alt }: { url: string; type?: string; al
   return (
     <>
       <div
-        className="overflow-hidden rounded-lg border border-gray-100 bg-gray-50 dark:border-zinc-800 dark:bg-zinc-900 cursor-zoom-in"
+        className="overflow-hidden rounded-xl border border-border bg-muted/10 cursor-zoom-in"
         onClick={() => !imgError && setExpanded(true)}
       >
         {imgError ? (
-          <div className="flex aspect-video max-h-[520px] w-full flex-col items-center justify-center gap-2 bg-gray-100 p-6 text-center dark:bg-zinc-900" role="img" aria-label={t('ui.media_failed_alt')}>
-            <AlertTriangle size={28} className="text-amber-500" aria-hidden />
-            <p className="text-sm font-bold text-gray-500 dark:text-zinc-400">{t('ui.media_failed')}</p>
+          <div className="flex aspect-video max-h-[440px] w-full flex-col items-center justify-center gap-2 bg-muted/30 p-4 text-center" role="img" aria-label={t('ui.media_failed_alt')}>
+            <AlertTriangle size={24} className="text-amber-500" aria-hidden />
+            <p className="text-sm font-bold text-muted-foreground">{t('ui.media_failed')}</p>
             <button
               type="button"
               onClick={(event) => { event.stopPropagation(); setImgError(false); }}
-              className="text-xs font-bold text-[#FF6B00] underline-offset-2 hover:underline"
+              className="text-xs font-bold text-primary underline-offset-2 hover:underline"
             >
               {t('common.retry')}
             </button>
           </div>
         ) : type?.startsWith('video/') ? (
-          <video ref={videoRef} src={url} className="max-h-[520px] w-full bg-black" controls muted playsInline preload="none" poster="" onClick={(e) => e.stopPropagation()} />
+          <video ref={videoRef} src={url} className="max-h-[440px] w-full bg-black" controls muted playsInline preload="none" poster="" onClick={(e) => e.stopPropagation()} />
         ) : (
-          <img src={url} alt={alt || ''} className="max-h-[520px] w-full object-contain" loading="lazy" decoding="async" onError={() => setImgError(true)} />
+          <img src={url} alt={alt || ''} className="max-h-[440px] w-full object-contain" loading="lazy" decoding="async" onError={() => setImgError(true)} />
         )}
       </div>
-      {expanded ? (
+      {expanded ? createPortal(
         <div
           className="fixed inset-0 z-[90] flex items-center justify-center bg-black/90 p-4 cursor-zoom-out animate-in fade-in duration-150"
           onClick={() => setExpanded(false)}
@@ -631,11 +397,12 @@ export function MediaViewer({ url, type, alt }: { url: string; type?: string; al
             <X size={20} />
           </button>
           {type?.startsWith('video/') ? (
-            <video src={url} className="max-h-[90vh] max-w-[90vw] rounded-lg bg-black" controls autoPlay onClick={(e) => e.stopPropagation()} />
+            <video src={url} className="max-h-[90vh] max-w-[90vw] rounded-xl bg-black" controls autoPlay onClick={(e) => e.stopPropagation()} />
           ) : (
-            <img src={url} alt={alt || ''} className="max-h-[90vh] max-w-[90vw] rounded-lg object-contain" onClick={(e) => e.stopPropagation()} />
+            <img src={url} alt={alt || ''} className="max-h-[90vh] max-w-[90vw] rounded-xl object-contain" onClick={(e) => e.stopPropagation()} />
           )}
-        </div>
+        </div>,
+        document.body
       ) : null}
     </>
   );
@@ -650,12 +417,6 @@ type ErrorBoundaryProps = {
 
 type ErrorBoundaryState = { error: Error | null };
 
-/**
- * 3-level ErrorBoundary:
- *  - level="app"      → full-screen fallback in App.tsx (last resort)
- *  - level="route"    → page-level fallback in router.tsx
- *  - level="feed-item"→ inline fallback in PostCard.tsx (one post crashes, others survive)
- */
 export class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundaryState> {
   state: ErrorBoundaryState = { error: null };
 
@@ -665,7 +426,6 @@ export class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoun
 
   componentDidCatch(error: Error, info: { componentStack: string }) {
     if (this.props.onError) this.props.onError(error, info);
-    // eslint-disable-next-line no-console
     console.error('[ErrorBoundary]', this.props.level ?? 'unknown', error, info.componentStack);
   }
 
@@ -682,12 +442,12 @@ export class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoun
 function DefaultErrorFallback({ error, reset, level }: { error: Error; reset: () => void; level: 'app' | 'route' | 'feed-item' }) {
   if (level === 'feed-item') {
     return (
-      <div className="rounded-xl border border-red-200 bg-red-50/60 p-4 text-sm text-red-700 dark:border-red-900/50 dark:bg-red-950/20 dark:text-red-300">
+      <div className="rounded-xl border border-destructive/20 bg-destructive/10 p-4 text-sm text-destructive">
         <div className="flex items-center gap-2 font-black">
           <AlertTriangle size={14} /> Не удалось отобразить пост
         </div>
         <p className="mt-1 text-xs opacity-80">Остальная лента работает. Можно попробовать ещё раз.</p>
-        <button onClick={reset} className="mt-2 rounded-md bg-white px-3 py-1 text-xs font-black text-red-700 shadow-sm hover:bg-red-100 dark:bg-zinc-900 dark:hover:bg-zinc-800">
+        <button onClick={reset} className="mt-2 rounded-md bg-card border border-border px-3 py-1 text-xs font-black text-foreground shadow-sm hover:bg-muted">
           Повторить
         </button>
       </div>
@@ -696,29 +456,368 @@ function DefaultErrorFallback({ error, reset, level }: { error: Error; reset: ()
 
   return (
     <div className="flex min-h-[40vh] flex-col items-center justify-center gap-3 p-6 text-center">
-      <div className="flex h-12 w-12 items-center justify-center rounded-full bg-red-100 text-red-600 dark:bg-red-950/40 dark:text-red-300">
+      <div className="flex h-12 w-12 items-center justify-center rounded-full bg-destructive/10 text-destructive">
         <AlertTriangle size={22} />
       </div>
-      <h2 className="text-lg font-black text-gray-900 dark:text-zinc-100">
+      <h2 className="text-lg font-black text-foreground">
         {level === 'app' ? 'Что-то пошло совсем не так' : 'Не удалось загрузить страницу'}
       </h2>
-      <p className="max-w-sm text-sm text-gray-500 dark:text-zinc-400">
+      <p className="max-w-sm text-sm text-muted-foreground">
         {error.message || 'Попробуйте обновить страницу или повторить попытку.'}
       </p>
       <div className="mt-2 flex gap-2">
-        <button
-          onClick={reset}
-          className="rounded-lg bg-[#FF6B00] px-4 py-2 text-sm font-black text-white transition-colors hover:bg-orange-600"
-        >
-          Повторить
-        </button>
-        <button
-          onClick={() => window.location.reload()}
-          className="rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm font-black text-gray-700 transition-colors hover:bg-gray-50 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-200 dark:hover:bg-zinc-800"
-        >
-          Перезагрузить
-        </button>
+        <Button onClick={reset}>Повторить</Button>
+        <Button variant="outline" onClick={() => window.location.reload()}>Перезагрузить</Button>
       </div>
     </div>
   );
 }
+
+// Admin charts helpers
+type ChartKind = 'line' | 'bar' | 'area' | 'donut';
+const CHART_PALETTE = ['#FF6B00', '#7C3AED', '#10B981', '#F59E0B', '#06B6D4', '#EC4899', '#6366F1'];
+
+export function Chart({
+  kind = 'line',
+  series,
+  labels,
+  height = 180,
+  ariaLabel,
+  donutCenterLabel,
+  palette: paletteOverride,
+}: {
+  kind?: ChartKind;
+  series: Array<{ name: string; color?: string; data: number[] }>;
+  labels: string[];
+  height?: number;
+  ariaLabel?: string;
+  donutCenterLabel?: string;
+  palette?: string[];
+}) {
+  const { t } = useTranslation();
+  const PALETTE = paletteOverride && paletteOverride.length > 0 ? paletteOverride : CHART_PALETTE;
+  const palette = series.map((s, i) => s.color || PALETTE[i % PALETTE.length]);
+  const width = 600;
+  const padX = 16;
+  const padY = 12;
+  const allValues = series.flatMap((s) => s.data);
+  const max = Math.max(1, ...allValues);
+  const stepX = (width - padX * 2) / Math.max(1, labels.length - 1);
+  const innerHeight = height - padY * 2;
+
+  if (kind === 'donut') {
+    const total = series.reduce((sum, s) => sum + s.data.reduce((a, b) => a + b, 0), 0) || 1;
+    const radius = 70;
+    const stroke = 18;
+    const circumference = 2 * Math.PI * radius;
+    let offset = 0;
+    const cx = width / 2;
+    const cy = height / 2;
+    return (
+      <svg
+        viewBox={`0 0 ${width} ${height}`}
+        width="100%"
+        height={height}
+        role="img"
+        aria-label={ariaLabel || t('common.chart')}
+        className="overflow-visible"
+      >
+        <circle cx={cx} cy={cy} r={radius} fill="none" stroke="currentColor" className="text-gray-100 dark:text-zinc-800" strokeWidth={stroke} />
+        {series.flatMap((s, si) =>
+          s.data.map((v, vi) => {
+            const len = (v / total) * circumference;
+            const seg = (
+              <circle
+                key={`${si}-${vi}`}
+                cx={cx}
+                cy={cy}
+                r={radius}
+                fill="none"
+                stroke={PALETTE[vi % PALETTE.length]}
+                strokeWidth={stroke}
+                strokeDasharray={`${len} ${circumference - len}`}
+                strokeDashoffset={-offset}
+                transform={`rotate(-90 ${cx} ${cy})`}
+                strokeLinecap="butt"
+              />
+            );
+            offset += len;
+            return seg;
+          }),
+        )}
+        {donutCenterLabel ? (
+          <text x={cx} y={cy} textAnchor="middle" dominantBaseline="middle" className="fill-foreground" fontSize={14} fontWeight={700}>
+            {donutCenterText(donutCenterLabel, total)}
+          </text>
+        ) : null}
+      </svg>
+    );
+  }
+
+  const yTicks = [0, 0.5, 1].map((p) => Math.round(max * p));
+  const yToPx = (v: number) => padY + innerHeight - (v / max) * innerHeight;
+  const xToPx = (i: number) => padX + i * stepX;
+
+  if (kind === 'bar') {
+    const barGroupWidth = (width - padX * 2) / Math.max(1, labels.length);
+    const barWidth = (barGroupWidth * 0.7) / Math.max(1, series.length);
+    return (
+      <svg viewBox={`0 0 ${width} ${height}`} width="100%" height={height} role="img" aria-label={ariaLabel || t('common.chart')} className="overflow-visible">
+        {yTicks.map((v, i) => (
+          <g key={i}>
+            <line x1={padX} y1={yToPx(v)} x2={width - padX} y2={yToPx(v)} stroke="currentColor" className="text-gray-100 dark:text-zinc-800" strokeWidth={1} />
+            <text x={padX - 4} y={yToPx(v) + 4} textAnchor="end" className="fill-muted-foreground" fontSize={10}>{v}</text>
+          </g>
+        ))}
+        {labels.map((label, i) => (
+          <g key={label + i}>
+            {series.map((s, si) => {
+              const v = s.data[i] || 0;
+              const x = padX + i * barGroupWidth + si * barWidth + barGroupWidth * 0.15;
+              const y = yToPx(v);
+              return (
+                <rect
+                  key={s.name + si}
+                  x={x}
+                  y={y}
+                  width={Math.max(2, barWidth)}
+                  height={Math.max(0, padY + innerHeight - y)}
+                  rx={3}
+                  fill={palette[si]}
+                  opacity={0.9}
+                />
+              );
+            })}
+            {labels.length <= 14 ? (
+              <text x={padX + i * barGroupWidth + barGroupWidth / 2} y={height - 2} textAnchor="middle" className="fill-muted-foreground" fontSize={9}>
+                {shortDate(label)}
+              </text>
+            ) : null}
+          </g>
+        ))}
+      </svg>
+    );
+  }
+
+  return (
+    <svg viewBox={`0 0 ${width} ${height}`} width="100%" height={height} role="img" aria-label={ariaLabel || t('common.chart')} className="overflow-visible">
+      {yTicks.map((v, i) => (
+        <g key={i}>
+          <line x1={padX} y1={yToPx(v)} x2={width - padX} y2={yToPx(v)} stroke="currentColor" className="text-gray-100 dark:text-zinc-800" strokeWidth={1} />
+          <text x={padX - 4} y={yToPx(v) + 4} textAnchor="end" className="fill-muted-foreground" fontSize={10}>{v}</text>
+        </g>
+      ))}
+      {series.map((s, si) => {
+        const path = s.data
+          .map((v, i) => `${i === 0 ? 'M' : 'L'} ${xToPx(i)} ${yToPx(v)}`)
+          .join(' ');
+        const areaPath = `${path} L ${xToPx(s.data.length - 1)} ${padY + innerHeight} L ${xToPx(0)} ${padY + innerHeight} Z`;
+        return (
+          <g key={s.name}>
+            {kind === 'area' ? (
+              <path d={areaPath} fill={palette[si]} opacity={0.15} />
+            ) : null}
+            <path d={path} fill="none" stroke={palette[si]} strokeWidth={2} strokeLinejoin="round" strokeLinecap="round" />
+            {s.data.map((v, i) => (
+              <circle key={i} cx={xToPx(i)} cy={yToPx(v)} r={2.5} fill={palette[si]} />
+            ))}
+          </g>
+        );
+      })}
+      {labels.map((label, i) =>
+        labels.length <= 14 && (i === 0 || i === labels.length - 1 || i % Math.ceil(labels.length / 6) === 0) ? (
+          <text key={label + i} x={xToPx(i)} y={height - 2} textAnchor="middle" className="fill-muted-foreground" fontSize={9}>
+            {shortDate(label)}
+          </text>
+        ) : null,
+      )}
+    </svg>
+  );
+}
+
+function donutCenterText(label: string, total: number) {
+  return `${label}: ${total}`;
+}
+
+function shortDate(label: string) {
+  if (!label) return '';
+  const parts = label.split('-');
+  if (parts.length >= 3) return `${parts[2]}.${parts[1]}`;
+  return label;
+}
+
+export function ChartLegend({ items }: { items: Array<{ name: string; color: string }> }) {
+  return (
+    <div className="flex flex-wrap items-center gap-3 text-xs font-bold text-muted-foreground">
+      {items.map((item) => (
+        <span key={item.name} className="inline-flex items-center gap-1.5">
+          <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: item.color }} />
+          {item.name}
+        </span>
+      ))}
+    </div>
+  );
+}
+
+export function StatCard({
+  label,
+  value,
+  icon: Icon,
+  tone = 'neutral',
+  delta,
+  deltaLabel,
+  hint,
+  isLoading,
+}: {
+  label: string;
+  value: number | string;
+  icon: React.ComponentType<{ size?: number; className?: string }>;
+  tone?: 'neutral' | 'blue' | 'emerald' | 'amber' | 'red' | 'purple' | 'cyan' | 'violet' | 'lime' | 'fuchsia';
+  delta?: number;
+  deltaLabel?: string;
+  hint?: string;
+  isLoading?: boolean;
+}) {
+  const toneMap: Record<string, { color: string; gradient: string; bg: string }> = {
+    neutral: { color: 'text-muted-foreground', gradient: 'from-gray-500/10 to-gray-600/5', bg: 'bg-muted' },
+    blue: { color: 'text-blue-500', gradient: 'from-blue-500/10 to-blue-600/5', bg: 'bg-blue-100 dark:bg-blue-900/30' },
+    emerald: { color: 'text-emerald-500', gradient: 'from-emerald-500/10 to-emerald-600/5', bg: 'bg-emerald-100 dark:bg-emerald-900/30' },
+    amber: { color: 'text-amber-500', gradient: 'from-amber-500/10 to-amber-600/5', bg: 'bg-amber-100 dark:bg-amber-900/30' },
+    red: { color: 'text-destructive', gradient: 'from-red-500/10 to-red-600/5', bg: 'bg-destructive/10 dark:bg-red-900/30' },
+    purple: { color: 'text-purple-500', gradient: 'from-purple-500/10 to-purple-600/5', bg: 'bg-purple-100 dark:bg-purple-900/30' },
+    cyan: { color: 'text-cyan-500', gradient: 'from-cyan-500/10 to-cyan-600/5', bg: 'bg-cyan-100 dark:bg-cyan-900/30' },
+    violet: { color: 'text-violet-500', gradient: 'from-violet-500/10 to-violet-600/5', bg: 'bg-violet-100 dark:bg-violet-900/30' },
+    lime: { color: 'text-lime-500', gradient: 'from-lime-500/10 to-lime-600/5', bg: 'bg-lime-100 dark:bg-lime-900/30' },
+    fuchsia: { color: 'text-fuchsia-500', gradient: 'from-fuchsia-500/10 to-fuchsia-600/5', bg: 'bg-fuchsia-100 dark:bg-fuchsia-900/30' },
+  };
+  const palette = toneMap[tone] || toneMap.neutral;
+  return (
+    <div className="group relative overflow-hidden rounded-2xl border border-border bg-card p-5 shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-md">
+      <div className={`absolute inset-0 bg-gradient-to-br ${palette.gradient} opacity-0 transition-opacity group-hover:opacity-100`} />
+      <div className="relative">
+        <div className={`mb-3 flex h-10 w-10 items-center justify-center rounded-xl ${palette.bg} ${palette.color}`}>
+          <Icon size={20} />
+        </div>
+        <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">{label}</p>
+        {isLoading ? (
+          <div className="mt-2 h-8 w-24 rounded bg-muted animate-pulse" />
+        ) : (
+          <p className="mt-1 text-3xl font-black tabular-nums tracking-tight text-foreground">{value}</p>
+        )}
+        {delta !== undefined || hint ? (
+          <div className="mt-2 flex items-center gap-2 text-xs font-bold">
+            {delta !== undefined ? (
+              <span
+                className={`inline-flex items-center gap-0.5 rounded-md px-1.5 py-0.5 ${
+                  delta > 0
+                    ? 'bg-emerald-50 text-emerald-600 dark:bg-emerald-900/30 dark:text-emerald-400'
+                    : delta < 0
+                    ? 'bg-destructive/10 text-destructive'
+                    : 'bg-muted text-muted-foreground'
+                }`}
+              >
+                {delta > 0 ? '▲' : delta < 0 ? '▼' : '·'} {Math.abs(delta)}%
+              </span>
+            ) : null}
+            {(deltaLabel || hint) ? <span className="text-muted-foreground">{deltaLabel || hint}</span> : null}
+          </div>
+        ) : null}
+      </div>
+    </div>
+  );
+}
+
+export function SegmentedControl<T extends string>({
+  value,
+  options,
+  onChange,
+  size = 'sm',
+}: {
+  value: T;
+  options: Array<{ id: T; label: string }>;
+  onChange: (id: T) => void;
+  size?: 'sm' | 'xs';
+}) {
+  const sizeMap = {
+    sm: 'h-9 text-xs',
+    xs: 'h-8 text-[11px]',
+  } as const;
+  return (
+    <div className={`inline-flex items-center gap-0.5 rounded-lg border border-border bg-card p-0.5`}>
+      {options.map((option) => {
+        const active = option.id === value;
+        return (
+          <button
+            key={option.id}
+            type="button"
+            onClick={() => onChange(option.id)}
+            aria-pressed={active}
+            className={`${sizeMap[size]} inline-flex items-center justify-center rounded-md px-3 font-bold transition-colors ${
+              active
+                ? 'bg-primary text-primary-foreground shadow-sm'
+                : 'text-muted-foreground hover:text-foreground'
+            }`}
+          >
+            {option.label}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+export function DataTable<T>({
+  columns,
+  rows,
+  getRowKey,
+  emptyState,
+  rowClassName,
+}: {
+  columns: Array<{
+    key: string;
+    label: string;
+    render: (row: T) => React.ReactNode;
+    className?: string;
+  }>;
+  rows: T[];
+  getRowKey: (row: T) => string;
+  emptyState?: React.ReactNode;
+  rowClassName?: (row: T) => string | undefined;
+}) {
+  if (rows.length === 0 && emptyState) {
+    return <>{emptyState}</>;
+  }
+  return (
+    <div className="overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
+      <div className="overflow-x-auto">
+        <table className="w-full text-left">
+          <thead>
+            <tr className="border-b border-border">
+              {columns.map((col) => (
+                <th
+                  key={col.key}
+                  className={`px-5 py-3 text-[10px] font-black uppercase tracking-wider text-muted-foreground ${col.className || ''}`}
+                >
+                  {col.label}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-border">
+            {rows.map((row) => (
+              <tr key={getRowKey(row)} className={`transition-colors hover:bg-muted/30 ${rowClassName ? rowClassName(row) : ''}`}>
+                {columns.map((col) => (
+                  <td key={col.key} className={`px-5 py-4 align-middle text-sm ${col.className || ''}`}>
+                    {col.render(row)}
+                  </td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
+export { UserInspector } from './UserInspector';

@@ -117,7 +117,7 @@ export function ReactionPicker({
             aria-label={t('post.reaction_picker')}
             data-origin="bottom-left"
             className={cn(
-              't-dropdown absolute bottom-8 left-0 z-50 flex gap-1 rounded-2xl border border-gray-200 bg-white p-2 shadow-xl dark:border-zinc-700 dark:bg-zinc-900',
+              't-dropdown absolute bottom-8 left-0 z-50 flex gap-1 rounded-xl border border-gray-200 bg-white p-2 shadow-xl dark:border-zinc-700 dark:bg-zinc-900',
               presence.state === 'open' && 'is-open',
               presence.state === 'closing' && 'is-closing',
             )}
@@ -128,7 +128,7 @@ export function ReactionPicker({
                 role="menuitem"
                 onClick={() => handlePick(emoji)}
                 aria-label={t(`post.reaction_${REACTION_LABELS[emoji] || 'react'}`, { emoji, count: 0 })}
-                className="motion-reaction-option rounded-lg p-2.5 min-w-11 min-h-11 text-lg hover:bg-gray-100 dark:hover:bg-zinc-800"
+                className="motion-reaction-option rounded-xl p-2.5 min-w-11 min-h-11 text-lg hover:bg-gray-100 dark:hover:bg-zinc-800"
                 style={{ '--motion-index': index } as CSSProperties}
               >
                 <span aria-hidden>{emoji}</span>

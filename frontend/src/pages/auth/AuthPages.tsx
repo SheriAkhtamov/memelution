@@ -23,8 +23,8 @@ export function LoginPage() {
   }, [navigate, redirectTo, user]);
   return (
     <div className="flex min-h-screen items-center justify-center bg-[#F3F4F6] p-4 dark:bg-zinc-950">
-      <section className="motion-route-enter w-full max-w-md space-y-6 rounded-lg border border-gray-200 bg-white p-8 text-center shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
-        <Link to="/" className="motion-logo-intro mx-auto flex h-16 w-16 items-center justify-center rounded-lg bg-[#FF6B00] text-3xl font-black text-white">М</Link>
+      <section className="motion-route-enter w-full max-w-md space-y-6 rounded-xl border border-gray-200 bg-white p-8 text-center shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
+        <Link to="/" className="motion-logo-intro mx-auto flex h-16 w-16 items-center justify-center rounded-xl bg-[#FF6B00] text-3xl font-black text-white">М</Link>
         <div>
           <h1 className="text-4xl font-black">{t('common.site_name')}</h1>
           <p className="mt-2 text-gray-500">{t('app.welcome')}</p>
@@ -36,7 +36,7 @@ export function LoginPage() {
         ) : null}
         <a
           href={api.telegramStartUrl(redirectTo)}
-          className="motion-control inline-flex h-12 w-full items-center justify-center rounded-lg bg-[#2AABEE] px-4 text-sm font-black text-white hover:bg-[#229ED9] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2AABEE]/40"
+          className="motion-control inline-flex h-12 w-full items-center justify-center rounded-xl bg-[#2AABEE] px-4 text-sm font-black text-white hover:bg-[#229ED9] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2AABEE]/40"
         >
           {t('app.continue_telegram')}
         </a>
@@ -87,14 +87,14 @@ export function AuthCallbackPage() {
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-[#F3F4F6] p-4 dark:bg-zinc-950">
-      <section className="motion-route-enter w-full max-w-md space-y-6 rounded-lg border border-gray-200 bg-white p-8 text-center shadow-sm dark:border-zinc-800 dark:bg-zinc-950" role="status" aria-live="polite">
-        <div className="motion-logo-intro mx-auto flex h-16 w-16 items-center justify-center rounded-lg bg-[#FF6B00] text-3xl font-black text-white">М</div>
+      <section className="motion-route-enter w-full max-w-md space-y-6 rounded-xl border border-gray-200 bg-white p-8 text-center shadow-sm dark:border-zinc-800 dark:bg-zinc-950" role="status" aria-live="polite">
+        <div className="motion-logo-intro mx-auto flex h-16 w-16 items-center justify-center rounded-xl bg-[#FF6B00] text-3xl font-black text-white">М</div>
         {step === 'error' ? (
           <>
             <p className="text-base font-black text-red-600 dark:text-red-400">{t('app.session_failed')}</p>
             <a
               href="/login"
-              className="inline-flex h-11 w-full items-center justify-center rounded-lg bg-[#FF6B00] text-sm font-black text-white transition-colors hover:bg-orange-600"
+              className="inline-flex h-11 w-full items-center justify-center rounded-xl bg-[#FF6B00] text-sm font-black text-white transition-colors hover:bg-orange-600"
             >
               {t('app.auth_back_to_login')}
             </a>
@@ -167,7 +167,7 @@ export function AdminLoginPage() {
   };
   return (
     <div className="flex min-h-screen items-center justify-center bg-[#F3F4F6] p-4 dark:bg-zinc-950">
-      <section className="motion-route-enter w-full max-w-md space-y-4 rounded-lg border border-gray-200 bg-white p-8 shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
+      <section className="motion-route-enter w-full max-w-md space-y-4 rounded-xl border border-gray-200 bg-white p-8 shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
         <Shield className="text-[#FF6B00]" size={36} />
         <h1 className="text-3xl font-black">{t('app.admin_panel')}</h1>
         <Input value={login} onChange={(event) => setLogin(event.target.value)} placeholder={t('app.login')} />
@@ -236,7 +236,7 @@ export function OnboardingPage() {
   const recommendedCommunities = (communitiesQuery.data || []).slice(0, 6);
   return (
     <div className="flex min-h-screen items-center justify-center bg-[#F3F4F6] p-4 dark:bg-zinc-950">
-      <section className="motion-route-enter w-full max-w-3xl space-y-6 rounded-lg border border-gray-200 bg-white p-6 shadow-sm dark:border-zinc-800 dark:bg-zinc-950 sm:p-8">
+      <section className="motion-route-enter w-full max-w-3xl space-y-6 rounded-xl border border-gray-200 bg-white p-6 shadow-sm dark:border-zinc-800 dark:bg-zinc-950 sm:p-8">
         <div>
           <h1 className="text-3xl font-black">{t('onboarding.title')}</h1>
           <div className="mt-4 grid grid-cols-3 gap-2 text-xs font-black">
@@ -245,7 +245,7 @@ export function OnboardingPage() {
               ['communities', 'Сообщества'],
               ['profile', 'Профиль'],
             ].map(([id, label]) => (
-              <div key={id} data-active={step === id} className={`motion-pop rounded-lg px-3 py-2 text-center transition-colors ${step === id ? 'bg-[#FF6B00] text-white' : 'bg-gray-100 text-gray-500 dark:bg-zinc-900 dark:text-zinc-400'}`}>
+              <div key={id} data-active={step === id} className={`motion-pop rounded-xl px-3 py-2 text-center transition-colors ${step === id ? 'bg-[#FF6B00] text-white' : 'bg-gray-100 text-gray-500 dark:bg-zinc-900 dark:text-zinc-400'}`}>
                 {label}
               </div>
             ))}
@@ -280,7 +280,7 @@ export function OnboardingPage() {
             <div className="grid gap-3 sm:grid-cols-2">
               {communitiesQuery.isLoading ? (
                 Array.from({ length: 4 }).map((_, index) => (
-                  <div key={index} className="h-28 animate-pulse rounded-lg bg-gray-100 dark:bg-zinc-900" />
+                   <div key={index} className="h-28 animate-pulse rounded-xl bg-gray-100 dark:bg-zinc-900" />
                 ))
               ) : recommendedCommunities.length ? recommendedCommunities.map((community) => {
                 const selected = selectedCommunities.includes(community.slug);
@@ -290,13 +290,13 @@ export function OnboardingPage() {
                     type="button"
                     onClick={() => toggleCommunity(community.slug)}
                     data-active={selected}
-                    className={`motion-pop motion-control flex gap-3 rounded-lg border p-4 text-left ${
+                    className={`motion-pop motion-control flex gap-3 rounded-xl border p-4 text-left ${
                       selected
                         ? 'border-[#FF6B00] bg-orange-50 ring-2 ring-orange-100 dark:bg-orange-950/20 dark:ring-orange-950'
                         : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50 dark:border-zinc-800 dark:hover:bg-zinc-900'
                     }`}
                   >
-                    <div className="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-purple-100 text-purple-600">
+                    <div className="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-purple-100 text-purple-600">
                       {community.avatar_url ? <img src={community.avatar_url} alt="" className="h-full w-full object-cover" /> : <Users size={20} />}
                     </div>
                     <span className="min-w-0 flex-1">
@@ -308,7 +308,7 @@ export function OnboardingPage() {
                   </button>
                 );
               }) : (
-                <div className="sm:col-span-2 rounded-lg border border-dashed border-gray-200 p-6 text-center dark:border-zinc-800">
+                <div className="sm:col-span-2 rounded-xl border border-dashed border-gray-200 p-6 text-center dark:border-zinc-800">
                   <Sparkles className="mx-auto mb-2 text-[#FF6B00]" />
                   <p className="font-black">Сообщества появятся в рекомендациях после первых публикаций.</p>
                 </div>
@@ -327,7 +327,7 @@ export function OnboardingPage() {
               <Input value={username} onChange={(event) => setUsername(event.target.value)} placeholder="@nickname" error={error} />
               <Input value={displayName} onChange={(event) => setDisplayName(event.target.value)} placeholder={t('app.name')} />
               <div className="sm:col-span-2">
-                <label className="group/avatar relative flex cursor-pointer items-center gap-3 rounded-lg border border-dashed border-gray-300 bg-gray-50 p-3 transition-colors hover:border-orange-300 hover:bg-orange-50 dark:border-zinc-800 dark:bg-zinc-900/50 dark:hover:bg-orange-950/20">
+                <label className="group/avatar relative flex cursor-pointer items-center gap-3 rounded-xl border border-dashed border-gray-300 bg-gray-50 p-3 transition-colors hover:border-orange-300 hover:bg-orange-50 dark:border-zinc-800 dark:bg-zinc-900/50 dark:hover:bg-orange-950/20">
                   <Avatar src={avatarUrl} name={displayName || user?.display_name} className="h-14 w-14 rounded-xl" />
                   <div className="flex-1">
                     <p className="text-sm font-bold text-gray-700 dark:text-zinc-200">
@@ -350,7 +350,7 @@ export function OnboardingPage() {
             </div>
             <div className="grid gap-3 sm:grid-cols-3">
               {[...onboardingRecommendations, { title: 'Первый мем', description: 'После завершения откроется форма публикации.' }].map((item) => (
-                <article key={item.title} className="motion-control rounded-lg border border-gray-200 p-4 hover:-translate-y-0.5 hover:shadow-md dark:border-zinc-800">
+                <article key={item.title} className="motion-control rounded-xl border border-gray-200 p-4 hover:-translate-y-0.5 hover:shadow-md dark:border-zinc-800">
                   <h2 className="font-black">{item.title}</h2>
                   <p className="mt-1 text-sm font-medium text-gray-500">{item.description}</p>
                 </article>

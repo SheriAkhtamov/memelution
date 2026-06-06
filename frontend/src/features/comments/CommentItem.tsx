@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { Copy, Flag, Heart, MessageSquare, Pencil, Trash2 } from 'lucide-react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '../../shared/api/client';
@@ -8,6 +9,7 @@ import { useAuthStore } from '../../store/authStore';
 import { useTranslation } from '../../shared/i18n';
 import { formatDistanceToNow } from 'date-fns';
 import { redirectToLogin } from '../../utils/authRedirect';
+import { cn } from '../../lib/utils';
 
 const COMMENT_REACTIONS = ['😂', '🔥', '❤️'];
 
@@ -157,7 +159,12 @@ export function CommentItem({
   return (
     <div
       id={`comment-${comment.id}`}
-      className={`rounded-lg border bg-white p-4 transition-colors duration-700 dark:bg-zinc-950 ${highlight ? 'border-[#7C3AED]/60 ring-2 ring-[#7C3AED]/30 dark:border-[#A78BFA]/60 dark:ring-[#A78BFA]/30' : 'border-gray-100 dark:border-zinc-800'}`}
+      className={cn(
+        'rounded-xl border bg-card p-4 transition-colors duration-700 border-border',
+        highlight
+          ? 'border-secondary/60 ring-2 ring-secondary/30 dark:border-secondary/60'
+          : ''
+      )}
       onTouchStart={handleTouchStart}
       onTouchMove={handleTouchMove}
       onTouchEnd={handleTouchEnd}
@@ -167,9 +174,9 @@ export function CommentItem({
         <Avatar src={comment.author.avatar_url} name={comment.author.display_name} className="h-9 w-9" />
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2">
-            <p className="font-black">{comment.author.display_name}</p>
-            <p className="text-xs font-bold text-gray-400">@{comment.author.username}</p>
-            <p className="text-xs text-gray-400">· {formatDistanceToNow(new Date(comment.created_at), { addSuffix: true, locale: dateLocale })}</p>
+            <p className="font-black text-foreground">{comment.author.display_name}</p>
+            <p className="text-xs font-bold text-muted-foreground">@{comment.author.username}</p>
+            <p className="text-xs text-muted-foreground">· {formatDistanceToNow(new Date(comment.created_at), { addSuffix: true, locale: dateLocale })}</p>
           </div>
           {editing ? (
             <div className="mt-2 space-y-2">
@@ -180,12 +187,12 @@ export function CommentItem({
               </div>
             </div>
           ) : (
-            <p className="mt-2 whitespace-pre-wrap text-sm leading-relaxed text-gray-800 dark:text-zinc-100">{comment.text || t('comment.deleted')}</p>
+            <p className="mt-2 whitespace-pre-wrap text-sm leading-relaxed text-foreground">{comment.text || t('comment.deleted')}</p>
           )}
-          <div className="mt-2 flex items-center gap-1 text-gray-400">
+          <div className="mt-2 flex items-center gap-1 text-muted-foreground">
             {!isRemoved ? (
               <>
-                <Button variant="ghost" className={`h-8 px-2 transition-transform ${likePulse ? 'scale-125' : ''} ${comment.liked ? 'text-red-500' : ''}`} onClick={() => { like.mutate(); setLikePulse(true); setTimeout(() => setLikePulse(false), 300); }}>
+                <Button variant="ghost" className={`h-8 px-2 transition-transform ${likePulse ? 'scale-125' : ''} ${comment.liked ? 'text-destructive animate-pulse' : ''}`} onClick={() => { like.mutate(); setLikePulse(true); setTimeout(() => setLikePulse(false), 300); }}>
                   <Heart size={15} fill={comment.liked ? 'currentColor' : 'none'} /> {comment.likes_count}
                 </Button>
                 <Button variant="ghost" className="h-8 px-2" onClick={() => onReply(comment)}>
@@ -196,7 +203,7 @@ export function CommentItem({
                     const r = reactions.find((item) => item.emoji === reaction);
                     const reacted = Boolean(r?.reacted);
                     return (
-                      <button
+                      <Button
                         key={reaction}
                         type="button"
                         aria-pressed={reacted}
@@ -207,14 +214,16 @@ export function CommentItem({
                           }
                           reactComment.mutate(reaction);
                         }}
-                        className={`h-11 w-11 rounded-lg text-lg font-black transition-colors ${
+                        variant="ghost"
+                        className={cn(
+                          'h-11 w-11 rounded-lg text-lg font-black transition-colors',
                           reacted
-                            ? 'bg-orange-100 text-[#FF6B00] dark:bg-orange-950/40'
-                            : 'text-gray-400 hover:bg-gray-100 hover:text-gray-700 dark:hover:bg-zinc-900 dark:hover:text-zinc-200'
-                        }`}
+                            ? 'bg-primary/10 text-primary'
+                            : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+                        )}
                       >
-                        {reaction}{r?.count ? <span className="ml-1 align-middle text-[10px]">{r.count}</span> : null}
-                      </button>
+                        {reaction}{r?.count ? <span className="ml-1 align-middle" style={{ fontSize: '10px' }}>{r.count}</span> : null}
+                      </Button>
                     );
                   })}
                 </div>
@@ -241,15 +250,16 @@ export function CommentItem({
       {comment.replies.length ? (
         <div className={`mt-3 flex gap-0 transition-all duration-300 ${collapsed ? 'max-h-0 overflow-hidden opacity-0' : 'max-h-[9999px] opacity-100'}`}>
           {/* Clickable thread line */}
-          <button
+          <Button
             type="button"
             onClick={() => setCollapsed(true)}
-            className="group/line flex w-5 shrink-0 cursor-pointer justify-center pt-1"
+            variant="ghost"
+            className="group/line flex w-5 shrink-0 cursor-pointer justify-center pt-1 h-auto hover:bg-transparent"
             aria-label={t('comment.hide_thread')}
             title={t('comment.hide_thread')}
           >
-            <div className="h-full w-0.5 rounded-full bg-purple-200 transition-colors group-hover/line:bg-purple-500 dark:bg-purple-900 dark:group-hover/line:bg-purple-400" />
-          </button>
+            <div className="h-full w-0.5 rounded-full bg-muted transition-colors group-hover/line:bg-secondary" />
+          </Button>
           <div className="min-w-0 flex-1 space-y-3 pl-1">
             {comment.replies.map((reply) => (
               <CommentItem key={reply.id} comment={reply} postId={postId} onReply={onReply} highlight={highlight} />
@@ -273,45 +283,51 @@ export function CommentItem({
         onClose={() => setReportOpen(false)}
         onSubmit={handleReport}
       />
-      {contextMenuOpen && (
+      {contextMenuOpen && createPortal(
         <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/45 p-0 animate-in fade-in duration-200 sm:items-center sm:p-4" onClick={() => setContextMenuOpen(false)}>
-          <div className="w-full max-w-sm rounded-t-2xl bg-white p-4 shadow-2xl dark:bg-zinc-950 sm:rounded-lg" onClick={(e) => e.stopPropagation()}>
+          <div className="w-full max-w-sm rounded-t-2xl bg-card p-4 shadow-2xl sm:rounded-xl" onClick={(e) => e.stopPropagation()}>
             <div className="space-y-1">
-              <button
-                className="flex w-full items-center gap-3 rounded-lg px-3 py-3 text-left text-sm font-bold hover:bg-gray-50 dark:hover:bg-zinc-900"
+              <Button
+                variant="ghost"
+                className="flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left text-sm font-bold hover:bg-muted justify-start h-auto"
                 onClick={() => { onReply(comment); setContextMenuOpen(false); }}
               >
                 <MessageSquare size={16} /> {t('comment.reply')}
-              </button>
-              <button
-                className="flex w-full items-center gap-3 rounded-lg px-3 py-3 text-left text-sm font-bold hover:bg-gray-50 dark:hover:bg-zinc-900"
+              </Button>
+              <Button
+                variant="ghost"
+                className="flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left text-sm font-bold hover:bg-muted justify-start h-auto"
                 onClick={() => { navigator.clipboard.writeText(comment.text); toast.show({ title: t('post.menu_copy'), tone: 'success' }); setContextMenuOpen(false); }}
               >
                 <Copy size={16} /> {t('post.menu_copy')}
-              </button>
-              <button
-                className="flex w-full items-center gap-3 rounded-lg px-3 py-3 text-left text-sm font-bold text-red-600 hover:bg-red-50 dark:hover:bg-red-950/20"
+              </Button>
+              <Button
+                variant="ghost"
+                className="flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left text-sm font-bold text-destructive hover:bg-destructive/10 justify-start h-auto"
                 onClick={() => { setReportOpen(true); setContextMenuOpen(false); }}
               >
                 <Flag size={16} /> {t('post.menu_report')}
-              </button>
+              </Button>
               {canManage ? (
-                <button
-                  className="flex w-full items-center gap-3 rounded-lg px-3 py-3 text-left text-sm font-bold text-red-600 hover:bg-red-50 dark:hover:bg-red-950/20"
+                <Button
+                  variant="ghost"
+                  className="flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left text-sm font-bold text-destructive hover:bg-destructive/10 justify-start h-auto"
                   onClick={() => { setConfirmDeleteOpen(true); setContextMenuOpen(false); }}
                 >
                   <Trash2 size={16} /> {t('comment.delete')}
-                </button>
+                </Button>
               ) : null}
             </div>
-            <button
-              className="mt-3 w-full rounded-lg bg-gray-100 py-3 text-sm font-bold dark:bg-zinc-800"
+            <Button
+              variant="outline"
+              className="mt-3 w-full py-3 text-sm font-bold"
               onClick={() => setContextMenuOpen(false)}
             >
               {t('common.cancel')}
-            </button>
+            </Button>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );

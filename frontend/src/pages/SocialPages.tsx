@@ -1,6 +1,6 @@
 export { AdminLoginPage, AuthCallbackPage, LoginPage, OnboardingPage } from './auth/AuthPages';
 export { AdminPage, ReportsPage } from './admin/AdminPage';
-export { CommunitiesPage, CommunityPage, CreateCommunityPage } from './communities/CommunitiesPage';
+export { CommunitiesPage, CommunityPage } from './communities/CommunitiesPage';
 export { ExplorePage } from './explore/ExplorePage';
 export { HashtagPage } from './hashtag/HashtagPage';
 export { MessagesPage } from './messages/MessagesPage';

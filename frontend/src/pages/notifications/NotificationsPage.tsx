@@ -39,7 +39,7 @@ export function NotificationsPage() {
     { id: 'system', label: t('notifications.filter_system') },
   ];
 
-  if (!user) return <div className="p-3 sm:p-4"><EmptyState title={t('common.required')} description={t('notifications.login_required')} /></div>;
+  if (!user) return     <div className="p-3 sm:p-5 lg:p-6"><EmptyState title={t('common.required')} description={t('notifications.login_required')} /></div>;
   const notifications = query.data || [];
   const unreadCount = notifications.filter((item) => !item.is_read).length;
   const items = notifications.filter((item) => filter === 'all' || item.type === filter || (filter === 'system' && item.type.startsWith('account')));
@@ -62,9 +62,9 @@ export function NotificationsPage() {
 
   return (
     <div>
-      <header className="sticky top-0 z-20 border-b border-gray-200 bg-[#F3F4F6]/90 px-3 py-4 backdrop-blur dark:border-zinc-800 dark:bg-zinc-950/90 sm:px-4">
+      <header className="page-header sticky top-0 z-20 px-4 py-5 sm:px-6 sm:py-7">
         <div className="mb-4 flex items-center justify-between gap-3">
-          <h1 className="flex items-center gap-2 text-2xl font-black"><Bell className="text-[#FF6B00]" /> {t('notifications.title')}</h1>
+          <h1 className="page-title flex items-center gap-2"><Bell className="text-[#FF6B00]" size={22} /> {t('notifications.title')}</h1>
           <Button
             variant="outline"
             onClick={() => readAll.mutate()}
@@ -100,12 +100,10 @@ export function NotificationsPage() {
               style={{ width: `${Math.min(100, ((user.activity_score || 0) / (((user.achievement_level || 1) + 1) * 100)) * 100)}%` }}
             />
           </div>
-          <p className="mt-1 text-[10px] font-bold text-gray-400 dark:text-zinc-500">
-            {t('notifications.xp_hint')}
-          </p>
+          <p className="mt-1 text-xs text-gray-400">{t('notifications.xp_hint')}</p>
         </div>
       )}
-      <div className="space-y-3 p-3 sm:p-4">
+      <div className="space-y-5 p-3 sm:p-5 lg:p-6">
         {query.isLoading ? <Skeleton className="h-64" /> : query.isError ? <ErrorState description={t('notifications.load_error')} onRetry={() => query.refetch()} /> : items.length ? (
           <>
             {newItems.length ? (
@@ -167,7 +165,7 @@ function NotificationSection({
           const href = notificationHref(item);
           const body = textFor(item);
           const content = (
-            <div className={`motion-control flex items-start justify-between gap-3 rounded-lg border p-4 ${item.is_read ? 'border-gray-200 bg-white opacity-75 hover:opacity-100 dark:border-zinc-800 dark:bg-zinc-950' : 'border-orange-100 bg-orange-50 shadow-sm dark:border-orange-900 dark:bg-orange-950/25'}`}>
+            <div className={`motion-control flex items-start justify-between gap-3 rounded-xl border p-4 ${item.is_read ? 'border-gray-200 bg-white opacity-75 hover:opacity-100 dark:border-zinc-800 dark:bg-zinc-950' : 'border-orange-100 bg-orange-50 shadow-sm dark:border-orange-900 dark:bg-orange-950/25'}`}>
               <div className="min-w-0 flex-1">
                 <p className="font-black">{titleFor(item.type)}</p>
                 <p className="text-sm text-gray-500 dark:text-zinc-400">{body}</p>

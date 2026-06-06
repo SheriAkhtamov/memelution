@@ -25,7 +25,7 @@ import {
 } from 'lucide-react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { api } from '../../shared/api/client';
-import { Button, ConfirmDialog, Dropdown, DropdownItem, ErrorState, IconButton, Input, Modal, Select, Skeleton, Textarea, useToast } from '../../shared/ui';
+import { Button, ConfirmDialog, Dropdown, DropdownItem, ErrorState, IconButton, Input, Modal, Select, Skeleton, Textarea, useToast, PageLayout, PageHeader } from '../../shared/ui';
 import { ProductEmptyState } from '../../shared/ui/ProductEmptyState';
 import { useAuthStore } from '../../store/authStore';
 import { useTranslation } from '../../shared/i18n';
@@ -199,19 +199,18 @@ export function SavedPage() {
       : t('saved.empty_desc');
 
   return (
-    <div className="saved-page">
+    <PageLayout variant="default" className="saved-page">
       <header className="page-header sticky top-16 z-20 px-4 pb-4 pt-5 sm:top-0 sm:px-6 sm:pb-5 sm:pt-7">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div className="flex min-w-0 items-center gap-3">
-            <span className="saved-title-icon">
-              <Bookmark size={25} strokeWidth={2.35} />
-            </span>
-            <h1 className="page-title">{t('saved.title')}</h1>
-          </div>
-          <Button className="saved-primary-action" onClick={openCreateModal}>
-            <Plus size={17} /> {t('saved.collection')}
-          </Button>
-        </div>
+        <PageHeader
+          icon={Bookmark}
+          title={t('saved.title')}
+          tone="orange"
+          actions={
+            <Button className="saved-primary-action" onClick={openCreateModal}>
+              <Plus size={17} /> {t('saved.collection')}
+            </Button>
+          }
+        />
 
         <div className="saved-filter-bar mt-5">
           <div className="saved-filter-field saved-filter-search">
@@ -246,15 +245,19 @@ export function SavedPage() {
           </div>
           <div className="saved-collections-wrap">
             <div ref={collectionsRailRef} className="saved-collections-rail">
-              <button type="button" className="saved-create-card" onClick={openCreateModal}>
+              <Button
+                onClick={openCreateModal}
+                variant="ghost"
+                className="saved-create-card h-auto block p-0"
+              >
                 <Plus size={30} aria-hidden="true" />
                 <span>{t('saved.create_collection')}</span>
-              </button>
+              </Button>
               {collectionsQuery.isLoading ? (
                 <>
-                  <Skeleton className="h-[8.55rem] w-[10.45rem] shrink-0 rounded-2xl" />
-                  <Skeleton className="h-[8.55rem] w-[10.45rem] shrink-0 rounded-2xl" />
-                  <Skeleton className="h-[8.55rem] w-[10.45rem] shrink-0 rounded-2xl" />
+                  <Skeleton className="h-[8.55rem] w-[10.45rem] shrink-0 rounded-xl" />
+                  <Skeleton className="h-[8.55rem] w-[10.45rem] shrink-0 rounded-xl" />
+                  <Skeleton className="h-[8.55rem] w-[10.45rem] shrink-0 rounded-xl" />
                 </>
               ) : collectionsQuery.isError ? (
                 <div className="saved-collection-error">
@@ -283,9 +286,14 @@ export function SavedPage() {
               )}
             </div>
             {collections.length > 3 ? (
-              <button type="button" className="saved-rail-next" onClick={scrollCollections} aria-label={t('saved.scroll_collections')}>
+              <Button
+                onClick={scrollCollections}
+                variant="ghost"
+                className="saved-rail-next h-auto p-0"
+                aria-label={t('saved.scroll_collections')}
+              >
                 <ChevronRight size={19} aria-hidden="true" />
-              </button>
+              </Button>
             ) : null}
           </div>
         </section>
@@ -294,14 +302,24 @@ export function SavedPage() {
           <div className="saved-section-header">
             <h2 id="saved-posts-title">{t('saved.recent_title')}</h2>
             <div className="saved-view-toggle" role="group" aria-label={t('saved.view_toggle')}>
-              <button type="button" aria-pressed={view === 'list'} onClick={() => setView('list')}>
+              <Button
+                variant="ghost"
+                className="h-auto p-2"
+                aria-pressed={view === 'list'}
+                onClick={() => setView('list')}
+              >
                 <List size={18} />
                 <span className="sr-only">{t('saved.list_view')}</span>
-              </button>
-              <button type="button" aria-pressed={view === 'grid'} onClick={() => setView('grid')}>
+              </Button>
+              <Button
+                variant="ghost"
+                className="h-auto p-2"
+                aria-pressed={view === 'grid'}
+                onClick={() => setView('grid')}
+              >
                 <Grid2X2 size={17} />
                 <span className="sr-only">{t('saved.grid_view')}</span>
-              </button>
+              </Button>
             </div>
           </div>
 
@@ -388,7 +406,7 @@ export function SavedPage() {
         onConfirm={() => collectionToDelete && remove.mutate(collectionToDelete.id)}
         loading={remove.isPending}
       />
-    </div>
+    </PageLayout>
   );
 }
 
@@ -415,7 +433,12 @@ function SavedCollectionCard({
   const glyph = getCollectionGlyph(collection.name);
   return (
     <article className="saved-collection-card" data-active={active || undefined} data-accent={accent}>
-      <button type="button" className="saved-collection-main" onClick={onSelect} aria-pressed={active}>
+      <Button
+        onClick={onSelect}
+        variant="ghost"
+        className="saved-collection-main h-auto p-0 block w-full justify-start text-left"
+        aria-pressed={active}
+      >
         <span className="saved-collection-cover" data-glyph={glyph}>
           <span className="saved-collection-glyph">
             <CollectionGlyphIcon glyph={glyph} />
@@ -425,7 +448,7 @@ function SavedCollectionCard({
           <span className="saved-collection-name">{collection.name}</span>
           <span className="saved-collection-count">{countLabel}</span>
         </span>
-      </button>
+      </Button>
       {canEdit ? (
         <Dropdown
           trigger={
@@ -588,18 +611,18 @@ function SavedPostsSkeleton({ view }: { view: SavedView }) {
   if (view === 'grid') {
     return (
       <div className="saved-post-grid">
-        <Skeleton className="h-64 rounded-2xl" />
-        <Skeleton className="h-64 rounded-2xl" />
-        <Skeleton className="h-64 rounded-2xl" />
+        <Skeleton className="h-64 rounded-xl" />
+        <Skeleton className="h-64 rounded-xl" />
+        <Skeleton className="h-64 rounded-xl" />
       </div>
     );
   }
   return (
     <div className="saved-post-list">
-      <Skeleton className="h-[6.7rem] rounded-2xl" />
-      <Skeleton className="h-[6.7rem] rounded-2xl" />
-      <Skeleton className="h-[6.7rem] rounded-2xl" />
-      <Skeleton className="h-[6.7rem] rounded-2xl" />
+      <Skeleton className="h-[6.7rem] rounded-xl" />
+      <Skeleton className="h-[6.7rem] rounded-xl" />
+      <Skeleton className="h-[6.7rem] rounded-xl" />
+      <Skeleton className="h-[6.7rem] rounded-xl" />
     </div>
   );
 }

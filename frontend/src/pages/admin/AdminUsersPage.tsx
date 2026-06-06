@@ -1,10 +1,11 @@
-import { useState } from 'react';
-import { Ban, Crown, MessageSquareOff, MoreHorizontal, PenOff, Search, ShieldAlert, ShieldCheck, ShieldOff, Timer, Users } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
+import { Ban, Crown, Eye, MessageSquareOff, MoreHorizontal, PenOff, Search, ShieldAlert, ShieldCheck, ShieldOff, Timer, Users } from 'lucide-react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { api } from '../../shared/api/client';
 import { useTranslation } from '../../shared/i18n';
 import type { User } from '../../shared/types';
-import { Avatar, Button, ConfirmDialog, Dropdown, DropdownItem, EmptyState, ErrorState, Input, Modal, Select, Skeleton, Textarea, useToast } from '../../shared/ui';
+import { Avatar, Button, ConfirmDialog, Dropdown, DropdownItem, EmptyState, ErrorState, Input, Modal, Select, Skeleton, Textarea, UserInspector, useToast } from '../../shared/ui';
 import { useDebouncedValue } from '../../shared/lib/useDebouncedValue';
 import { useAuthStore } from '../../store/authStore';
 
@@ -28,6 +29,9 @@ export function AdminUsersPage() {
   const [duration, setDuration] = useState('24');
   const [reason, setReason] = useState(t('admin.ban_reason_default'));
   const [confirm, setConfirm] = useState<{ kind: ConfirmKind; target: User; revert: () => void } | null>(null);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const focusId = searchParams.get('focus');
+  const [inspector, setInspector] = useState<User | null>(null);
   const isAdmin = user?.role === 'global_admin' || user?.role === 'admin';
   const isGlobalAdmin = user?.role === 'global_admin';
   const usersQuery = useQuery({
@@ -136,6 +140,17 @@ export function AdminUsersPage() {
   if (!isAdmin) return <div className="p-6"><EmptyState title={t('admin.no_access')} /></div>;
 
   const users = usersQuery.data || [];
+
+  useEffect(() => {
+    if (!focusId) return;
+    const target = users.find((u) => u.id === focusId);
+    if (target) {
+      setInspector(target);
+      const next = new URLSearchParams(searchParams);
+      next.delete('focus');
+      setSearchParams(next, { replace: true });
+    }
+  }, [focusId, users, searchParams, setSearchParams]);
 
   return (
     <div className="space-y-6 p-6 lg:p-8">
@@ -257,6 +272,9 @@ export function AdminUsersPage() {
                         </button>
                       }
                     >
+                      <DropdownItem onClick={() => setInspector(item)}>
+                        <Eye size={15} className="text-blue-500" /> {t('admin.users_action_inspect')}
+                      </DropdownItem>
                       {item.role !== 'global_admin' && (
                         <DropdownItem onClick={() => requestPromote(item)}>
                           <Crown size={15} className="text-purple-500" /> {t('admin.make_admin')}
@@ -365,6 +383,8 @@ export function AdminUsersPage() {
           setConfirm(null);
         }}
       />
+
+      <UserInspector user={inspector} onClose={() => setInspector(null)} />
     </div>
   );
 }

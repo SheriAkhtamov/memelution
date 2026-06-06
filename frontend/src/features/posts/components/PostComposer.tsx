@@ -107,7 +107,7 @@ export function PollBuilder({ options, onChange }: { options: string[]; onChange
   const remove = (index: number) => { if (options.length > 2) onChange(options.filter((_, i) => i !== index)); };
 
   return (
-    <div className="rounded-2xl border border-violet-200/60 bg-violet-50/40 p-3 dark:border-violet-900/40 dark:bg-violet-950/20">
+    <div className="rounded-xl border border-violet-200/60 bg-violet-50/40 p-3 dark:border-violet-900/40 dark:bg-violet-950/20">
       <div className="mb-2.5 flex items-center justify-between">
         <p className="flex items-center gap-1.5 text-sm font-semibold text-violet-700 dark:text-violet-300">
           <Vote size={15} /> {t('post_composer.poll_options')}
@@ -567,7 +567,7 @@ export function PostComposer({
     >
       <div
         className={cn(
-          'pointer-events-none absolute inset-0 z-20 flex items-center justify-center rounded-2xl border-2 border-dashed border-orange-400 bg-orange-50/90 text-sm font-semibold text-orange-600 opacity-0 transition-opacity dark:bg-orange-950/90 dark:text-orange-300',
+          'pointer-events-none absolute inset-0 z-20 flex items-center justify-center rounded-xl border-2 border-dashed border-orange-400 bg-orange-50/90 text-sm font-semibold text-orange-600 opacity-0 transition-opacity dark:bg-orange-950/90 dark:text-orange-300',
           isDragging && 'pointer-events-auto opacity-100',
         )}
       >
@@ -581,7 +581,7 @@ export function PostComposer({
         <button
           type="button"
           onClick={() => { setExpanded(true); window.setTimeout(() => textareaRef.current?.focus(), 50); }}
-          className="flex w-full items-center gap-3 rounded-2xl border border-zinc-200 bg-white p-3 text-left transition-colors hover:bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-950 dark:hover:bg-zinc-900"
+          className="flex w-full items-center gap-3 rounded-xl border border-zinc-200 bg-white p-3 text-left transition-colors hover:bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-950 dark:hover:bg-zinc-900"
         >
           {user ? <Avatar src={user.avatar_url} name={user.display_name} /> : <div className="h-10 w-10 shrink-0 rounded-full bg-zinc-100 dark:bg-zinc-900" />}
           <span className="flex-1 text-sm font-medium text-zinc-500 dark:text-zinc-400">
@@ -1073,7 +1073,7 @@ export function PostComposer({
   return (
     <>
       {shouldGuardDraft ? <DraftNavigationGuard /> : null}
-      <section className="rounded-2xl border border-zinc-200 bg-white p-3 transition-shadow focus-within:shadow-md hover:shadow-sm dark:border-zinc-800 dark:bg-zinc-950 sm:p-4">
+      <section className="rounded-xl border border-zinc-200 bg-white p-3 transition-shadow focus-within:shadow-md hover:shadow-sm dark:border-zinc-800 dark:bg-zinc-950 sm:p-4">
         {publishedPost ? (
           <div className="mb-3">
             <PublishSuccess post={publishedPost} onCreateAnother={() => setPublishedPost(null)} />
@@ -1150,7 +1150,7 @@ function ComposerPreview({
 }) {
   const { t } = useTranslation();
   return (
-    <div className="rounded-2xl border border-zinc-200 bg-zinc-50 p-3 dark:border-zinc-800 dark:bg-zinc-900/50">
+    <div className="rounded-xl border border-zinc-200 bg-zinc-50 p-3 dark:border-zinc-800 dark:bg-zinc-900/50">
       <div className="mb-2 flex items-center justify-between gap-2">
         <span className="text-[10px] font-semibold uppercase tracking-wider text-zinc-400">{t('post_composer.preview')}</span>
         {communityName ? <span className="truncate text-xs font-semibold text-violet-600">/{communityName}</span> : null}
@@ -1161,7 +1161,7 @@ function ComposerPreview({
         {previewUrls.length ? (
           <div className={cn('mt-2.5 grid gap-1.5', previewUrls.length > 1 ? 'grid-cols-2' : 'grid-cols-1')}>
             {previewUrls.slice(0, 4).map((item, index) => (
-              <div key={`${item.file.name}-${index}`} className="overflow-hidden rounded-lg bg-zinc-100 dark:bg-zinc-900">
+              <div key={`${item.file.name}-${index}`} className="overflow-hidden rounded-xl bg-zinc-100 dark:bg-zinc-900">
                 {item.file.type.startsWith('video/') ? (
                   <video src={item.url} className="h-24 w-full object-cover" muted />
                 ) : (
@@ -1174,7 +1174,7 @@ function ComposerPreview({
         {pollOptions.length ? (
           <div className="mt-2.5 space-y-1.5">
             {pollOptions.map((option) => (
-              <div key={option} className="rounded-lg border border-violet-200/60 px-3 py-1.5 text-sm font-medium text-violet-700 dark:border-violet-900/60 dark:text-violet-300">
+              <div key={option} className="rounded-xl border border-violet-200/60 px-3 py-1.5 text-sm font-medium text-violet-700 dark:border-violet-900/60 dark:text-violet-300">
                 {option}
               </div>
             ))}
@@ -1196,7 +1196,7 @@ function PublishSuccess({
 }) {
   const { t } = useTranslation();
   return (
-    <div className="rounded-2xl border border-emerald-200/60 bg-emerald-50/60 p-4 dark:border-emerald-900/40 dark:bg-emerald-950/20">
+    <div className="rounded-xl border border-emerald-200/60 bg-emerald-50/60 p-4 dark:border-emerald-900/40 dark:bg-emerald-950/20">
       <div className="flex items-start gap-3">
         <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-emerald-500 text-white">
           <CheckCircle2 size={20} />
@@ -1282,7 +1282,7 @@ function EmojiPicker({
       data-emoji-picker
       role="dialog"
       aria-label={t('post_composer.emoji_picker_title')}
-      className="absolute bottom-full left-0 z-30 mb-1.5 w-80 overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-xl shadow-zinc-900/15 dark:border-zinc-800 dark:bg-zinc-950"
+      className="absolute bottom-full left-0 z-30 mb-1.5 w-80 overflow-hidden rounded-xl border border-zinc-200 bg-white shadow-xl shadow-zinc-900/15 dark:border-zinc-800 dark:bg-zinc-950"
     >
       <div className="border-b border-zinc-100 p-2 dark:border-zinc-800">
         <input

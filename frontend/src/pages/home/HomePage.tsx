@@ -3,7 +3,8 @@ import { useQueryClient } from '@tanstack/react-query';
 import { useSearchParams } from 'react-router-dom';
 import { ArrowUp, ChevronDown, Flame, Plus, RefreshCw } from 'lucide-react';
 import type { FeedTab } from '../../shared/types';
-import { Button, ErrorState, Skeleton } from '../../shared/ui';
+import { Button, ErrorState, Skeleton, PageLayout, PageHeader, IconButton } from '../../shared/ui';
+import { cn } from '../../lib/utils';
 import { SwipeContainer } from '../../shared/ui/SwipeContainer';
 import { useInfiniteSentinel } from '../../shared/lib/useInfiniteSentinel';
 import { useImagePreload } from '../../shared/lib/useImagePreload';
@@ -90,7 +91,7 @@ export function HomePage() {
   const pullIndicatorY = isPullRefreshing ? 12 : Math.min(pullDistance, PULL_REFRESH_MAX) - 52;
   const fetchNextPage = useCallback(() => {
     query.fetchNextPage();
-  }, [query.fetchNextPage]);
+  }, [query]);
 
   const mainFeedTabs: Array<{ id: FeedTab; label: string }> = [
     { id: 'for-you', label: 'Для вас' },
@@ -250,7 +251,8 @@ export function HomePage() {
   };
 
   return (
-    <div
+    <PageLayout
+      variant="feed"
       onTouchStart={handleTouchStart}
       onTouchMove={handleTouchMove}
       onTouchEnd={handleTouchEnd}
@@ -263,7 +265,7 @@ export function HomePage() {
           role={isPullRefreshing ? 'status' : undefined}
         >
           <div
-            className="mt-2 flex h-10 w-10 items-center justify-center rounded-full border border-gray-200 bg-white/95 text-[#FF6B00] shadow-lg backdrop-blur transition-[opacity,transform] duration-150 dark:border-zinc-800 dark:bg-zinc-950/95"
+            className="mt-2 flex h-10 w-10 items-center justify-center rounded-full border border-gray-200 bg-white/95 text-primary shadow-lg backdrop-blur transition-[opacity,transform] duration-150 dark:border-zinc-800 dark:bg-zinc-950/95"
             style={{ opacity: isPullRefreshing ? 1 : Math.max(0.35, pullProgress), transform: `translateY(${pullIndicatorY}px)` }}
           >
             <RefreshCw size={20} className={isPullRefreshing || pullProgress >= 1 ? 'animate-spin' : ''} />
@@ -271,20 +273,20 @@ export function HomePage() {
           </div>
         </div>
       ) : null}
-      <header className="page-header sticky top-16 z-20 px-4 pb-3 pt-5 sm:top-0 sm:px-6 sm:pb-4 sm:pt-7">
-        <div className="flex items-center justify-between gap-3">
-          <h1 className="page-title">{t('home.title')}</h1>
-          <div className="flex items-center gap-2">
-            {isRefreshing ? <span className="t-shimmer text-xs font-black" data-text={t('home.refreshing')}>{t('home.refreshing')}</span> : null}
+      <header className="page-header sticky top-16 z-20 px-4 py-5 sm:top-0 sm:px-6 sm:py-7">
+        <PageHeader
+          title={t('home.title')}
+          subtitle={isRefreshing ? t('home.refreshing') : undefined}
+          actions={
             <Button variant="outline" className="h-11 w-11 rounded-xl px-0 shadow-sm" loading={isRefreshing} onClick={() => query.refetch()} aria-label={t('home.refresh_feed')}>
-              {!isRefreshing ? <RefreshCw size={17} /> : null}
+              {!isRefreshing ? <RefreshCw size={18} /> : null}
             </Button>
-          </div>
-        </div>
+          }
+        />
         <div ref={moreRef} className="relative mt-4 sm:mt-5">
           <div className="flex items-center gap-1 overflow-x-auto scroll-smooth [-webkit-overflow-scrolling:touch] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           {mainFeedTabs.map((tab) => (
-            <button
+            <Button
               key={tab.id}
               ref={(node) => {
                 if (node) tabButtonRefs.current.set(tab.id, node);
@@ -292,19 +294,21 @@ export function HomePage() {
               }}
               onClick={() => changeFeed(tab.id)}
               aria-current={feed === tab.id ? 'page' : undefined}
-              className={`motion-control relative shrink-0 rounded-xl px-4 py-2.5 text-sm font-black ${
+              variant="ghost"
+              className={cn(
+                "relative shrink-0 rounded-xl px-4 py-2.5 text-sm font-black h-auto",
                 feed === tab.id
-                  ? 'bg-[linear-gradient(110deg,#FFF0E5,#FFF7F1)] text-[#F45B0B] shadow-[inset_0_0_0_1px_rgba(255,107,0,0.05)] dark:bg-orange-950/30'
-                  : 'text-gray-500 hover:bg-gray-50 hover:text-gray-900 dark:hover:bg-zinc-900 dark:hover:text-zinc-100'
-              }`}
+                  ? 'bg-primary/10 text-primary shadow-sm hover:bg-primary/15'
+                  : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+              )}
             >
               {tab.label}
               {feed === tab.id ? (
-                <span className="absolute bottom-0 left-1/2 h-0.5 w-6 -translate-x-1/2 rounded-full bg-[#FF6B00]" />
+                <span className="absolute bottom-0 left-1/2 h-0.5 w-6 -translate-x-1/2 rounded-full bg-primary" />
               ) : null}
-            </button>
+            </Button>
           ))}
-            <button
+            <Button
               ref={(node) => {
                 if (node) tabButtonRefs.current.set('more', node);
                 else tabButtonRefs.current.delete('more');
@@ -312,34 +316,38 @@ export function HomePage() {
               onClick={() => setMoreOpen((v) => !v)}
               aria-haspopup="menu"
               aria-expanded={moreOpen}
-              className={`motion-control flex shrink-0 items-center gap-1 rounded-xl px-4 py-2.5 text-sm font-black ${
+              variant="ghost"
+              className={cn(
+                "flex shrink-0 items-center gap-1 rounded-xl px-4 py-2.5 text-sm font-black h-auto",
                 isExtraFeed
-                  ? 'bg-orange-50 text-[#FF6B00] dark:bg-orange-950/30'
-                  : 'text-gray-500 hover:bg-gray-50 hover:text-gray-900 dark:hover:bg-zinc-900 dark:hover:text-zinc-100'
-              }`}
+                  ? 'bg-primary/10 text-primary hover:bg-primary/15'
+                  : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+              )}
             >
               Ещё
               <ChevronDown size={14} className={`transition-transform ${moreOpen ? 'rotate-180' : ''}`} />
-            </button>
+            </Button>
           </div>
           {moreOpen ? (
-            <div className="t-dropdown is-open absolute right-0 top-full z-30 mt-2 w-44 overflow-hidden rounded-xl border border-gray-200 bg-white shadow-lg dark:border-zinc-800 dark:bg-zinc-950" data-origin="top-right" role="menu">
+            <div className="t-dropdown is-open absolute right-0 top-full z-30 mt-2 w-44 overflow-hidden rounded-xl border border-border bg-card shadow-lg" data-origin="top-right" role="menu">
               {extraFeedTabs.map((tab) => (
-                <button
+                <Button
                   key={tab.id}
                   onClick={() => {
                     changeFeed(tab.id);
                     setMoreOpen(false);
                   }}
-                  className={`motion-control block w-full px-4 py-2.5 text-left text-sm font-bold ${
+                  variant="ghost"
+                  className={cn(
+                    "block w-full px-4 py-2.5 text-left text-sm font-bold justify-start h-auto rounded-none",
                     feed === tab.id
-                      ? 'bg-orange-50 text-[#FF6B00] dark:bg-orange-950/30'
-                      : 'text-gray-700 hover:bg-gray-50 dark:text-zinc-200 dark:hover:bg-zinc-900'
-                  }`}
+                      ? 'bg-primary/10 text-primary hover:bg-primary/15'
+                      : 'text-foreground hover:bg-muted'
+                  )}
                   role="menuitem"
                 >
                   {tab.label}
-                </button>
+                </Button>
               ))}
             </div>
           ) : null}
@@ -380,7 +388,7 @@ export function HomePage() {
             <div ref={sentinelRef} className="py-4">
               {query.isFetchingNextPage ? (
                 <div className="flex justify-center">
-                  <div className="h-6 w-6 animate-spin rounded-full border-2 border-[#FF6B00] border-t-transparent" />
+                  <div className="h-6 w-6 animate-spin rounded-full border-2 border-primary border-t-transparent" />
                 </div>
               ) : !query.hasNextPage && posts.length > 5 ? (
                 <div className="flex flex-col items-center gap-3 py-8">
@@ -411,16 +419,18 @@ export function HomePage() {
         )}
       </SwipeContainer>
       {showBackToTop ? (
-        <button
+        <IconButton
+          label={t('home.scroll_to_top')}
           onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
-          className="t-panel-slide motion-control fixed bottom-24 right-4 z-30 flex h-10 w-10 items-center justify-center rounded-full border border-gray-200 bg-white/90 text-gray-500 shadow-lg backdrop-blur hover:bg-white hover:text-gray-900 dark:border-zinc-700 dark:bg-zinc-900/90 dark:hover:bg-zinc-800 dark:hover:text-zinc-100 sm:bottom-8"
+          variant="outline"
+          size="icon"
+          className="t-panel-slide fixed bottom-24 right-4 z-30 flex h-10 w-10 items-center justify-center rounded-full border border-gray-200 bg-white/90 text-gray-500 shadow-lg backdrop-blur hover:bg-white hover:text-gray-900 dark:border-zinc-700 dark:bg-zinc-900/90 dark:hover:bg-zinc-800 dark:hover:text-zinc-100 sm:bottom-8"
           data-open="true"
-          aria-label={t('home.scroll_to_top')}
         >
           <ArrowUp size={18} />
-        </button>
+        </IconButton>
       ) : null}
-    </div>
+    </PageLayout>
   );
 }
 
@@ -429,7 +439,7 @@ function FeedSkeleton() {
   return (
     <div className="space-y-5" aria-label={t('home.loading_feed')}>
       {[0, 1, 2].map((item) => (
-        <div key={item} className="rounded-lg border border-gray-200/80 bg-white/95 p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-950/90">
+        <div key={item} className="rounded-xl border border-gray-200/80 bg-white/95 p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-950/90">
           <div className="flex gap-3">
             <Skeleton className="h-11 w-11" />
             <div className="flex-1 space-y-3">

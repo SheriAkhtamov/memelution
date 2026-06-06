@@ -1437,7 +1437,7 @@ function SettingsSwitchRow({
 }) {
   return (
     <label className="settings-switch-row">
-      <div className="flex items-start gap-0.85 min-w-0">
+      <div className="flex min-w-0 items-start gap-3">
         <span className="settings-row-icon" data-tone={tone} aria-hidden="true" style={{ marginTop: '0.15rem' }}>
           {icon}
         </span>

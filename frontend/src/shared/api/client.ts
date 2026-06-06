@@ -1,4 +1,13 @@
 import type {
+  AdminCommentItem,
+  AdminCommunityItem,
+  AdminHashtagItem,
+  AdminModerationAnalytics,
+  AdminPostItem,
+  AdminSessionItem,
+  AdminSystemHealth,
+  AdminTimeseries,
+  AdminTopResponse,
   Chat,
   ChatDetail,
   Comment,
@@ -344,4 +353,114 @@ export const api = {
   resolveReport: (id: string, status = 'resolved', action?: string) =>
     request<{ success: boolean }>(`/api/admin/reports/${id}/resolve`, { method: 'POST', body: JSON.stringify({ status, action }) }),
   adminLogs: () => request<Array<Record<string, unknown>>>('/api/admin/logs'),
+  adminLogsFiltered: (params: { action?: string; target_type?: string; moderator_id?: string; q?: string; limit?: number } = {}) => {
+    const search = new URLSearchParams();
+    if (params.action) search.set('action', params.action);
+    if (params.target_type) search.set('target_type', params.target_type);
+    if (params.moderator_id) search.set('moderator_id', params.moderator_id);
+    if (params.q) search.set('q', params.q);
+    if (params.limit) search.set('limit', String(params.limit));
+    return request<Array<Record<string, unknown>>>(`/api/admin/logs${search.size ? `?${search.toString()}` : ''}`);
+  },
+
+  // Posts
+  adminPosts: (params: {
+    q?: string;
+    type?: string;
+    author_id?: string;
+    community_id?: string;
+    is_deleted?: boolean;
+    is_pinned?: boolean;
+    visibility?: string;
+    sort?: 'new' | 'popular' | 'comments';
+    limit?: number;
+  } = {}) => {
+    const search = new URLSearchParams();
+    Object.entries(params).forEach(([key, value]) => {
+      if (value !== undefined && value !== null && value !== '') search.set(key, String(value));
+    });
+    return request<AdminPostItem[]>(`/api/admin/posts${search.size ? `?${search.toString()}` : ''}`);
+  },
+  adminHidePost: (id: string) =>
+    request<{ success: boolean; post_id: string; hidden: boolean }>(`/api/admin/posts/${id}/hide`, { method: 'POST' }),
+  adminRestorePost: (id: string) =>
+    request<{ success: boolean; post_id: string; hidden: boolean }>(`/api/admin/posts/${id}/restore`, { method: 'POST' }),
+  adminPinPost: (id: string, pinned: boolean) =>
+    request<{ success: boolean; post_id: string; pinned: boolean }>(`/api/admin/posts/${id}/pin?pinned=${pinned}`, { method: 'POST' }),
+  adminDeletePost: (id: string) =>
+    request<{ success: boolean }>(`/api/admin/posts/${id}`, { method: 'DELETE' }),
+
+  // Comments
+  adminComments: (params: {
+    q?: string;
+    author_id?: string;
+    post_id?: string;
+    is_deleted?: boolean;
+    limit?: number;
+  } = {}) => {
+    const search = new URLSearchParams();
+    Object.entries(params).forEach(([key, value]) => {
+      if (value !== undefined && value !== null && value !== '') search.set(key, String(value));
+    });
+    return request<AdminCommentItem[]>(`/api/admin/comments${search.size ? `?${search.toString()}` : ''}`);
+  },
+  adminHideComment: (id: string) =>
+    request<{ success: boolean; comment_id: string }>(`/api/admin/comments/${id}/hide`, { method: 'POST' }),
+  adminRestoreComment: (id: string) =>
+    request<{ success: boolean; comment_id: string }>(`/api/admin/comments/${id}/restore`, { method: 'POST' }),
+  adminDeleteComment: (id: string) =>
+    request<{ success: boolean }>(`/api/admin/comments/${id}`, { method: 'DELETE' }),
+
+  // Communities
+  adminCommunities: (params: {
+    q?: string;
+    is_banned?: boolean;
+    type?: string;
+    sort?: 'new' | 'members' | 'posts';
+    limit?: number;
+  } = {}) => {
+    const search = new URLSearchParams();
+    Object.entries(params).forEach(([key, value]) => {
+      if (value !== undefined && value !== null && value !== '') search.set(key, String(value));
+    });
+    return request<AdminCommunityItem[]>(`/api/admin/communities${search.size ? `?${search.toString()}` : ''}`);
+  },
+  adminBanCommunity: (id: string, reason: string) =>
+    request<{ success: boolean }>(`/api/admin/communities/${id}/ban`, { method: 'POST', body: JSON.stringify({ reason }) }),
+  adminUnbanCommunity: (id: string) =>
+    request<{ success: boolean }>(`/api/admin/communities/${id}/unban`, { method: 'POST' }),
+
+  // Hashtags
+  adminHashtags: (params: { q?: string; sort?: 'popular' | 'new' | 'alpha'; limit?: number } = {}) => {
+    const search = new URLSearchParams();
+    Object.entries(params).forEach(([key, value]) => {
+      if (value !== undefined && value !== null && value !== '') search.set(key, String(value));
+    });
+    return request<AdminHashtagItem[]>(`/api/admin/hashtags${search.size ? `?${search.toString()}` : ''}`);
+  },
+  adminDeleteHashtag: (id: string) =>
+    request<{ success: boolean }>(`/api/admin/hashtags/${id}`, { method: 'DELETE' }),
+
+  // Analytics
+  adminTimeseries: (days: number) =>
+    request<AdminTimeseries>(`/api/admin/analytics/timeseries?days=${days}`),
+  adminTop: () => request<AdminTopResponse>('/api/admin/analytics/top'),
+  adminModerationAnalytics: (days: number) =>
+    request<AdminModerationAnalytics>(`/api/admin/analytics/moderation?days=${days}`),
+
+  // Sessions
+  adminSessions: (params: { limit?: number; q?: string; status?: 'all' | 'active' | 'revoked' } = { limit: 100 }) => {
+    const search = new URLSearchParams();
+    if (params.limit) search.set('limit', String(params.limit));
+    if (params.q) search.set('q', params.q);
+    if (params.status && params.status !== 'all') search.set('status', params.status);
+    return request<AdminSessionItem[]>(`/api/admin/sessions${search.size ? `?${search.toString()}` : ''}`);
+  },
+  adminRevokeSession: (id: string) =>
+    request<{ success: boolean }>(`/api/admin/sessions/${id}`, { method: 'DELETE' }),
+  adminRevokeUserSessions: (userId: string) =>
+    request<{ success: boolean; revoked: number }>(`/api/admin/users/${userId}/sessions/revoke-all`, { method: 'POST' }),
+
+  // System
+  adminSystem: () => request<AdminSystemHealth>('/api/admin/system'),
 };

@@ -54,7 +54,7 @@ export function HashtagPage() {
       <div className="space-y-5 p-3 sm:p-4">
         {query.data.related.length ? (
           <div className="flex flex-wrap gap-2">
-            {query.data.related.map((tag) => <Link key={tag.id} to={`/hashtag/${tag.name}`} className="rounded-lg bg-white px-3 py-2 text-sm font-black text-[#FF6B00] dark:bg-zinc-950">#{tag.name}</Link>)}
+            {query.data.related.map((tag) => <Link key={tag.id} to={`/hashtag/${tag.name}`} className="rounded-xl bg-white px-3 py-2 text-sm font-black text-[#FF6B00] dark:bg-zinc-950">#{tag.name}</Link>)}
           </div>
         ) : null}
         {query.data.posts.length ? query.data.posts.map((post) => <PostCard key={post.id} post={post} />) : <EmptyState title={t('hashtag.empty')} />}

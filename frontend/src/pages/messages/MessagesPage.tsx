@@ -536,7 +536,7 @@ export function MessagesPage() {
                   ))}
                 </div>
               ) : (
-                <p className="rounded-lg bg-gray-50 p-3 text-sm font-bold text-gray-400 dark:bg-zinc-900">{t('messages.media_empty')}</p>
+                <p className="rounded-xl bg-gray-50 p-3 text-sm font-bold text-gray-400 dark:bg-zinc-900">{t('messages.media_empty')}</p>
               )}
             </section>
             <div className="flex justify-end border-t border-gray-100 pt-4 dark:border-zinc-800">
@@ -619,7 +619,7 @@ function ChatListSkeleton() {
   return (
     <div className="space-y-1 p-3">
       {Array.from({ length: 6 }).map((_, index) => (
-        <div key={index} className="flex items-center gap-3 rounded-2xl px-2 py-3">
+        <div key={index} className="flex items-center gap-3 rounded-xl px-2 py-3">
           <Skeleton className="h-12 w-12 shrink-0 rounded-xl" />
           <div className="min-w-0 flex-1 space-y-2">
             <Skeleton className="h-4 w-3/5 rounded-full" />
@@ -635,11 +635,11 @@ function MessageThreadSkeleton() {
   return (
     <div className="messages-thread">
       <Skeleton className="mx-auto h-7 w-32 rounded-full" />
-      <Skeleton className="h-11 w-60 rounded-2xl" />
-      <Skeleton className="ml-auto h-11 w-52 rounded-2xl" />
-      <Skeleton className="h-28 w-72 rounded-2xl" />
-      <Skeleton className="ml-auto h-11 w-64 rounded-2xl" />
-      <Skeleton className="h-11 w-56 rounded-2xl" />
+      <Skeleton className="h-11 w-60 rounded-xl" />
+      <Skeleton className="ml-auto h-11 w-52 rounded-xl" />
+      <Skeleton className="h-28 w-72 rounded-xl" />
+      <Skeleton className="ml-auto h-11 w-64 rounded-xl" />
+      <Skeleton className="h-11 w-56 rounded-xl" />
     </div>
   );
 }

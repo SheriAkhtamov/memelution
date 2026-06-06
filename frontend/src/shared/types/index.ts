@@ -227,3 +227,95 @@ export interface TrendResponse {
   popular_authors: User[];
   popular_polls: Post[];
 }
+
+export interface AdminPostItem extends Post {
+  is_deleted: boolean;
+  is_pinned: boolean;
+  visibility: string;
+}
+
+export interface AdminCommentItem {
+  id: string;
+  post_id: string;
+  author?: User | null;
+  text: string;
+  likes_count: number;
+  is_deleted: boolean;
+  hidden_by_moderator: boolean;
+  parent_comment_id?: string | null;
+  created_at: string;
+  post_text?: string;
+}
+
+export interface AdminCommunityItem extends Community {
+  is_banned: boolean;
+  is_featured: boolean;
+  owner?: User | null;
+}
+
+export interface AdminHashtagItem {
+  id: string;
+  name: string;
+  posts_count: number;
+  created_at: string;
+}
+
+export interface AdminSessionItem {
+  id: string;
+  user_id?: string | null;
+  user?: User | null;
+  user_agent?: string | null;
+  ip_address?: string | null;
+  is_revoked: boolean;
+  is_current?: boolean;
+  created_at: string;
+  expires_at?: string | null;
+}
+
+export interface AdminTimeseries {
+  days: string[];
+  users: number[];
+  posts: number[];
+  comments: number[];
+  reports: number[];
+}
+
+export interface AdminTopResponse {
+  top_posts: Post[];
+  top_users: User[];
+  top_communities: Community[];
+  top_report_reasons: Array<{ reason: string; count: number }>;
+}
+
+export interface AdminModerationAnalytics {
+  by_action: Array<{ action: string; count: number }>;
+  by_target: Array<{ target_type: string; count: number }>;
+  by_moderator: Array<{ moderator: User | null; count: number }>;
+}
+
+export interface AdminSystemHealth {
+  environment: string;
+  app_name: string;
+  version: string;
+  active_sessions: number;
+  revoked_sessions: number;
+  sessions_today: number;
+  new_users_today: number;
+  new_users_week: number;
+  new_posts_today: number;
+  new_comments_today: number;
+  total_users: number;
+  total_posts: number;
+  total_communities: number;
+  banned_users: number;
+  restricted_users: number;
+  banned_communities: number;
+  open_reports: number;
+  resolved_reports_week: number;
+  mod_actions_week: number;
+  server_time: string;
+  uptime: string;
+  python_version: string;
+  database: string;
+  checks: Array<{ name: string; ok: boolean; detail?: string }>;
+}

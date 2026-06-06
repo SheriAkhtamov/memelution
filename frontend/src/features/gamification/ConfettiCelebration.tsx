@@ -119,7 +119,7 @@ export function ConfettiCelebration({
           role="status"
           aria-live="polite"
         >
-          <div className="pointer-events-auto rounded-2xl border border-orange-200 bg-white/95 px-8 py-5 text-center shadow-2xl backdrop-blur dark:border-orange-900 dark:bg-zinc-950/95">
+          <div className="pointer-events-auto rounded-xl border border-orange-200 bg-white/95 px-8 py-5 text-center shadow-2xl backdrop-blur dark:border-orange-900 dark:bg-zinc-950/95">
             <span className="mb-2 block text-3xl" aria-hidden>🏆</span>
             <p className="text-lg font-black text-[#FF6B00]">{title}</p>
             {description && <p className="mt-1 text-sm text-gray-500 dark:text-zinc-400">{description}</p>}
